@@ -1,0 +1,12 @@
+node_modules/
+.next/
+.npm-cache/
+.tmp/
+.qloo/
+.env
+.env.local
+.env.*.local
+*.db
+*.db-journal
+spike-results/
+.DS_Store

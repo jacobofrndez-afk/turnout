@@ -141,9 +141,14 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
           </section>
 
           <section className="mt-4 flex flex-wrap items-center gap-3">
-            <button disabled className="rounded-md px-5 py-3 font-medium opacity-60" style={{ background: "var(--accent)" }} title="Agent drafting arrives in the next step">
-              Draft the campaign (agent, next step)
-            </button>
+            <form action="/api/campaigns" method="post">
+              <input type="hidden" name="merchant" value={merchant.id} />
+              <input type="hidden" name="event" value={event.id} />
+              {sp.pick && <input type="hidden" name="pick" value={sp.pick} />}
+              <button className="rounded-md px-5 py-3 font-medium text-white" style={{ background: "var(--accent)" }}>
+                Draft the campaign with the agent
+              </button>
+            </form>
             <p className="text-xs" style={{ color: "var(--muted)" }}>Qloo calls: {profile.qlooCalls.live} live, {profile.qlooCalls.cached} cached.</p>
           </section>
         </>

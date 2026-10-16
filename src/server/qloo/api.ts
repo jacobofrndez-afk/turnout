@@ -1,0 +1,130 @@
+// Direct Qloo API client (hackathon base URL). Used for what the harness workflows do not expose:
+// point + radius place queries, shortlist affinity, tag lookups. Every call is cached.
+import { cacheGet, cacheSet } from "@/server/db/client";
+import { requireEnv } from "@/server/env";
+
+export type QlooEntity = {
+  entity_id: string;
+  name: string;
+  subtype?: string;
+  popularity?: number;
+  affinity?: number;
+  query?: { affinity?: number; explainability?: unknown };
+  properties?: Record<string, unknown>;
+  tags?: { id?: string; tag_id?: string; name: string; type?: string }[];
+  disambiguation?: string;
+};
+
+export type QlooTag = { tag_id?: string; id?: string; name: string; subtype?: string; type?: string; query?: { affinity?: number } };
+
+export type Demographics = {
+  age: Record<"24_and_younger" | "25_to_29" | "30_to_34" | "35_to_44" | "45_to_54" | "55_and_older", number>;
+  gender: { male: number; female: number };
+};
+
+export type QlooCall = { path: string; params: Record<string, string>; status: number; durationMs: number; cacheHit: boolean; resultCount: number };
+
+const DEFAULT_TTL = 7 * 24 * 3600;
+
+export async function qlooGet<T = unknown>(
+  path: string,
+  params: Record<string, string>,
+  opts: { ttl?: number; onCall?: (c: QlooCall) => void } = {},
+): Promise<T> {
+  const t0 = Date.now();
+  const cached = cacheGet<T>("qloo", { path, params });
+  if (cached !== undefined) {
+    opts.onCall?.({ path, params, status: 200, durationMs: Date.now() - t0, cacheHit: true, resultCount: countResults(cached) });
+    return cached;
+  }
+  const base = process.env.QLOO_BASE_URL ?? "https://hackathon.api.qloo.com";
+  let res: Response | undefined;
+  let body: T = {} as T;
+  // The hackathon key rate-limits bursts (HTTP 429). Retry a few times with backoff.
+  for (let attempt = 0; attempt < 4; attempt++) {
+    res = await fetch(`${base}${path}?${new URLSearchParams(params)}`, { headers: { "X-Api-Key": requireEnv("QLOO_API_KEY") } });
+    body = (await res.json().catch(() => ({}))) as T;
+    if (res.status !== 429) break;
+    await new Promise((r) => setTimeout(r, 800 * 2 ** attempt));
+  }
+  if (!res) throw new Error("Qloo request failed before any response");
+  const call: QlooCall = { path, params, status: res.status, durationMs: Date.now() - t0, cacheHit: false, resultCount: countResults(body) };
+  opts.onCall?.(call);
+  if (!res.ok) throw new Error(`Qloo ${path} HTTP ${res.status}: ${JSON.stringify(body).slice(0, 200)}`);
+  cacheSet("qloo", { path, params }, body, opts.ttl ?? DEFAULT_TTL);
+  return body;
+}
+
+function countResults(body: unknown): number {
+  const r = (body as { results?: unknown })?.results as Record<string, unknown> | unknown[] | undefined;
+  if (Array.isArray(r)) return r.length;
+  if (r && typeof r === "object") {
+    for (const k of ["entities", "tags", "demographics", "heatmap", "trending", "audiences"]) {
+      const v = (r as Record<string, unknown>)[k];
+      if (Array.isArray(v)) return v.length;
+    }
+  }
+  return 0;
+}
+
+type Opts = { onCall?: (c: QlooCall) => void };
+
+export async function searchEntities(query: string, types?: string[], opts: Opts = {}): Promise<QlooEntity[]> {
+  const params: Record<string, string> = { query, take: "6" };
+  if (types?.length) params.types = types.map((t) => `urn:entity:${t}`).join(",");
+  const body = await qlooGet<{ results?: QlooEntity[] }>("/search", params, opts);
+  return body.results ?? [];
+}
+
+export async function tasteTags(entityId: string, o: { parentTypes?: string[]; tagTypes?: string[]; take?: number } = {}, opts: Opts = {}): Promise<QlooTag[]> {
+  const params: Record<string, string> = { "filter.type": "urn:tag", "signal.interests.entities": entityId, take: String(o.take ?? 20) };
+  if (o.parentTypes?.length) params["filter.parents.types"] = o.parentTypes.map((t) => `urn:entity:${t}`).join(",");
+  if (o.tagTypes?.length) params["filter.tag.types"] = o.tagTypes.join(",");
+  const body = await qlooGet<{ results?: { tags?: QlooTag[] } }>("/v2/insights", params, opts);
+  return body.results?.tags ?? [];
+}
+
+export async function demographics(entityId: string, opts: Opts = {}): Promise<Demographics | undefined> {
+  const body = await qlooGet<{ results?: { demographics?: { entity_id: string; query: Demographics }[] } }>(
+    "/v2/insights",
+    { "filter.type": "urn:demographics", "signal.interests.entities": entityId },
+    opts,
+  );
+  return body.results?.demographics?.[0]?.query;
+}
+
+export async function recommend(
+  targetType: string,
+  o: { entities?: string[]; tags?: string[]; location?: { lat: number; lon: number; radiusM: number }; filterTags?: string[]; take?: number; explain?: boolean },
+  opts: Opts = {},
+): Promise<QlooEntity[]> {
+  const params: Record<string, string> = { "filter.type": `urn:entity:${targetType}`, take: String(o.take ?? 15) };
+  if (o.entities?.length) params["signal.interests.entities"] = o.entities.join(",");
+  if (o.tags?.length) params["signal.interests.tags"] = o.tags.join(",");
+  if (o.location) {
+    params["filter.location"] = `POINT(${o.location.lon} ${o.location.lat})`;
+    params["filter.location.radius"] = String(o.location.radiusM);
+  }
+  if (o.filterTags?.length) params["filter.tags"] = o.filterTags.join(",");
+  if (o.explain) params["feature.explainability"] = "true";
+  const body = await qlooGet<{ results?: { entities?: QlooEntity[] } }>("/v2/insights", params, opts);
+  return body.results?.entities ?? [];
+}
+
+// Affinity of a fixed shortlist toward the signals (the "rank" job).
+export async function rankShortlist(targetType: string, optionIds: string[], signalEntities: string[], opts: Opts = {}): Promise<QlooEntity[]> {
+  const body = await qlooGet<{ results?: { entities?: QlooEntity[] } }>(
+    "/v2/insights",
+    { "filter.type": `urn:entity:${targetType}`, "signal.interests.entities": signalEntities.join(","), "filter.results.entities": optionIds.join(","), take: "20" },
+    opts,
+  );
+  return body.results?.entities ?? [];
+}
+
+export async function findTags(query: string, take = 8, opts: Opts = {}): Promise<QlooTag[]> {
+  const body = await qlooGet<{ results?: { tags?: QlooTag[] } | QlooTag[] }>("/v2/tags", { "filter.query": query, take: String(take) }, opts);
+  const r = body.results;
+  return Array.isArray(r) ? r : (r?.tags ?? []);
+}
+
+export const tagId = (t: QlooTag) => t.tag_id ?? t.id ?? "";

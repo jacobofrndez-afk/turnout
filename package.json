@@ -8,7 +8,9 @@
     "start": "next start",
     "spike": "node scripts/spike-qloo.mjs",
     "typecheck": "tsc --noEmit",
-    "explore": "node scripts/explore-api.mjs"
+    "explore": "node scripts/explore-api.mjs",
+    "seed": "tsx scripts/seed.ts",
+    "radar": "tsx scripts/radar.ts"
   },
   "license": "MIT",
   "type": "module",

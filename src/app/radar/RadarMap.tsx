@@ -9,7 +9,7 @@ export default function RadarMap({ merchant, points }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let map: { remove: () => void } | undefined;
+    let map: LeafletMap | undefined;
     let cancelled = false;
     (async () => {
       await loadLeaflet();

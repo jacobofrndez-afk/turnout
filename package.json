@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "explore": "node scripts/explore-api.mjs",
     "seed": "tsx scripts/seed.ts",
-    "radar": "tsx scripts/radar.ts"
+    "radar": "tsx scripts/radar.ts",
+    "crowd": "tsx scripts/crowd.ts"
   },
   "license": "MIT",
   "type": "module",

@@ -7,6 +7,7 @@ export type QlooEntity = {
   entity_id: string;
   name: string;
   subtype?: string;
+  types?: string[]; // /search returns types[] instead of subtype
   popularity?: number;
   affinity?: number;
   query?: { affinity?: number; explainability?: unknown };
@@ -73,7 +74,8 @@ export async function searchEntities(query: string, types?: string[], opts: Opts
   const params: Record<string, string> = { query, take: "6" };
   if (types?.length) params.types = types.map((t) => `urn:entity:${t}`).join(",");
   const body = await qlooGet<{ results?: QlooEntity[] }>("/search", params, opts);
-  return body.results ?? [];
+  // Normalise: search results carry types[] while insights carry subtype.
+  return (body.results ?? []).map((e) => ({ ...e, subtype: e.subtype ?? e.types?.find((t) => t.startsWith("urn:entity:")) }));
 }
 
 export async function tasteTags(entityId: string, o: { parentTypes?: string[]; tagTypes?: string[]; take?: number } = {}, opts: Opts = {}): Promise<QlooTag[]> {

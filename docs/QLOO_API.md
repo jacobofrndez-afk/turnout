@@ -84,3 +84,18 @@ Useful knobs:
 ## 7. Rules
 
 Group affinities, not individuals. No personal data sent to Qloo. Key server-side only. Private caching allowed. Do not publish raw Qloo data in the repo.
+
+## 8. Verified live on 2026-10-16 (hackathon key)
+
+- `/search`, `/entities`, `urn:tag`, `urn:demographics`, recommendations for brand/artist/place/podcast/movie, `urn:heatmap`, `/v2/tags`, `/v2/tags/types`, `/v2/audiences`, `/v2/audiences/types`, `/v2/trending`, `/v2/analysis/compare`: all return 200 with data.
+- Harry Styles demographics: 25-29 +0.75, 24 and younger +0.42, 35-44 -0.72, female +0.72. Knicks: male +0.56, 55+ +0.26. Rangers: 30-34 +0.19, 45-54 +0.15.
+- Place radius works: `filter.location=POINT(lon lat)` + `filter.location.radius=1500` returns 20 places. Without a tag filter you get tourist attractions; add `filter.tags=urn:tag:genre:place:restaurant:bar` for bars (the URN `urn:tag:genre:place:bar` returns nothing).
+- The same 1.5 km bar query ranks differently per crowd: Styles fans → Igloo Bar, 230 Fifth, Social Drink & Food; Knicks fans → Igloo Bar, Blue Haven East, VALERIE, Smithfield Hall. That difference is the product.
+- `filter.results.entities` on a shortlist of nearby bars returns per-bar affinity (0.69 to 0.83): this is how we rank a merchant against the crowd.
+- Place entities carry hours per weekday, phone, website, address, geocode (neighbourhood), images, `good_for` tags, review keywords, and ~45 tag namespaces (ambience, noise_level, beverage_offering, cost_description, time_of_day_fit, visit_intent, age_range...).
+- Brand entities carry rich marketing properties: target_age_group, target_income_level, customer_segments, emotional_tone, situational_contexts, interest_adjacencies, similar/competitor brands, price range USD.
+- `signal.location.query=Chelsea, New York` with `urn:tag` returns the taste profile of a neighbourhood (Stylish, Intimate, Foodies, Business Professionals...).
+- `/v2/trending` requires `signal.interests.entities`; weekly points over 180 days came back (27 rows). Values were flat for both test entities.
+- `/v2/analysis/compare` returns `results.a` and `results.b` tag lists (31 vs 3 tags for Styles vs Knicks) and an empty `tags` array; no numeric delta.
+- MCP workflows: passing a name like "Harry Styles" to `recommend`/`rank`/`compare_audiences` yields `needs_input` with candidates (person, artist, album, author). Pass the UUID from `describe` and everything resolves. `recommend` only supports `filter_location` as a locality name (no radius); `include_tags` accepts tag URNs.
+- Explainability is on by default in the harness and available raw via `feature.explainability=true`.

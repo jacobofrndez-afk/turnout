@@ -163,6 +163,10 @@ Classes match `globals.css`; see `index.html` for the live versions.
 - Status never by colour alone: badges have words, rings have numbers, venues have labels.
 - `lang` follows the merchant's locale. Italic amber emphasis is decoration unless it changes meaning.
 
+## Alternative palettes
+
+`palettes.json` holds five complete token sets with the same names as `tokens.css` (current, Qloo-inspired violet, Ticketmaster-inspired blue on a cool neutral, the Qloo x Ticketmaster blend with indigo-navy ink, and bottle green), each with computed contrast ratios. Any of them can replace the `:root` colour block. The visual comparison is `design/logo/radar.html`, section B; the recommended pairing for the jury is direction 01 in the blend (P4).
+
 ## 12. Changes from the current app
 
 Existing names kept: paper, panel, panel-2, line, line-strong, ink, text, muted, accent, accent-ink, accent-soft, ok, ok-soft, warn, warn-soft, danger, danger-soft, radius, shadow. Values unchanged.

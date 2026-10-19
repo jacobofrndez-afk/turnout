@@ -58,3 +58,36 @@ The count is strong but has no place in it. The crowd fails the header. Under th
 - Curves at 16 px (02, 06) are anti-aliased; only straight strokes on even units are pixel-exact.
 - 06 positions the dot from measured font metrics, so a different Fraunces build or a fallback font moves it. A React version should render the dot inside the same inline element as the text, with `position: absolute; left: 1.64em; bottom: 0`.
 - Stroke weights at 24 px (1.8 px) and 32 px (2.4 px) are anti-aliased, as with any logo.
+
+---
+
+# Second sheet: radar directions and primary colour (`radar.html`)
+
+Founder feedback: the six directions felt abstract; he wanted marks built on the product's first screen (the radar: map, dashed radius, venues as dots, hot ones in accent), alternative primary colours including Qloo and Ticketmaster translations, and a result that reads professional. Same frames as the first sheet, same stroke logic, same honesty line.
+
+## 07 The sweep
+Quarter sector at (6, 24) r 16, filled with the soft tint, only the outer arc stroked, five field dots, the lit one r 2.6 deep in the sector. Elegant because the sector is a tint, not a blade. 16 px: arc 2 px, two dots, tint kept (fills survive where strokes do not). Needs three colours; the field dots are decoration at small sizes.
+
+## 08 Rings and a door
+Dashed ring r 13.5 (dash 3, gap 2.6, butt caps), the doorway glyph at the centre, two dots on the ring, the accent dot inside it on its way in. The fullest story and the most fragile: at 16 px it becomes a solid ring, a 3 px block and a dot, a different drawing, declared on the sheet. At 20 px the door is 5 px wide and reads as a block.
+
+## 09 The map
+Three solid 7-unit blocks around a crossing, dashed ring r 14, the accent dot on the fourth corner. Your corner of the city. Solid shapes keep it crisp at 16 px (ring goes solid). Heavy beside a light serif; can read as a window at 24 px.
+
+## 10 Signal
+Ink point r 3.2 and two accent arcs r 7 and 12, 76 degrees wide, equal 2.6 gaps. The simplest radar. Passes every test; generic (wifi, podcast, sonar live here), so the wordmark carries the brand.
+
+## 11 Venue and bar
+Arena: light circle r 6.5 at (9, 9); bar: ink square 6 at (23, 23); dotted diagonal path; accent dot r 2.4 at the midpoint. The product in one glyph. Passes the header; at 16 px the path goes. Abstract until explained; diagonal marks sit less well on a baseline.
+
+## Palettes (`../brand/palettes.json`, token names as in `tokens.css`)
+- P1 Current: paper, ink, amber #B4530A (accent as text 4.57 on paper, AA by a hair).
+- P2 Qloo-inspired: same warm neutrals, accent #5B4BD6 (5.59), accent-text #4A3BC2 (7.10). Gradient #6B4EFF to #2E8BFF allowed on the hero lockup only. Risk: lavender stationery; hot venues lose warmth.
+- P3 Ticketmaster-inspired: cool neutral #F5F6F8, ink #121417, accent #0A66D0 (5.08), accent-text #0556B8 (6.41). The pro palette, shown also on warm paper. Risk: default B2B look, the warmth goes.
+- P4 Qloo x Ticketmaster: ink #1B1F3B (indigo-navy), accent #4A56E2 (5.14), accent-text #3B47CF (6.40), warm paper kept, amber kept only as the hot data colour. The two worlds meet as ink (Ticketmaster's seriousness) and signal (Qloo's intelligence) on our paper. Risk: three hues need discipline; amber stays inside charts and maps.
+- P5 Bottle green (mine): warm neutrals, accent #1F5B47 (7.23, AAA), accent-text #1A4F3D (8.58), amber as hot. Premium and institutional, a hotel bar. Risk: collides with the ok colour (palettes.json quiets ok to #2B6F8E) and reads seasonal with amber at size.
+
+## Pairings, ranked
+1. 01 Threshold x P4 The blend: serious to the investor and the CTO, warm to the entertainer and the operator, amber alive on the radar for the Live Nation executive. This is what I would ship for the jury.
+2. 11 Venue and bar x P3 Pro blue: the most professional combination, the warmth gone; the pitch-deck alternate.
+3. 01 Threshold x P5 Bottle green: premium and warm, distinctive among blue SaaS; the ok colour needs a rethink.

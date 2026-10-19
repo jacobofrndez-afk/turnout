@@ -1,7 +1,8 @@
 // Seeds two demo merchants (New York, Paris) with offers whose Qloo tags are resolved once via /v2/tags.
 // Contacts are fictional; the phone numbers are placeholders replaced by DEMO_WHATSAPP_TO at send time.
 import { getDb } from "./client";
-import { findTags, tagId } from "@/server/qloo/api";
+import { findTags } from "@/server/qloo/api";
+import { rankTagCandidates } from "@/server/qloo/tags";
 
 type SeedOffer = { id: string; title: string; description: string; price: string; concepts: string[] };
 type SeedMerchant = {
@@ -61,28 +62,7 @@ export const MERCHANTS: SeedMerchant[] = [
 
 const CONTACT_NAMES = ["Alex", "Sam", "Jordan", "Camille", "Robin", "Noa"];
 
-// Prefer generic place-level tags whose name matches the concept; avoid long-tail specialty dishes.
-const PREFERRED_NAMESPACES = ["urn:tag:genre:place", "urn:tag:offerings:place", "urn:tag:beverage_offering:qloo", "urn:tag:cuisine:qloo", "urn:tag:ambience:qloo", "urn:tag:category:place", "urn:tag:dining_option:qloo"];
-export function pickTag(concept: string, tags: QlooTagLike[]): QlooTagLike | undefined {
-  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-  const c = norm(concept);
-  const scored = tags
-    .map((t) => {
-      const id = tagId(t);
-      const ns = id.split(":").slice(0, 4).join(":");
-      let s = 0;
-      if (norm(t.name) === c) s += 10;
-      else if (norm(t.name).includes(c) || c.includes(norm(t.name))) s += 5;
-      const pref = PREFERRED_NAMESPACES.indexOf(ns);
-      if (pref >= 0) s += 6 - pref * 0.5;
-      if (/specialty_dish|menu_highlight|keyword/.test(id)) s -= 4;
-      if (id.length > 70) s -= 3;
-      return { t, s };
-    })
-    .sort((a, b) => b.s - a.s);
-  return scored[0]?.t;
-}
-type QlooTagLike = { tag_id?: string; id?: string; name: string };
+
 
 export async function seed(): Promise<void> {
   const db = getDb();
@@ -109,9 +89,9 @@ export async function seed(): Promise<void> {
       const names: string[] = [];
       for (const concept of o.concepts) {
         const tags = await findTags(concept, 8);
-        const pick = pickTag(concept, tags);
+        const pick = rankTagCandidates(concept, tags)[0];
         if (pick) {
-          urns.push(tagId(pick));
+          urns.push(pick.id);
           names.push(pick.name);
         }
       }

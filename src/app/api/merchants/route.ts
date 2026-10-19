@@ -1,0 +1,18 @@
+import { NextResponse } from "next/server";
+import { createMerchantFromForm } from "@/server/merchants/onboarding";
+
+export const dynamic = "force-dynamic";
+
+export async function POST(req: Request) {
+  const form = await req.formData();
+  const result = await createMerchantFromForm({
+    name: String(form.get("name") ?? ""),
+    kind: String(form.get("kind") ?? "bar"),
+    address: String(form.get("address") ?? ""),
+    voice: String(form.get("voice") ?? ""),
+    channels: form.getAll("channels").map(String),
+    offersText: String(form.get("offers") ?? ""),
+  });
+  if ("error" in result) return NextResponse.redirect(new URL(`/start?error=${encodeURIComponent(result.error)}`, req.url), 303);
+  return NextResponse.redirect(new URL(`/start/confirm?merchant=${result.merchantId}`, req.url), 303);
+}

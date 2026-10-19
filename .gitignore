@@ -11,3 +11,4 @@ node_modules/
 spike-results/
 .DS_Store
 data/
+docs/internal/

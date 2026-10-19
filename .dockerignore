@@ -1,0 +1,15 @@
+node_modules
+.next
+.npm-cache
+.tmp
+.qloo
+.env
+.env.local
+.env.*.local
+data
+spike-results
+design
+docs
+scripts
+*.db
+.git

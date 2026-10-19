@@ -4,6 +4,7 @@ import { getCampaign, getDraft, getProvenance, pollOperatorDraft, provider, INBO
 import { getMerchant } from "@/server/events/radar";
 import { getEvent, getOffers } from "@/server/qloo/crowd";
 import { relative } from "node:path";
+import { getSends, CHANNEL_LABEL, type ChannelId } from "@/server/channels";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   const offers = getOffers(merchant.id);
   const offer = offers.find((o) => o.id === draft?.chosen_offer_id);
   const prov = getProvenance(campaign);
+  const sends = getSends(campaign.id);
   const fmt = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: merchant.timezone });
   const statusLabel: Record<string, string> = { drafted: "Draft ready", awaiting_operator: "Agent working", needs_input: "Needs your pick", approved: "Approved", sent: "Published", failed: "Failed" };
 
@@ -35,7 +37,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
             <button className="btn btn-primary">Approve and publish →</button>
           </form>
         )}
-        {campaign.status === "approved" && <span className="chip" style={{ background: "var(--ok-soft)", color: "var(--ok)", borderColor: "transparent" }}>Approved · channels go live in phase 3</span>}
+        {(campaign.status === "approved" || campaign.status === "sent") && <span className="chip" style={{ background: "var(--ok-soft)", color: "var(--ok)", borderColor: "transparent" }}>Published · {sends.length} channels</span>}
       </header>
 
       {campaign.status === "awaiting_operator" && (
@@ -54,6 +56,37 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
       {campaign.status === "failed" && (
         <section className="card mt-8 p-6" style={{ borderColor: "var(--danger)" }}>
           <p className="text-sm">The agent failed: {campaign.rationale}</p>
+        </section>
+      )}
+
+      {sends.length > 0 && (
+        <section className="card mt-8 p-5" style={{ borderColor: "var(--ok)" }}>
+          <p className="eyebrow">Published</p>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+            {sends.map((s) => {
+              const payload = s.payload_json ? (JSON.parse(s.payload_json) as Record<string, unknown>) : {};
+              const real = !s.simulated && s.status === "sent";
+              return (
+                <li key={s.id} className="card-flat p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold" style={{ color: "var(--ink)" }}>{CHANNEL_LABEL[s.channel as ChannelId] ?? s.channel}</p>
+                    <span className="chip" style={real ? { background: "var(--ok-soft)", color: "var(--ok)", borderColor: "transparent" } : s.status.startsWith("failed") ? { background: "var(--danger-soft)", color: "var(--danger)", borderColor: "transparent" } : { background: "var(--warn-soft)", color: "var(--warn)", borderColor: "transparent" }}>
+                      {real ? "sent" : s.status}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs" style={{ color: "var(--muted)" }}>
+                    {typeof payload.to === "string" ? `To ${payload.to}. ` : ""}
+                    {typeof payload.status_note === "string" ? payload.status_note : ""}
+                    {s.provider_sid ? ` · ${s.provider_sid}` : ""}
+                  </p>
+                  <details className="mt-1">
+                    <summary className="cursor-pointer text-[11px]" style={{ color: "var(--accent)" }}>payload</summary>
+                    <pre className="mt-1 max-h-48 overflow-auto rounded-md p-2 text-[11px]" style={{ background: "var(--paper)" }}>{JSON.stringify(payload, null, 2)}</pre>
+                  </details>
+                </li>
+              );
+            })}
+          </ul>
         </section>
       )}
 

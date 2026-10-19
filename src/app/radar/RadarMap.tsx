@@ -20,14 +20,14 @@ export default function RadarMap({ merchant, points }: Props) {
         attribution: "&copy; OpenStreetMap contributors",
         maxZoom: 19,
       }).addTo(map);
-      L.circle([merchant.lat, merchant.lon], { radius: merchant.radiusM, color: "#7c5cff", weight: 1, fillOpacity: 0.08 }).addTo(map);
-      L.circleMarker([merchant.lat, merchant.lon], { radius: 7, color: "#fff", fillColor: "#7c5cff", fillOpacity: 1, weight: 2 })
+      L.circle([merchant.lat, merchant.lon], { radius: merchant.radiusM, color: "#17150f", weight: 1, dashArray: "4 4", fillColor: "#17150f", fillOpacity: 0.04 }).addTo(map);
+      L.circleMarker([merchant.lat, merchant.lon], { radius: 7, color: "#fff", fillColor: "#17150f", fillOpacity: 1, weight: 2 })
         .addTo(map)
         .bindTooltip(merchant.name, { permanent: true, direction: "top", offset: [0, -8] });
       for (const p of points) {
         const r = 5 + Math.sqrt(p.capacity) / 10;
         const hot = p.score >= 45;
-        L.circleMarker([p.lat, p.lon], { radius: Math.min(r, 28), color: hot ? "#34d399" : "#38bdf8", fillColor: hot ? "#34d399" : "#38bdf8", fillOpacity: hot ? 0.55 : 0.25, weight: 1 })
+        L.circleMarker([p.lat, p.lon], { radius: Math.min(r, 28), color: hot ? "#b4530a" : "#6b655b", fillColor: hot ? "#b4530a" : "#6b655b", fillOpacity: hot ? 0.45 : 0.18, weight: 1.2 })
           .addTo(map)
           .bindPopup(`<b>${escapeHtml(p.name)}</b><br/>${escapeHtml(p.venue)}<br/>~${p.capacity.toLocaleString("en-US")} people · score ${p.score}`);
       }
@@ -38,7 +38,7 @@ export default function RadarMap({ merchant, points }: Props) {
     };
   }, [merchant, points]);
 
-  return <div ref={ref} className="h-[520px] w-full rounded-lg" style={{ background: "var(--panel)", border: "1px solid var(--line)" }} />;
+  return <div ref={ref} className="h-[560px] w-full" style={{ background: "var(--panel-2)", borderRadius: "var(--radius)" }} />;
 }
 
 type LeafletLike = {

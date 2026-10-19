@@ -1,19 +1,158 @@
 @import "tailwindcss";
 
+/* Crowd to Campaign identity: warm paper background, editorial serif for titles,
+   precise sans for data, one amber accent. */
 :root {
-  --bg: #0b0d12;
-  --panel: #141821;
-  --line: #242a37;
-  --text: #e8ebf2;
-  --muted: #8b93a7;
-  --accent: #7c5cff;
-  --accent-2: #38bdf8;
-  --ok: #34d399;
-  --warn: #fbbf24;
+  --paper: #f7f4ee;
+  --panel: #ffffff;
+  --panel-2: #fbf9f5;
+  --line: #e4ded3;
+  --line-strong: #cfc7b8;
+  --ink: #17150f;
+  --text: #2a2721;
+  --muted: #6b655b;
+  --accent: #b4530a;
+  --accent-ink: #ffffff;
+  --accent-soft: #fbe9d9;
+  --ok: #1f7a4d;
+  --ok-soft: #e3f3ea;
+  --warn: #9a6400;
+  --warn-soft: #fff3d6;
+  --danger: #b42318;
+  --danger-soft: #fde8e6;
+  --radius: 14px;
+  --shadow: 0 1px 2px rgba(23, 21, 15, 0.04), 0 8px 24px -12px rgba(23, 21, 15, 0.18);
+}
+
+html {
+  background: var(--paper);
 }
 
 body {
-  background: var(--bg);
+  background: var(--paper);
   color: var(--text);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv11", "tnum";
+  -webkit-font-smoothing: antialiased;
 }
+
+.font-display {
+  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+
+h1, h2.display {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.card-flat {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 12px 22px;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--ink); color: #fff; }
+.btn-primary:hover { background: #2b2820; }
+.btn-accent { background: var(--accent); color: var(--accent-ink); }
+.btn-accent:hover { background: #9d4808; }
+.btn-ghost { background: transparent; color: var(--ink); border-color: var(--line-strong); }
+.btn-ghost:hover { background: var(--panel); }
+.btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+
+.field {
+  width: 100%;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  outline: none;
+}
+.field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.field::placeholder { color: #a39c8f; }
+
+.leaflet-container {
+  font-family: inherit;
+  filter: saturate(0.55) contrast(0.95);
+  border-radius: var(--radius);
+}
+.leaflet-tooltip {
+  font-family: var(--font-sans), sans-serif;
+  font-weight: 600;
+  border-radius: 8px;
+  border-color: var(--line-strong);
+}
+
+.score-ring {
+  --p: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--line) 0);
+}
+.score-ring > span {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--panel);
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+table.data th { font-weight: 600; color: var(--muted); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; text-align: left; padding: 6px 8px; }
+table.data td { padding: 8px; border-top: 1px solid var(--line); vertical-align: top; }

@@ -11,38 +11,38 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
   const event = sp.event ? getEvent(sp.event) : undefined;
   if (!merchant || !event) {
     return (
-      <main className="mx-auto max-w-3xl px-4 py-16">
-        <h1 className="text-2xl font-semibold">Missing merchant or event</h1>
-        <Link href="/radar" style={{ color: "var(--accent-2)" }}>Back to the radar</Link>
+      <main className="mx-auto max-w-3xl px-5 py-16">
+        <h1 className="text-3xl">Missing place or event</h1>
+        <Link href="/radar" className="underline">Back to the radar</Link>
       </main>
     );
   }
   const profile = await buildCrowdProfile(merchant, event, sp.pick);
   const demo = describeDemographics(profile.demographics);
   const fmt = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: merchant.timezone });
-  const panel = { background: "var(--panel)", border: "1px solid var(--line)" } as const;
+  const ageLabel = (k: string) => k.replace("24_and_younger", "<25").replace("55_and_older", "55+").replace("_to_", "-");
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8">
-      <Link href={`/radar?merchant=${merchant.id}`} className="text-sm" style={{ color: "var(--accent-2)" }}>← Radar</Link>
-      <header className="mt-2">
-        <p className="text-xs uppercase tracking-widest" style={{ color: "var(--accent-2)" }}>Crowd profile</p>
-        <h1 className="text-3xl font-semibold">{profile.headlinerName}</h1>
-        <p className="text-sm" style={{ color: "var(--muted)" }}>
+    <main className="mx-auto max-w-6xl px-5 py-10">
+      <Link href={`/radar?merchant=${merchant.id}`} className="text-sm" style={{ color: "var(--muted)" }}>← Radar</Link>
+      <header className="mt-3">
+        <p className="eyebrow">The crowd, through Qloo</p>
+        <h1 className="mt-1 text-4xl">{profile.headlinerName}</h1>
+        <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
           {event.name} · {event.venue_name} · {fmt.format(new Date(event.starts_at))} · for {merchant.name}
         </p>
       </header>
 
       {profile.status === "needs_input" && (
-        <section className="mt-6 rounded-lg p-4" style={{ ...panel, borderColor: "var(--warn)" }}>
-          <h2 className="font-medium">Which one is playing tonight?</h2>
-          <p className="text-sm" style={{ color: "var(--muted)" }}>Qloo found several entities named like “{profile.headlinerName}”. Pick the right one so the taste data is about the right crowd.</p>
-          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+        <section className="card mt-8 p-6" style={{ borderColor: "var(--warn)" }}>
+          <h2 className="display text-xl">Which one is playing tonight?</h2>
+          <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>Qloo knows several entities named like “{profile.headlinerName}”. Pick the right one so the taste data describes the right crowd.</p>
+          <ul className="mt-4 grid gap-2 sm:grid-cols-2">
             {profile.candidates.map((c) => (
               <li key={c.id}>
-                <Link href={`/campaigns/new?merchant=${merchant.id}&event=${event.id}&pick=${c.id}`} className="block rounded-md p-3 hover:opacity-90" style={panel}>
-                  <p className="font-medium">{c.name} <span className="text-xs" style={{ color: "var(--muted)" }}>{c.type.replace("urn:entity:", "")}</span></p>
-                  <p className="text-xs" style={{ color: "var(--muted)" }}>{c.description || "no description"} · popularity {((c.popularity ?? 0) * 100).toFixed(0)}%</p>
+                <Link href={`/campaigns/new?merchant=${merchant.id}&event=${event.id}&pick=${c.id}`} className="card-flat block p-4 hover:border-[var(--accent)]">
+                  <p className="font-semibold" style={{ color: "var(--ink)" }}>{c.name} <span className="chip ml-1">{c.type.replace("urn:entity:", "")}</span></p>
+                  <p className="mt-1 text-xs" style={{ color: "var(--muted)" }}>{c.description || "no description"} · popularity {((c.popularity ?? 0) * 100).toFixed(0)}%</p>
                 </Link>
               </li>
             ))}
@@ -51,48 +51,48 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
       )}
 
       {profile.status === "unresolved" && (
-        <section className="mt-6 rounded-lg p-4" style={{ ...panel, borderColor: "#7f1d1d" }}>
-          <h2 className="font-medium">Qloo does not know this headliner</h2>
-          <p className="text-sm" style={{ color: "var(--muted)" }}>No entity matched “{profile.headlinerName}”. The campaign can still run on the event's genre and venue, but without taste evidence.</p>
+        <section className="card mt-8 p-6" style={{ borderColor: "var(--danger)" }}>
+          <h2 className="display text-xl">Qloo does not know this headliner</h2>
+          <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>No entity matched “{profile.headlinerName}”. The campaign can still run on the event's genre and venue, but without taste evidence.</p>
         </section>
       )}
 
       {profile.entity && (
         <>
-          <section className="mt-6 grid gap-4 md:grid-cols-3">
-            <div className="rounded-lg p-4" style={panel}>
-              <h2 className="text-xs uppercase tracking-wider" style={{ color: "var(--muted)" }}>Resolved entity</h2>
-              <p className="mt-1 font-medium">{profile.entity.name}</p>
-              <p className="text-xs" style={{ color: "var(--muted)" }}>{profile.entity.subtype?.replace("urn:entity:", "")} · popularity {((profile.entity.popularity ?? 0) * 100).toFixed(1)}% · {profile.status === "auto" ? "matched automatically" : "picked by you"}</p>
+          <section className="mt-8 grid gap-4 md:grid-cols-3">
+            <div className="card p-5">
+              <p className="eyebrow">Resolved entity</p>
+              <p className="mt-2 font-display text-xl">{profile.entity.name}</p>
+              <p className="mt-1 text-xs" style={{ color: "var(--muted)" }}>{profile.entity.subtype?.replace("urn:entity:", "")} · popularity {((profile.entity.popularity ?? 0) * 100).toFixed(1)}% · {profile.status === "auto" ? "matched automatically" : "picked by you"}</p>
             </div>
-            <div className="rounded-lg p-4" style={panel}>
-              <h2 className="text-xs uppercase tracking-wider" style={{ color: "var(--muted)" }}>Who over-indexes</h2>
+            <div className="card p-5">
+              <p className="eyebrow">Who over-indexes</p>
               {demo ? (
                 <>
-                  <p className="mt-1 font-medium">{demo.ageTop.join(", ") || "no strong age skew"}</p>
-                  <p className="text-xs" style={{ color: "var(--muted)" }}>{demo.gender}{demo.ageLow.length ? ` · under-indexes: ${demo.ageLow.join(", ")}` : ""}</p>
+                  <p className="mt-2 font-display text-xl">{demo.ageTop.join(", ") || "no strong age skew"}</p>
+                  <p className="mt-1 text-xs" style={{ color: "var(--muted)" }}>{demo.gender}{demo.ageLow.length ? ` · under-indexes: ${demo.ageLow.join(", ")}` : ""}</p>
                 </>
               ) : (
-                <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>No demographic data for this entity.</p>
+                <p className="mt-2 text-sm" style={{ color: "var(--muted)" }}>No demographic data for this entity.</p>
               )}
             </div>
-            <div className="rounded-lg p-4" style={panel}>
-              <h2 className="text-xs uppercase tracking-wider" style={{ color: "var(--muted)" }}>Brands this crowd likes</h2>
-              <p className="mt-1 text-sm">{profile.brands.slice(0, 8).map((b) => b.name).join(" · ") || "—"}</p>
+            <div className="card p-5">
+              <p className="eyebrow">Brands this crowd likes</p>
+              <p className="mt-2 text-sm leading-relaxed">{profile.brands.slice(0, 8).map((b) => b.name).join(" · ") || "—"}</p>
             </div>
           </section>
 
           {profile.demographics && (
-            <section className="mt-4 rounded-lg p-4" style={panel}>
-              <h2 className="text-xs uppercase tracking-wider" style={{ color: "var(--muted)" }}>Age affinity (Qloo, relative to average; positive = over-index)</h2>
-              <div className="mt-3 grid grid-cols-6 gap-2 text-center text-xs">
+            <section className="card mt-4 p-5">
+              <p className="eyebrow">Age affinity · relative to average, positive means over-index</p>
+              <div className="mt-4 grid grid-cols-6 gap-3 text-center text-xs">
                 {Object.entries(profile.demographics.age).map(([k, v]) => (
                   <div key={k}>
                     <div className="mx-auto flex h-20 w-full items-end justify-center">
-                      <div className="w-8 rounded-sm" style={{ height: `${Math.min(100, Math.abs(v) * 100)}%`, background: v >= 0 ? "var(--ok)" : "#f87171", opacity: 0.85 }} />
+                      <div className="w-9 rounded-sm" style={{ height: `${Math.max(4, Math.min(100, Math.abs(v) * 100))}%`, background: v >= 0 ? "var(--accent)" : "var(--line-strong)" }} />
                     </div>
-                    <p className="mt-1" style={{ color: "var(--muted)" }}>{k.replace("_and_younger", "-").replace("_and_older", "+").replace("_to_", "-")}</p>
-                    <p>{v >= 0 ? "+" : ""}{v.toFixed(2)}</p>
+                    <p className="mt-1.5 font-semibold" style={{ color: "var(--ink)" }}>{ageLabel(k)}</p>
+                    <p className="tnum" style={{ color: "var(--muted)" }}>{v >= 0 ? "+" : ""}{v.toFixed(2)}</p>
                   </div>
                 ))}
               </div>
@@ -100,71 +100,67 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
           )}
 
           <section className="mt-4 grid gap-4 lg:grid-cols-2">
-            <div className="rounded-lg p-4" style={panel}>
-              <h2 className="text-xs uppercase tracking-wider" style={{ color: "var(--muted)" }}>Taste tags (places)</h2>
-              <div className="mt-2 flex flex-wrap gap-1.5">
+            <div className="card p-5">
+              <p className="eyebrow">Taste tags · places</p>
+              <div className="mt-3 flex flex-wrap gap-1.5">
                 {profile.tags.slice(0, 24).map((t) => (
-                  <span key={tagId(t)} className="rounded-full px-2 py-0.5 text-xs" style={{ background: "var(--bg)", border: "1px solid var(--line)" }} title={tagId(t)}>
-                    {t.name}
-                  </span>
+                  <span key={tagId(t)} className="chip" title={tagId(t)}>{t.name}</span>
                 ))}
               </div>
             </div>
-            <div className="rounded-lg p-4" style={panel}>
-              <h2 className="text-xs uppercase tracking-wider" style={{ color: "var(--muted)" }}>Bars within {merchant.radius_m} m this crowd likes</h2>
-              <ol className="mt-2 space-y-1 text-sm">
+            <div className="card p-5">
+              <p className="eyebrow">Bars within {merchant.radius_m} m this crowd already likes</p>
+              <ol className="mt-3 space-y-1.5 text-sm">
                 {profile.places.slice(0, 8).map((p) => (
                   <li key={p.entity_id} className="flex justify-between gap-2">
                     <span className="truncate">{p.name} <span className="text-xs" style={{ color: "var(--muted)" }}>{(p.properties?.geocode as { name?: string } | undefined)?.name}</span></span>
-                    <span style={{ color: "var(--ok)" }}>{(p.query?.affinity ?? 0).toFixed(2)}</span>
+                    <span className="tnum font-semibold" style={{ color: "var(--accent)" }}>{(p.query?.affinity ?? 0).toFixed(2)}</span>
                   </li>
                 ))}
               </ol>
             </div>
           </section>
 
-          <section className="mt-4 rounded-lg p-4" style={panel}>
-            <h2 className="text-xs uppercase tracking-wider" style={{ color: "var(--muted)" }}>Your offers against this crowd</h2>
-            <p className="text-xs" style={{ color: "var(--muted)" }}>Affinity of places carrying each offer's tags, near you, for this crowd. Higher = the crowd already seeks this kind of place around here.</p>
-            <table className="mt-2 w-full text-sm">
+          <section className="card mt-4 p-5">
+            <p className="eyebrow">Your offers against this crowd</p>
+            <p className="mt-1 text-xs" style={{ color: "var(--muted)" }}>Affinity of places carrying each offer's tags, near you, for this crowd. Higher means the crowd already seeks this kind of place around here. One signal among several; the agent decides with the demographics and brands too.</p>
+            <table className="data mt-3 w-full text-sm">
               <tbody>
                 {profile.offerFits.map((f, i) => (
-                  <tr key={f.offerId} style={{ borderTop: "1px solid var(--line)" }}>
-                    <td className="py-2 pr-2 font-medium">{i === 0 ? "★ " : ""}{f.title}</td>
-                    <td className="py-2 pr-2 text-xs" style={{ color: "var(--muted)" }}>{f.tagNames.join(", ")}</td>
-                    <td className="py-2 pr-2 text-xs" style={{ color: "var(--muted)" }}>e.g. {f.topPlaces.join(", ")}</td>
-                    <td className="py-2 text-right" style={{ color: "var(--ok)" }}>{f.affinity.toFixed(2)}</td>
+                  <tr key={f.offerId}>
+                    <td className="font-semibold" style={{ color: "var(--ink)" }}>{i === 0 ? "★ " : ""}{f.title}</td>
+                    <td className="text-xs" style={{ color: "var(--muted)" }}>{f.tagNames.join(", ")}</td>
+                    <td className="text-xs" style={{ color: "var(--muted)" }}>e.g. {f.topPlaces.join(", ")}</td>
+                    <td className="tnum text-right font-semibold" style={{ color: "var(--accent)" }}>{f.affinity.toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </section>
 
-          <section className="mt-4 flex flex-wrap items-center gap-3">
+          <section className="mt-6 flex flex-wrap items-center gap-4">
             <form action="/api/campaigns" method="post">
               <input type="hidden" name="merchant" value={merchant.id} />
               <input type="hidden" name="event" value={event.id} />
               {sp.pick && <input type="hidden" name="pick" value={sp.pick} />}
-              <button className="rounded-md px-5 py-3 font-medium text-white" style={{ background: "var(--accent)" }}>
-                Draft the campaign with the agent
-              </button>
+              <button className="btn btn-accent">Draft the campaign →</button>
             </form>
             <p className="text-xs" style={{ color: "var(--muted)" }}>Qloo calls: {profile.qlooCalls.live} live, {profile.qlooCalls.cached} cached.</p>
           </section>
         </>
       )}
 
-      <details className="mt-6 rounded-lg p-4" style={panel}>
-        <summary className="cursor-pointer text-sm font-medium">Provenance: {profile.provenance.length} steps</summary>
-        <table className="mt-3 w-full text-xs">
-          <thead style={{ color: "var(--muted)" }}>
-            <tr><th className="text-left">#</th><th className="text-left">Kind</th><th className="text-left">Workflow</th><th className="text-left">Status</th><th className="text-right">Results</th><th className="text-left pl-3">Source</th><th className="text-left pl-3">Note</th></tr>
+      <details className="card-flat mt-8 p-5">
+        <summary className="cursor-pointer text-sm font-semibold" style={{ color: "var(--ink)" }}>Provenance · {profile.provenance.length} steps</summary>
+        <table className="data mt-3 w-full text-xs">
+          <thead>
+            <tr><th>#</th><th>Kind</th><th>Workflow</th><th>Status</th><th className="text-right">Results</th><th>Source</th><th>Note</th></tr>
           </thead>
           <tbody>
             {profile.provenance.map((r) => (
-              <tr key={r.seq} style={{ borderTop: "1px solid var(--line)" }}>
-                <td className="py-1">{r.seq}</td><td>{r.kind}</td><td><code>{r.workflow}</code></td><td>{r.status}</td><td className="text-right">{r.resultCount}</td>
-                <td className="pl-3">{r.kind === "qloo" ? (r.cacheHit ? "cache" : "Qloo live") : "local"}</td><td className="pl-3" style={{ color: "var(--muted)" }}>{r.note}</td>
+              <tr key={r.seq}>
+                <td>{r.seq}</td><td>{r.kind}</td><td><code>{r.workflow}</code></td><td>{r.status}</td><td className="text-right">{r.resultCount}</td>
+                <td>{r.kind === "qloo" ? (r.cacheHit ? "cache" : "Qloo live") : "local"}</td><td style={{ color: "var(--muted)" }}>{r.note}</td>
               </tr>
             ))}
           </tbody>

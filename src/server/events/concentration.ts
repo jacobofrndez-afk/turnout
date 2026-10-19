@@ -45,7 +45,7 @@ const SEGMENT_DEFAULT: Record<string, number> = {
 };
 
 // Venue tours, exhibitions, museum tickets and the like are all-day trickles, not crowds.
-const NOT_A_CROWD = /tour experience|guided tour|visite|exposition|exhibition|entr[ée]e|billet|ticket d'entr|mus[ée]e|museum|aquarium|parking|hospitality|premium seating|vip package|meet and greet/i;
+const NOT_A_CROWD = /\btours?\b|tour experience|guided tour|visite|exposition|exhibition|entr[ée]e|billet|ticket d'entr|mus[ée]e|museum|aquarium|parking|hospitality|premium seating|vip package|meet and greet|post-game|pre-game|free throw|option tickets|opportunity|add-on|upgrade/i;
 
 export function isCrowdEvent(e: TmEvent): boolean {
   if (NOT_A_CROWD.test(e.name)) return false;

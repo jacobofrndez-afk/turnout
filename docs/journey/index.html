@@ -1,0 +1,351 @@
+<title>Turnout, parcours commerçant</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: one reading column, the journey as a numbered rail; each step = trigger, what the merchant sees, external calls, what it decides, build status. Turnout brand tokens. */
+:root{
+  --paper:#f7f4ee;--panel:#fffdf9;--ink:#17150f;--text:#2a2721;--muted:#6b655b;--line:#e4ded3;
+  --accent:#b4530a;--accent-text:#a54a07;--accent-soft:#fbe9d9;
+  --push:#0f6e56;--push-soft:#e1f5ee;
+  --done:#1f7a4d;--done-soft:#e3f3ea;--wip:#805300;--wip-soft:#fff3d6;--todo:#5f5a51;--todo-soft:#ece7dd;
+  --qloo:#534ab7;--qloo-soft:#eeedfe;
+  --display:"Fraunces",Georgia,"Times New Roman",serif;
+  --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#15130f;--panel:#1d1b16;--ink:#f3efe7;--text:#e3ddd2;--muted:#a59e91;--line:#353128;
+  --accent:#e08a45;--accent-text:#f0a467;--accent-soft:#3a2615;
+  --push:#5dcaa5;--push-soft:#0e2f27;
+  --done:#6fcf97;--done-soft:#143022;--wip:#f0c25a;--wip-soft:#3a2d0e;--todo:#b9b2a5;--todo-soft:#2a2720;
+  --qloo:#b8b2f0;--qloo-soft:#26214a;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#15130f;--panel:#1d1b16;--ink:#f3efe7;--text:#e3ddd2;--muted:#a59e91;--line:#353128;
+  --accent:#e08a45;--accent-text:#f0a467;--accent-soft:#3a2615;
+  --push:#5dcaa5;--push-soft:#0e2f27;
+  --done:#6fcf97;--done-soft:#143022;--wip:#f0c25a;--wip-soft:#3a2d0e;--todo:#b9b2a5;--todo-soft:#2a2720;
+  --qloo:#b8b2f0;--qloo-soft:#26214a;color-scheme:dark}
+body{background:var(--paper);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 56px}
+.wrap{max-width:860px;margin:0 auto;display:grid;gap:40px}
+h1,h2,h3{font-family:var(--display);font-weight:500;color:var(--ink);text-wrap:balance;margin:0;letter-spacing:-.01em}
+h1{font-size:clamp(30px,5vw,42px);line-height:1.08}
+h2{font-size:22px}
+h3{font-size:19px}
+p{margin:0}
+.eyebrow{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.lead{color:var(--text);max-width:62ch;font-size:16px}
+.muted{color:var(--muted)}
+code,.mono{font-family:var(--mono);font-size:12.5px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.done{background:var(--done-soft);color:var(--done)}
+.wip{background:var(--wip-soft);color:var(--wip)}
+.todo{background:var(--todo-soft);color:var(--todo)}
+.trig{font-size:12px;font-weight:600;padding:3px 10px;border-radius:6px;white-space:nowrap}
+.trig.pull{border:1px solid var(--line);color:var(--muted)}
+.trig.push{background:var(--push-soft);color:var(--push)}
+header.top{display:grid;gap:14px}
+.legend{display:flex;flex-wrap:wrap;gap:10px 18px;font-size:13px;color:var(--muted)}
+.legend>span{display:inline-flex;gap:8px;align-items:center}
+.now{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.now>div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:4px;min-width:0}
+.now b{font-family:var(--display);font-weight:500;font-size:20px;color:var(--ink)}
+nav.toc{display:flex;flex-wrap:wrap;gap:6px}
+nav.toc a{font-size:12.5px;color:var(--text);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--panel)}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent);outline:none}
+.phase{display:grid;gap:14px}
+.phase>header{display:grid;gap:4px;border-bottom:1px solid var(--line);padding-bottom:10px}
+ol.rail{list-style:none;margin:0;padding:0;display:grid;gap:14px;position:relative}
+ol.rail::before{content:"";position:absolute;left:17px;top:8px;bottom:8px;width:1px;background:var(--line)}
+.step{display:grid;grid-template-columns:36px minmax(0,1fr);gap:14px;position:relative}
+.num{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-size:16px;color:var(--ink);background:var(--paper);border:1px solid var(--line);position:relative;z-index:1;font-variant-numeric:tabular-nums}
+.step.is-push .num{border-color:var(--push);color:var(--push)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:grid;gap:12px;min-width:0}
+.card .head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 12px;align-items:baseline}
+.kv{display:grid;grid-template-columns:120px minmax(0,1fr);gap:6px 14px;font-size:14px}
+.kv dt{color:var(--muted);font-size:12.5px;padding-top:2px}
+.kv dd{margin:0;min-width:0}
+ul.calls{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+ul.calls li{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;align-items:baseline;font-size:13.5px}
+.svc{font-size:11.5px;font-weight:600;text-align:center;padding:2px 6px;border-radius:6px;background:var(--todo-soft);color:var(--muted)}
+.svc.q{background:var(--qloo-soft);color:var(--qloo)}
+.cnt{font-size:12px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.where{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.next{font-size:13.5px;border-top:1px dashed var(--line);padding-top:10px;color:var(--text)}
+.next b{color:var(--accent-text);font-weight:600}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+td.n{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.tablebox{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+.tablebox table tr:last-child td{border-bottom:0}
+.unused{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.unused>div{border:1px dashed var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:4px;min-width:0}
+footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+a{color:var(--accent-text)}
+@media (max-width:560px){
+  .kv{grid-template-columns:1fr}
+  .kv dt{padding-top:6px}
+  ul.calls li{grid-template-columns:84px minmax(0,1fr)}
+  ul.calls li .cnt{grid-column:2}
+}
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <p class="eyebrow">Turnout · parcours commerçant · version de travail du 19 octobre 2026</p>
+  <h1>Du premier clic à la campagne publiée</h1>
+  <p class="lead">Chaque étape montre qui la déclenche, ce que voit le commerçant, les appels externes avec leur nombre, ce qu'ils décident, et où en est la construction. Exemple suivi tout du long : Penn &amp; Pour, un bar à deux rues du Madison Square Garden, avec 5 offres.</p>
+  <div class="legend">
+    <span><span class="trig pull">pull</span> le commerçant agit</span>
+    <span><span class="trig push">push</span> l'horloge ou un seuil agit</span>
+    <span><span class="pill done">fait</span></span>
+    <span><span class="pill wip">en cours</span></span>
+    <span><span class="pill todo">à faire</span></span>
+    <span><span class="svc q" style="padding:2px 8px">Qloo</span> appel à Qloo</span>
+  </div>
+</header>
+
+<section class="now" aria-label="État général">
+  <div><span class="eyebrow">Aujourd'hui</span><b>Tout en pull</b><span class="muted">Rien ne part tant que le commerçant ne clique pas.</span></div>
+  <div><span class="eyebrow">Cible pour le jury</span><b>Push sur les foules</b><span class="muted">La campagne est prête avant qu'il ouvre l'app. Il valide d'un geste.</span></div>
+  <div><span class="eyebrow">Coût Qloo d'une foule</span><b>5 + 1 par offre</b><span class="muted">10 appels pour Penn &amp; Pour, gardés 7 jours en cache.</span></div>
+</section>
+
+<nav class="toc" aria-label="Étapes">
+  <a href="#s1">1 Découvrir</a><a href="#s2">2 S'inscrire</a><a href="#s3">3 Confirmer les offres</a><a href="#s4">4 Radar</a><a href="#s5">5 Être prévenu</a><a href="#s6">6 Qui vient</a><a href="#s7">7 Campagne</a><a href="#s8">8 Publier</a><a href="#s9">9 Pouls du quartier</a><a href="#s10">10 Mesurer</a><a href="#chantiers">Chantiers</a>
+</nav>
+
+<section class="phase" aria-labelledby="p1">
+  <header><p class="eyebrow">Une seule fois</p><h2 id="p1">Arriver</h2></header>
+  <ol class="rail">
+
+    <li class="step" id="s1"><span class="num">1</span>
+      <article class="card">
+        <div class="head"><h3>Découvrir Turnout</h3><div class="row"><span class="trig pull">pull · il arrive sur la page d'accueil</span><span class="pill done">fait</span></div></div>
+        <dl class="kv">
+          <dt>Il voit</dt><dd>La promesse, et une carte en direct : la prochaine grosse foule près d'un bar de Midtown.</dd>
+          <dt>Appels</dt><dd><ul class="calls">
+            <li><span class="svc">Ticketmaster</span><span>événements autour de Penn &amp; Pour, pour la carte en direct</span><span class="cnt">1 · cache 1 h</span></li>
+          </ul></dd>
+          <dt>Ça décide</dt><dd>Rien. C'est la preuve que l'outil voit une vraie foule, ce soir.</dd>
+          <dt>Où</dt><dd class="where"><code>/</code> · <code>src/app/page.tsx</code> · tenu par la session marketing</dd>
+        </dl>
+      </article>
+    </li>
+
+    <li class="step" id="s2"><span class="num">2</span>
+      <article class="card">
+        <div class="head"><h3>S'inscrire en deux minutes</h3><div class="row"><span class="trig pull">pull · il remplit le formulaire</span><span class="pill done">fait</span></div></div>
+        <dl class="kv">
+          <dt>Il saisit</dt><dd>Nom, type de lieu, adresse, ses offres en mots simples une par ligne, son ton, ses canaux.</dd>
+          <dt>Appels</dt><dd><ul class="calls">
+            <li><span class="svc">OpenStreetMap</span><span>l'adresse devient un point GPS et un fuseau horaire</span><span class="cnt">1</span></li>
+          </ul></dd>
+          <dt>Ça décide</dt><dd>Le centre du radar et le rayon surveillé, 1,5 km.</dd>
+          <dt>Où</dt><dd class="where"><code>/start</code> · <code>src/server/merchants/onboarding.ts</code></dd>
+        </dl>
+      </article>
+    </li>
+
+    <li class="step" id="s3"><span class="num">3</span>
+      <article class="card">
+        <div class="head"><h3>Confirmer ce que Turnout a compris</h3><div class="row"><span class="trig pull">pull · page suivante, il coche</span><span class="pill done">fait</span></div></div>
+        <dl class="kv">
+          <dt>Il voit</dt><dd>Chaque offre traduite en tags Qloo. « Happy hour cocktails 5 à 7 » devient Cocktail Bar + Happy hour. Il décoche ce qui ne va pas.</dd>
+          <dt>Appels</dt><dd><ul class="calls">
+            <li><span class="svc q">Qloo</span><span><code>GET /v2/tags</code> · un concept par appel</span><span class="cnt">1 à 3 par offre · 10 ici</span></li>
+          </ul></dd>
+          <dt>Ça décide</dt><dd>Les identifiants Qloo de ses offres. Ils servent ensuite à chaque foule et chaque semaine, sans redemander.</dd>
+          <dt>Où</dt><dd class="where"><code>/start/confirm</code> · <code>src/server/qloo/tags.ts</code></dd>
+        </dl>
+      </article>
+    </li>
+  </ol>
+</section>
+
+<section class="phase" aria-labelledby="p2">
+  <header><p class="eyebrow">À chaque foule</p><h2 id="p2">Un soir d'événement</h2></header>
+  <ol class="rail">
+
+    <li class="step" id="s4"><span class="num">4</span>
+      <article class="card">
+        <div class="head"><h3>Le radar repère la foule</h3><div class="row"><span class="trig pull">pull · il ouvre le radar</span><span class="pill done">fait</span></div></div>
+        <dl class="kv">
+          <dt>Il voit</dt><dd>La carte et la liste des événements des 72 prochaines heures, un score de concentration, la météo à sa porte. Ce soir : Rangers contre Anaheim au Garden, environ 20 000 personnes, 0,3 km.</dd>
+          <dt>Appels</dt><dd><ul class="calls">
+            <li><span class="svc">Ticketmaster</span><span>événements dans 4,5 km, sans tours ni billets annexes</span><span class="cnt">1 · cache 1 h</span></li>
+            <li><span class="svc">Open-Meteo</span><span>prévision horaire au point du bar</span><span class="cnt">1 · cache 1 h</span></li>
+          </ul></dd>
+          <dt>Ça décide</dt><dd>Quelles foules valent une campagne : score de 45 et plus, 1 000 personnes et plus. Pas de Qloo ici, Qloo ne sait pas qui joue ce soir.</dd>
+          <dt>Où</dt><dd class="where"><code>/radar</code> · <code>src/server/events/radar.ts</code> · repli sur les événements déjà en base si Ticketmaster tombe</dd>
+        </dl>
+        <p class="next"><b>Prochain pas</b> · le même scan lancé par l'horloge toutes les heures pour chaque bar. C'est l'étape 5.</p>
+      </article>
+    </li>
+
+    <li class="step is-push" id="s5"><span class="num">5</span>
+      <article class="card">
+        <div class="head"><h3>Être prévenu, campagne déjà prête</h3><div class="row"><span class="trig push">push · horloge, puis seuil franchi</span><span class="pill todo">à faire</span></div></div>
+        <dl class="kv">
+          <dt>Il reçoit</dt><dd>« Rangers ce soir, 20 000 personnes à 300 m. Ta campagne est prête. » Un lien, un bouton valider.</dd>
+          <dt>Appels</dt><dd><ul class="calls">
+            <li><span class="svc">Ticketmaster</span><span>scan horaire, chaque bar</span><span class="cnt">1 par bar par heure</span></li>
+            <li><span class="svc">Qloo · Claude</span><span>les étapes 6 et 7 tournent avant qu'il ouvre l'app</span><span class="cnt">mêmes appels</span></li>
+            <li><span class="svc">WhatsApp</span><span>la notification au commerçant</span><span class="cnt">1</span></li>
+          </ul></dd>
+          <dt>Ça décide</dt><dd>Le moment où il entend parler de la foule. Plus tôt il sait, plus la campagne a de temps pour tourner.</dd>
+          <dt>Où</dt><dd class="where">planificateur côté serveur à créer · la logique des étapes 4, 6 et 7 existe déjà</dd>
+        </dl>
+      </article>
+    </li>
+
+    <li class="step" id="s6"><span class="num">6</span>
+      <article class="card">
+        <div class="head"><h3>Qui vient, et quelle offre leur parle</h3><div class="row"><span class="trig pull">pull · clic sur la foule</span><span class="pill done">fait</span></div></div>
+        <dl class="kv">
+          <dt>Il voit</dt><dd>Qui compose la foule, ce qu'elle aime, les bars voisins qu'elle fréquente déjà, et ses offres classées pour elle. Pour Harry Styles : femmes 25-29 ans, rooftops à cocktails, Gucci et Dior.</dd>
+          <dt>Appels</dt><dd><ul class="calls">
+            <li><span class="svc q">Qloo</span><span><code>GET /search</code> · nom de la tête d'affiche vers identifiant</span><span class="cnt">1</span></li>
+            <li><span class="svc q">Qloo</span><span><code>urn:demographics</code> · âge et genre sur-représentés</span><span class="cnt">1</span></li>
+            <li><span class="svc q">Qloo</span><span><code>urn:tag</code> limité aux lieux · le vocabulaire du goût</span><span class="cnt">1</span></li>
+            <li><span class="svc q">Qloo</span><span><code>urn:entity:place</code> · bars à 1,5 km qu'elle aime déjà</span><span class="cnt">1</span></li>
+            <li><span class="svc q">Qloo</span><span><code>urn:entity:brand</code> · marques sur-représentées</span><span class="cnt">1</span></li>
+            <li><span class="svc q">Qloo</span><span><code>urn:entity:place</code> filtré par les tags de chaque offre</span><span class="cnt">1 par offre · 5 ici</span></li>
+          </ul></dd>
+          <dt>Ça décide</dt><dd>Qui est la foule, et le classement de ses offres pour elle. Nom ambigu : il choisit lui-même la bonne entité, l'IA ne devine jamais un identifiant.</dd>
+          <dt>Où</dt><dd class="where"><code>/campaigns/new</code> · <code>src/server/qloo/crowd.ts</code> · chaque appel listé dans le tiroir provenance</dd>
+        </dl>
+        <p class="next"><b>Amélioration</b> · le profil est recalculé à chaque rechargement de la page. Gratuit grâce au cache, mais à mémoriser une fois par foule.</p>
+      </article>
+    </li>
+
+    <li class="step" id="s7"><span class="num">7</span>
+      <article class="card">
+        <div class="head"><h3>L'agent écrit la campagne</h3><div class="row"><span class="trig pull">pull · clic « Draft the campaign »</span><span class="pill wip">en cours</span></div></div>
+        <dl class="kv">
+          <dt>Il voit</dt><dd>L'offre choisie avec le pourquoi en données Qloo, deux créneaux avec la météo, les textes de cinq canaux, et ce que les données n'établissent pas.</dd>
+          <dt>Appels</dt><dd><ul class="calls">
+            <li><span class="svc q">Qloo</span><span>le profil de l'étape 6, relu</span><span class="cnt">0 réel · cache</span></li>
+            <li><span class="svc">Open-Meteo</span><span>météo avant les portes et à la sortie</span><span class="cnt">1 · cache 1 h</span></li>
+            <li><span class="svc">Claude</span><span>choisit l'offre, écrit les textes, sortie structurée</span><span class="cnt">1</span></li>
+          </ul></dd>
+          <dt>Ça décide</dt><dd>L'offre et les mots. Pour Harry Styles, le happy hour cocktails bat le pichet du sports bar qui avait le meilleur score brut. La météo change l'offre seulement si elle pèse : pluie à la sortie des Rangers, burger chaud plutôt que pichet.</dd>
+          <dt>Où</dt><dd class="where"><code>POST /api/campaigns</code> · <code>src/server/agent/run.ts</code> · en local l'agent tourne en mode opérateur</dd>
+        </dl>
+        <p class="next"><b>Reste</b> · la clé Anthropic sur le serveur en ligne pour que l'agent tourne seul devant le jury.</p>
+      </article>
+    </li>
+
+    <li class="step" id="s8"><span class="num">8</span>
+      <article class="card">
+        <div class="head"><h3>Il valide, Turnout publie</h3><div class="row"><span class="trig pull">pull · clic « Approve and publish »</span><span class="pill wip">en cours</span></div></div>
+        <dl class="kv">
+          <dt>Il voit</dt><dd>Un envoi par canal coché, avec son état : envoyé, créé en pause, prêt, ou simulé avec la charge exacte.</dd>
+          <dt>Appels</dt><dd><ul class="calls">
+            <li><span class="svc">Snapchat</span><span>campagne géofencée autour de la salle, créée en pause, intérêts tirés de Qloo</span><span class="cnt">réel dès le compte</span></li>
+            <li><span class="svc">WhatsApp</span><span>message aux habitués consentants, via Twilio</span><span class="cnt">réel dès le compte</span></li>
+            <li><span class="svc">Google</span><span>post d'offre sur la fiche Google du bar</span><span class="cnt">simulé</span></li>
+            <li><span class="svc">Vitrine</span><span>ardoise et phrase pour le comptoir</span><span class="cnt">prêt à l'emploi</span></li>
+            <li><span class="svc">Écran</span><span>affichage extérieur près de la salle</span><span class="cnt">simulé</span></li>
+          </ul></dd>
+          <dt>Ça décide</dt><dd>Qui est touché : des inconnus autour de la salle avec la pub, ceux qui cherchent un bar sur Google, les habitués sur WhatsApp, les passants devant la vitrine.</dd>
+          <dt>Où</dt><dd class="where"><code>POST /api/campaigns/:id/approve</code> · <code>src/server/channels/</code></dd>
+        </dl>
+        <p class="next"><b>Reste</b> · comptes Twilio et Snapchat Ads à brancher.</p>
+      </article>
+    </li>
+  </ol>
+</section>
+
+<section class="phase" aria-labelledby="p3">
+  <header><p class="eyebrow">Chaque semaine, sans événement</p><h2 id="p3">Le flux de tous les jours</h2></header>
+  <ol class="rail">
+    <li class="step" id="s9"><span class="num">9</span>
+      <article class="card">
+        <div class="head"><h3>Le pouls du quartier</h3><div class="row"><span class="trig pull">pull · il ouvre la page</span><span class="pill done">fait</span><span class="trig push">push le lundi · à faire</span></div></div>
+        <dl class="kv">
+          <dt>Il voit</dt><dd>Qui passe devant chez lui un jour normal, ce qu'ils aiment, où ils vont déjà, les soirées de la semaine côté météo, et l'offre à mettre en avant. Penn &amp; Pour : Cocktail Enthusiasts, Business Professionals, ardoise « After work, before the train ».</dd>
+          <dt>Appels</dt><dd><ul class="calls">
+            <li><span class="svc q">Qloo</span><span><code>urn:tag</code> avec <code>signal.location</code> = le point du bar</span><span class="cnt">1</span></li>
+            <li><span class="svc q">Qloo</span><span><code>urn:entity:brand</code> avec le même signal</span><span class="cnt">1</span></li>
+            <li><span class="svc q">Qloo</span><span><code>urn:entity:place</code> · les concurrents que la rue préfère</span><span class="cnt">1</span></li>
+            <li><span class="svc q">Qloo</span><span><code>urn:entity:place</code> filtré par les tags de chaque offre</span><span class="cnt">1 par offre · 5 ici</span></li>
+            <li><span class="svc">Open-Meteo</span><span>les soirées de 17 h à 21 h de la semaine</span><span class="cnt">1 · cache 1 h</span></li>
+            <li><span class="svc">Claude</span><span>le brief : ardoise, post Google, note aux habitués, pub permanente</span><span class="cnt">1 au clic</span></li>
+          </ul></dd>
+          <dt>Ça décide</dt><dd>L'offre de fond de la semaine. Les soirs d'événement la remplacent.</dd>
+          <dt>Où</dt><dd class="where"><code>/pulse</code> · <code>src/server/qloo/neighborhood.ts</code> · <code>src/server/agent/pulse.ts</code></dd>
+        </dl>
+      </article>
+    </li>
+  </ol>
+</section>
+
+<section class="phase" aria-labelledby="p4">
+  <header><p class="eyebrow">Fermer la boucle</p><h2 id="p4">Savoir si ça a marché</h2></header>
+  <ol class="rail">
+    <li class="step" id="s10"><span class="num">10</span>
+      <article class="card">
+        <div class="head"><h3>Mesurer les entrées</h3><div class="row"><span class="trig pull">pull · le serveur saisit un code au comptoir</span><span class="pill todo">à faire</span></div></div>
+        <dl class="kv">
+          <dt>Il voit</dt><dd>Combien de personnes sont venues grâce à chaque campagne, et quelles foules rapportent le plus.</dd>
+          <dt>Appels</dt><dd>Aucun appel externe. Un code court par campagne, imprimé dans chaque texte, saisi au comptoir.</dd>
+          <dt>Ça décide</dt><dd>Quelles offres garder pour quel type de foule, la semaine suivante.</dd>
+          <dt>Où</dt><dd class="where">à décider : utile pour le pitch d'impact, pas indispensable pour la démo</dd>
+        </dl>
+      </article>
+    </li>
+  </ol>
+</section>
+
+<section class="phase" id="chantiers" aria-labelledby="p5">
+  <header><p class="eyebrow">Mis à jour à chaque avancée</p><h2 id="p5">Chantiers</h2></header>
+  <div class="tablebox"><table>
+    <thead><tr><th>Chantier</th><th>Qui</th><th>État</th><th>Étapes</th></tr></thead>
+    <tbody>
+      <tr><td>Comptes Twilio et Snapchat Ads</td><td>Jacobo</td><td><span class="pill wip">en cours</span></td><td class="n">8</td></tr>
+      <tr><td>Serveur en ligne sur Railway et clé Anthropic, avant le 24 octobre</td><td>Jacobo</td><td><span class="pill todo">à faire</span></td><td class="n">7, 8</td></tr>
+      <tr><td>Logo Swing, finesse S1, et palette</td><td>Design</td><td><span class="pill wip">en attente de ton choix</span></td><td class="n">tout</td></tr>
+      <tr><td>Page d'accueil orientée valeur</td><td>Marketing</td><td><span class="pill done">fait</span></td><td class="n">1</td></tr>
+      <tr><td>Planificateur push et notification au commerçant</td><td>Backend</td><td><span class="pill todo">à faire</span></td><td class="n">5, 9</td></tr>
+      <tr><td>Mémoriser le profil de foule au lieu de le recalculer</td><td>Backend</td><td><span class="pill todo">à faire</span></td><td class="n">6, 7</td></tr>
+      <tr><td>Code de mesure par campagne</td><td>À décider</td><td><span class="pill todo">à faire</span></td><td class="n">10</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="phase" aria-labelledby="p6">
+  <header><p class="eyebrow">Pour 5 offres</p><h2 id="p6">Ce que coûte chaque moment</h2></header>
+  <div class="tablebox"><table>
+    <thead><tr><th>Moment</th><th>Qloo</th><th>Ticketmaster</th><th>Open-Meteo</th><th>Claude</th></tr></thead>
+    <tbody>
+      <tr><td>Inscription, une fois</td><td class="n">10</td><td class="n">0</td><td class="n">0</td><td class="n">0</td></tr>
+      <tr><td>Radar, par heure et par bar</td><td class="n">0</td><td class="n">1</td><td class="n">1</td><td class="n">0</td></tr>
+      <tr><td>Une foule qualifiée et sa campagne</td><td class="n">10</td><td class="n">0</td><td class="n">1</td><td class="n">1</td></tr>
+      <tr><td>Pouls de la semaine</td><td class="n">8</td><td class="n">0</td><td class="n">1</td><td class="n">1</td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted" style="font-size:13.5px">Un deuxième bar près de la même salle réutilise les appels Qloo sur la foule, gardés 7 jours. Seuls ses appels liés à ses propres offres sont nouveaux.</p>
+</section>
+
+<section class="phase" aria-labelledby="p7">
+  <header><p class="eyebrow">Testés, pas branchés</p><h2 id="p7">Endpoints Qloo hors parcours</h2></header>
+  <div class="unused">
+    <div><code>GET /entities</code><span class="muted">Fiche par identifiant Qloo, Spotify, Resy ou Michelin. <code>/search</code> suffit.</span></div>
+    <div><code>urn:heatmap</code><span class="muted">Carte de chaleur. Trop large pour un rayon de 1,5 km. Piste pour choisir les écrans.</span></div>
+    <div><code>GET /v2/trending</code><span class="muted">Tendances hebdomadaires. Plates sur nos tests.</span></div>
+    <div><code>GET /v2/analysis/compare</code><span class="muted">Deux listes de tags sans écart chiffré. Deux appels démographie disent plus.</span></div>
+    <div><code>GET /v2/audiences</code><span class="muted">Segments nommés. Utiles pour une marque, pas pour un bar qui part d'un artiste.</span></div>
+    <div><code>qloo mcp</code><span class="muted">Les 9 workflows du kit. Utilisés pour le test, sans rayon autour d'un point.</span></div>
+  </div>
+</section>
+
+<footer>Source de cette page : <code>docs/journey/index.html</code> dans le dépôt Turnout. Republiée au même lien à chaque avancée. Qloo décrit les goûts de groupes, jamais d'une personne, et aucune donnée personnelle ne lui est envoyée.</footer>
+
+</div>

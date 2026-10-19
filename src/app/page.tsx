@@ -181,7 +181,7 @@ export default async function Home() {
             {[
               ["Is this creepy?", "No. Turnout never sends a name, a phone or a location of a person to Qloo. Qloo describes what groups of fans tend to like. The ad platforms do the delivery, under their own consent rules, and your regulars only hear from you if they opted in."],
               ["Do I lose control?", "Nothing goes out without your approval. Every draft shows the offer, the words, the time window and the exact Qloo evidence behind the choice. Edit anything, or say no."],
-              ["I have no arena next door.", "Theatres, comedy clubs, stadiums, conference halls and festivals count too. And Turnout's weekly neighbourhood pulse works on the people who pass your door every day, with no event at all."],
+              ["I have no arena next door.", "Theatres, comedy clubs, stadiums, conference halls and festivals count too. And Turnout's weekly neighbourhood pulse reads the people who pass your door every day, with no event at all. See it for Penn & Pour at /pulse."],
               ["How much time does it take?", "Two minutes once, to describe your place and your offers. Then a notification when a crowd is coming, and one tap."],
             ].map(([q, a]) => (
               <div key={q}>

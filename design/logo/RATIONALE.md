@@ -119,3 +119,17 @@ The founder chose the Classic approach (two rings, tinted sweep, one blip, centr
 - **20 Lens.** Rings r 14 (1.2), r 9.5 (0.9), r 5 (0.7 at 45 %), sweep graded 0 to 18 % on the hero and flat 14 % elsewhere, blip r 1.7 at r 12 (outward of the band's middle), centre empty. Most editorial; the faint ring is invisible below 48 px.
 
 **Top one: Weighted (18).** Exact geometry for React (viewBox 0 0 32 32): outer ring r 14 stroke 1.8; inner ring r 8.5 stroke 1.0 (1.5 at header size); sweep path `M16 16 V2 A14 14 0 0 1 26.72 7.00 Z`, fill accent, fill-opacity `var(--sweep-tint, 0.14)`; blip r 1.8 (2.0 at header) at (21.80, 9.78), i.e. 43 degrees from vertical on r 8.5, solid accent; no centre, no edge line. 16 px master: ring r 13 stroke 2, tint 0.18, blip r 2.6. One colour: blip ink, no tint. Reverse: ink parts paper, tint x2, blip accent.
+
+---
+
+# Fifth sheet: Weighted with afterglow (`radar4.html`)
+
+Founder: keep 18 Weighted, make the circles less brutal, bring back the gradient of a real radar as an afterglow trail. Three executions, each at 96 px, in P1 and P4.
+
+Trail construction (SVG has no conic gradient): N = 14 stacked sectors to r 13.3, all ending at the leading edge (50 degrees from vertical), sector i starting `span * (1 - i/14)` degrees further back. Stacking removes seams. Per-sector opacity solved so the cumulative opacity follows `max * ((i+1)/14)^1.35`. Steps are invisible from 24 px up (checked at device scale 1); at 16 px the favicon uses one flat 60 degree sector at 0.18 and a 2-unit ring. One colour: trail in ink at 0.6 x, blip ink. Reverse: rings paper, trail x1.5 (cap 0.6), blip accent. Tokens: `--ring-outer`, `--ring-inner`, `--sweep-tint`, `--blip`, `--mark-ink-soft` (23).
+
+- **21 Afterglow.** Rings r 14 (1.4), r 8.5 (0.9); trail 90 degrees, max 0.28; blip r 1.7 at 43 degrees from vertical on r 8.5, inside the brightest step; no centre, no edge. Header: rings 1.5 / 1.5, blip 2.0.
+- **22 Afterglow, long.** Same rings; trail 140 degrees, max 0.22; 0.6 hairline leading edge in accent at 60 %; blip as 21. Not a pie chart: one hairline and a fade, never a second hard edge. The hairline is gone at 24 px (0.45 px), honestly.
+- **23 Afterglow, light rings.** Rings r 14 (1.2), r 8.5 (0.8) at 85 % ink; trail 110 degrees, max 0.26; blip r 1.8. Header: rings 1.5 at 85 %, measured, they stay. 16 px uses full ink.
+
+**Top one: Afterglow (21).** Geometry for React (viewBox 0 0 32 32): rings r 14 stroke 1.4 and r 8.5 stroke 0.9 (both 1.5 at header size), `var(--ink)`; trail: 14 sectors `M16 16 L sx sy A13.3 13.3 0 0 1 24.55 7.45 Z` with sx,sy = 16 + 13.3 cos a, 16 - 13.3 sin a, a = 40 + 90 (1 - i/14) degrees polar, fill `var(--accent)`, fill-opacity `1 - (1 - T_i)/(1 - T_(i-1))` with `T_i = 0.28 ((i+1)/14)^1.35`; blip r 1.7 (2.0 at header) at (21.80, 9.78), solid accent; no centre, no edge. 16 px master: ring r 13 stroke 2, flat sector 60 degrees to r 12 at 0.18, blip r 2.6. CSS hero alternative: `conic-gradient(from 320deg, transparent 0deg, accent at --sweep-tint 90deg, transparent 90deg)` clipped by a circular SVG mask of r 13.3/32, with rings and blip as inline SVG above it.

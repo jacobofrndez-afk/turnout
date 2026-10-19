@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Turnout, 20 Lens: 32 px master drawing, one colour. -->
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="14" fill="none" stroke="#17150F" stroke-width="1.2"/><circle cx="16" cy="16" r="9.5" fill="none" stroke="#17150F" stroke-width="0.9"/><circle cx="16" cy="16" r="5" fill="none" stroke="#17150F" stroke-width="0.7" /><circle cx="24.18" cy="7.22" r="1.7" fill="#17150F"/></svg>

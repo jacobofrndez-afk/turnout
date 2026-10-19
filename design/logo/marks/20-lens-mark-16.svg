@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Turnout, 20 Lens: 16 px drawing (2 px strokes on even grid units). -->
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 16V4A12 12 0 0 1 25.19 8.29Z" fill="#B4530A" fill-opacity="0.18000000000000002"/><circle cx="16" cy="16" r="13" fill="none" stroke="#17150F" stroke-width="2"/><circle cx="21.8" cy="9.78" r="2.6" fill="#B4530A"/></svg>

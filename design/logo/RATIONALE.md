@@ -106,3 +106,16 @@ Founder rule for this round: immediately recognisable as a radar, at most one bl
 
 **Top two:** 1. Half radar (14): a radar and a good neighbour, blip still 2.2 px at 20 px. 2. Classic (12): the most recognisable, soft rings at 16 px, best used large.
 **Tomorrow, in the app header:** Half radar (14) in P4, 20 px beside the 20 px wordmark; Classic (12) for the radar page's empty state and the app icon.
+
+---
+
+# Fourth sheet: Classic, refined (`radar3.html`)
+
+The founder chose the Classic approach (two rings, tinted sweep, one blip, centre) and asked for less childishness: hairlines, hierarchy, restraint. Four executions, each at 96 px on paper, in P1 and P4. Shared geometry: centre (16, 16); sweep from 12 o'clock clockwise to 50 degrees from vertical; blip at 43 degrees from vertical (detected, not pinned); tint opacity is a token (`--sweep-tint`); header rule: no stroke renders under 1 px at 20 px, so 32-unit strokes below 1.5 snap to 1.5 there; 16 px: one ring at 2 units (1 px, anti-aliased as every circle is), tint, blip r 2.6.
+
+- **17 Dial.** Rings r 14 (1.4) and r 8 (1.0), 0.8 hairline leading edge at 58 degrees from vertical (15 degrees past the blip so they never touch), tint 12 %, blip r 1.6 at r 11, centre dot 1.2. Header: 1.6 / 1.5 / 1.5, blip 1.9. The finest at 96 px; the hierarchy flattens at 20 px.
+- **18 Weighted.** Rings r 14 (1.8) and r 8.5 (1.0), no edge, tint 14 %, blip r 1.8 exactly on the inner ring, no centre. Header: inner 1.5, blip 2.0. Keeps its hierarchy at every size; the eye lands on the blip.
+- **19 Open ring.** Outer ring r 14 (1.6) interrupted across the sweep plus 3 degrees each side, inner hairline r 8 (0.9), centre 1.2, blip r 1.8 in the gap at 25 degrees from vertical on r 13, tint 12 %. The opening is a door; risk: spinner.
+- **20 Lens.** Rings r 14 (1.2), r 9.5 (0.9), r 5 (0.7 at 45 %), sweep graded 0 to 18 % on the hero and flat 14 % elsewhere, blip r 1.7 at r 12 (outward of the band's middle), centre empty. Most editorial; the faint ring is invisible below 48 px.
+
+**Top one: Weighted (18).** Exact geometry for React (viewBox 0 0 32 32): outer ring r 14 stroke 1.8; inner ring r 8.5 stroke 1.0 (1.5 at header size); sweep path `M16 16 V2 A14 14 0 0 1 26.72 7.00 Z`, fill accent, fill-opacity `var(--sweep-tint, 0.14)`; blip r 1.8 (2.0 at header) at (21.80, 9.78), i.e. 43 degrees from vertical on r 8.5, solid accent; no centre, no edge line. 16 px master: ring r 13 stroke 2, tint 0.18, blip r 2.6. One colour: blip ink, no tint. Reverse: ink parts paper, tint x2, blip accent.

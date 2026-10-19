@@ -30,6 +30,23 @@ export async function geocode(address: string): Promise<Geocoded | undefined> {
   return out;
 }
 
+// Reverse geocode a point to its neighbourhood name (Nominatim). Cached for 30 days.
+export async function neighbourhoodName(lat: number, lon: number): Promise<string | undefined> {
+  const key = { lat: lat.toFixed(4), lon: lon.toFixed(4) };
+  const cached = cacheGet<{ name?: string }>("nominatim-reverse", key);
+  if (cached) return cached.name;
+  const q = new URLSearchParams({ lat: String(lat), lon: String(lon), format: "jsonv2", zoom: "15", addressdetails: "1" });
+  const res = await fetch(`https://nominatim.openstreetmap.org/reverse?${q}`, {
+    headers: { "User-Agent": "turnout/0.1 (hackathon demo)", "Accept-Language": "en" },
+  });
+  if (!res.ok) return undefined;
+  const r = (await res.json()) as { address?: Record<string, string> };
+  const a = r.address ?? {};
+  const name = a.neighbourhood ?? a.suburb ?? a.quarter ?? a.city_district ?? a.borough ?? a.city ?? undefined;
+  cacheSet("nominatim-reverse", key, { name }, 30 * 24 * 3600);
+  return name;
+}
+
 function guessTimezone(cc: string, lon: number): string {
   switch (cc) {
     case "FR": return "Europe/Paris";

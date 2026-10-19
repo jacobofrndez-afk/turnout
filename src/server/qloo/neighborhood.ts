@@ -2,7 +2,8 @@
 // Qloo signal = the merchant's GPS point (signal.location), not an event. Cached by the API layer for a week.
 import type { Merchant } from "@/server/events/radar";
 import { getOffers, type ProvenanceRow } from "./crowd";
-import { qlooGet, recommend, type QlooCall, type QlooEntity, type QlooTag, tagId } from "./api";
+import { qlooGet, type QlooCall, type QlooEntity, type QlooTag, tagId } from "./api";
+import { neighbourhoodName } from "@/server/merchants/geocode";
 
 export type PulseOfferFit = { offerId: string; title: string; tagNames: string[]; affinity: number; matches: number; topPlaces: string[] };
 
@@ -30,15 +31,10 @@ export async function buildNeighborhoodPulse(merchant: Merchant): Promise<Neighb
   };
   const point = `POINT(${merchant.lon} ${merchant.lat})`;
 
-  // Name the neighbourhood (search-only locality type), purely for display.
+  // Name the neighbourhood for display: OpenStreetMap reverse geocode (Qloo's nearest locality can be a few blocks off).
   let localityName: string | undefined;
   try {
-    const loc = await qlooGet<{ results?: { name: string; disambiguation?: string }[] }>(
-      "/search",
-      { query: merchant.city, types: "urn:entity:locality", "filter.location": `${merchant.lat},${merchant.lon}`, "filter.radius": "2", sort_by: "distance", take: "3" },
-      { onCall: onCall("describe", "nearest named locality") },
-    );
-    localityName = loc.results?.[0]?.name;
+    localityName = await neighbourhoodName(merchant.lat, merchant.lon);
   } catch {
     localityName = undefined;
   }
@@ -97,6 +93,3 @@ export async function buildNeighborhoodPulse(merchant: Merchant): Promise<Neighb
 
   return { localityName, point, audienceTags, ambienceTags, brands, places, offerFits, provenance, qlooCalls: calls };
 }
-
-// Keep `recommend` imported for future use by the brief; avoids an unused-import lint in strict setups.
-void recommend;

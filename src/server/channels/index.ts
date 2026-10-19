@@ -5,6 +5,7 @@ import { getDb, newId } from "@/server/db/client";
 import type { Merchant } from "@/server/events/radar";
 import type { CampaignDraft } from "@/server/agent/schema";
 import { sendWhatsApp, whatsappConfigured } from "./twilio";
+import { buildSnapPayloads, createGeofencedCampaign, snapConfigured, type GeofencedAdSpec } from "./snapchat";
 
 export type ChannelId = "geofenced_ad" | "google_post" | "whatsapp" | "storefront" | "dooh";
 export type SendRow = { id: string; campaign_id: string; channel: ChannelId; recipient_ref: string | null; status: string; provider_sid: string | null; simulated: number; sent_at: string; payload_json?: string | null };
@@ -52,17 +53,38 @@ export async function publishCampaign(campaignId: string, merchant: Merchant, dr
         }
         break;
       }
-      case "geofenced_ad":
-        record("geofenced_ad", "simulated", true, {
-          platform: draft.geofenced_ad.platform,
-          geofence: { lat: merchant.lat, lon: merchant.lon, radius_m: draft.geofenced_ad.radius_m, note: "centred on the venue in production; merchant point in the demo" },
-          schedule: draft.windows,
-          targeting: { interests: draft.geofenced_ad.interests },
-          creative: { headline: draft.geofenced_ad.headline, body: draft.geofenced_ad.body, cta: draft.geofenced_ad.cta },
-          daily_budget_usd: draft.geofenced_ad.daily_budget_usd,
-          status_note: "campaign object ready for the Snapchat Marketing API / Meta Marketing API; not pushed without an ad account",
-        });
+      case "geofenced_ad": {
+        const spec: GeofencedAdSpec = {
+          name: `Turnout · ${merchant.name} · ${draft.geofenced_ad.headline}`,
+          lat: merchant.lat,
+          lon: merchant.lon,
+          radiusM: draft.geofenced_ad.radius_m,
+          countryCode: merchant.timezone.startsWith("Europe/Paris") ? "fr" : "us",
+          startIso: new Date().toISOString().replace(/\.\d{3}Z/, "Z"),
+          endIso: new Date(Date.now() + 36 * 3600_000).toISOString().replace(/\.\d{3}Z/, "Z"),
+          dailyBudgetUsd: draft.geofenced_ad.daily_budget_usd,
+        };
+        const payloads = buildSnapPayloads(spec);
+        const creative = { headline: draft.geofenced_ad.headline, body: draft.geofenced_ad.body, cta: draft.geofenced_ad.cta, interests_from_qloo: draft.geofenced_ad.interests, schedule: draft.windows };
+        if (draft.geofenced_ad.platform === "snapchat" && snapConfigured()) {
+          try {
+            const ids = await createGeofencedCampaign(spec);
+            record("geofenced_ad", "created (paused)", false, { platform: "snapchat", ...ids, creative, request: payloads, status_note: "campaign and ad squad created PAUSED in the Snapchat ad account; creative to attach in Ads Manager" }, undefined, ids.campaignId);
+          } catch (e) {
+            record("geofenced_ad", `failed: ${String((e as Error).message).slice(0, 120)}`, false, { platform: "snapchat", creative, request: payloads });
+          }
+        } else {
+          record("geofenced_ad", "simulated", true, {
+            platform: draft.geofenced_ad.platform,
+            geofence: { lat: merchant.lat, lon: merchant.lon, radius_m: draft.geofenced_ad.radius_m, note: "centred on the merchant in the demo; the venue in production" },
+            creative,
+            daily_budget_usd: draft.geofenced_ad.daily_budget_usd,
+            request: payloads,
+            status_note: "exact Snapchat Marketing API payload, not pushed without an ad account (SNAP_ACCESS_TOKEN, SNAP_AD_ACCOUNT_ID)",
+          });
+        }
         break;
+      }
       case "google_post":
         record("google_post", "simulated", true, { type: "OFFER", title: draft.google_post.title, body: draft.google_post.body, terms: draft.google_post.offer_terms, schedule: draft.windows, status_note: "Business Profile localPosts payload; needs a verified listing" });
         break;

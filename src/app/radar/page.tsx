@@ -47,6 +47,7 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
             </Link>
           ))}
           <Link href="/start" className="chip" style={{ color: "var(--accent)" }}>+ your place</Link>
+          <Link href={`/pulse?merchant=${merchant.id}`} className="chip" style={{ color: "var(--ink)", fontWeight: 600 }}>Neighbourhood pulse →</Link>
         </nav>
       </header>
 

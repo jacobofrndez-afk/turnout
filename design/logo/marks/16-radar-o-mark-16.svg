@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Turnout, 16 Radar in the o: 16 px drawing (2 px strokes on even grid units). -->
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 16V5A11 11 0 0 1 27 16Z" fill="#B4530A" fill-opacity="0.18"/><circle cx="16" cy="16" r="12" fill="none" stroke="#17150F" stroke-width="4"/><circle cx="16" cy="16" r="2" fill="#17150F"/><circle cx="21.5" cy="11.5" r="3" fill="#B4530A"/></svg>

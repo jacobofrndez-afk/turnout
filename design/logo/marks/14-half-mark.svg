@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Turnout, 14 Half radar: 32 px master drawing. -->
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M2 22H30" fill="none" stroke="#17150F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 22A6.5 6.5 0 0 1 22.5 22" fill="none" stroke="#17150F" stroke-width="1.8" stroke-linecap="butt"/><path d="M2.5 22A13.5 13.5 0 0 1 29.5 22" fill="none" stroke="#17150F" stroke-width="1.8" stroke-linecap="butt"/><circle cx="16" cy="22" r="1.8" fill="#17150F"/><circle cx="21.74" cy="13.81" r="2.2" fill="#B4530A"/></svg>

@@ -91,3 +91,18 @@ Arena: light circle r 6.5 at (9, 9); bar: ink square 6 at (23, 23); dotted diago
 1. 01 Threshold x P4 The blend: serious to the investor and the CTO, warm to the entertainer and the operator, amber alive on the radar for the Live Nation executive. This is what I would ship for the jury.
 2. 11 Venue and bar x P3 Pro blue: the most professional combination, the warmth gone; the pitch-deck alternate.
 3. 01 Threshold x P5 Bottle green: premium and warm, distinctive among blue SaaS; the ok colour needs a rethink.
+
+---
+
+# Third sheet: true radars, one blip (`radar2.html`)
+
+Founder rule for this round: immediately recognisable as a radar, at most one blip (the crowd detected, in accent) plus the centre; no dot fields. Each variant is shown in P1 and, directly beneath, in the front-runner P4 (navy ink #1B1F3B, blue-violet accent #4A56E2, warm paper). Strokes 2.4 of 32 (2 px at 16), thin rings 1.8, sweep tint = accent at 18 % (`fill-opacity`), so a palette swap is one token. Blips are solid dots.
+
+- **12 Classic.** Rings r 6 and 13.5, tinted quarter sweep with its leading edge in ink, blip r 2.2 inside the edge between the rings, centre r 1.8. 16 px: one ring (1 px, soft), tint, centre, blip; edge line dropped. The most literal, the least ownable.
+- **13 Rings and door.** Same rings, doorway bracket at the centre (posts 12.5/19.5, lintel 12.5), blip on the outer ring at 150 degrees. 16 px: one ring, 8-unit bracket at 2 px, blip on the ring. Two ideas in one mark; the bracket is a 6 px block at 20 px.
+- **14 Half radar.** Horizon y 22, arcs r 6.5 and 13.5, centre on the horizon, blip between the arcs. 30 x 16 units: at 20 px tall it is 38 px wide, the best header neighbour of the five. 16 px: horizon and one arc at 2 px. Weak stacked and as an app icon; can read as a sunrise.
+- **15 Sweep only.** Centre dot, long arc r 15, inner arc r 8, blip past the end of the sweep. Calm; honestly reads as a tilted wifi or RSS mark before it reads as a radar.
+- **16 Radar in the o.** The first o of Turnout replaced (not overdrawn) by a radar at the o's advance: measured 'Turn' 1.829 em, o 0.48 em, 'ut' from 2.309 em; ring r 13 stroke 5 at 0.47 em, tint, centre, blip. The standalone o is the favicon and survives 16 px honestly; in the 20 px word the blip is 1 px and the o reads as a ring.
+
+**Top two:** 1. Half radar (14): a radar and a good neighbour, blip still 2.2 px at 20 px. 2. Classic (12): the most recognisable, soft rings at 16 px, best used large.
+**Tomorrow, in the app header:** Half radar (14) in P4, 20 px beside the 20 px wordmark; Classic (12) for the radar page's empty state and the app icon.

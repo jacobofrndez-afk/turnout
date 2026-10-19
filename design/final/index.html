@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Turnout, six idées finales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --paper:#F7F4EE; --panel:#fff; --line:#E4DED3; --ink:#17150F; --muted:#6B655B; --accent:#B4530A; --accent-text:#A54A07; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family: Inter, system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1200px; margin:0 auto; padding:56px 32px 96px; }
+  .eyebrow { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  h1 { font-family: Fraunces, Georgia, serif; font-variation-settings:"opsz" 144; font-weight:500; letter-spacing:-.02em; font-size:56px; line-height:1.02; margin:10px 0 18px; }
+  h1 em { font-style:italic; color:var(--accent); }
+  p.lead { font-size:18px; line-height:1.55; color:var(--muted); max-width:760px; margin:0 0 40px; }
+  .grid { display:grid; grid-template-columns: repeat(2, 1fr); gap:24px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } h1 { font-size:40px; } }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:26px 28px; box-shadow: 0 1px 2px rgba(23,21,15,.04), 0 8px 24px -12px rgba(23,21,15,.18); }
+  .card.pick { border-color: var(--accent); }
+  .head { display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
+  .num { font-family:Fraunces, serif; font-size:20px; color:var(--accent); }
+  .studio { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .hero { display:flex; align-items:center; gap:22px; padding:34px 8px 30px; border-bottom:1px solid var(--line); min-height:150px; }
+  .hero img { height:72px; width:auto; display:block; }
+  .hero.wide img { height:84px; }
+  .word { font-family:Fraunces, Georgia, serif; font-variation-settings:"opsz" 144; font-weight:500; letter-spacing:-.02em; font-size:56px; line-height:1; color:var(--ink); }
+  .desc { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:600; margin-top:8px; }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 0 6px; flex-wrap:wrap; }
+  .sizes { display:flex; align-items:flex-end; gap:18px; }
+  .sizes figure { margin:0; text-align:center; }
+  .sizes img { display:block; margin:0 auto; image-rendering:auto; }
+  .sizes figcaption { font-size:10px; color:var(--muted); margin-top:6px; }
+  .tab { display:inline-flex; align-items:center; gap:8px; background:#EFEBE3; border:1px solid var(--line); border-radius:8px 8px 0 0; padding:6px 12px; font-size:12px; color:var(--ink); }
+  .tab img { width:16px; height:16px; }
+  .header { margin-top:14px; display:flex; align-items:center; justify-content:space-between; height:56px; padding:0 16px; background:var(--paper); border:1px solid var(--line); border-radius:12px; }
+  .header .lock { display:flex; align-items:center; gap:10px; }
+  .header .lock img { height:20px; width:auto; }
+  .header .lock .w { font-family:Fraunces, serif; font-variation-settings:"opsz" 24; font-weight:500; font-size:20px; letter-spacing:-.02em; line-height:1; }
+  .header .lock .d { font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:600; margin-top:3px; }
+  .header nav { display:flex; gap:14px; font-size:12px; color:var(--muted); }
+  .header nav b { color:var(--ink); font-weight:600; }
+  .idea { margin-top:18px; font-size:14px; line-height:1.55; }
+  .idea b { font-weight:600; }
+  .take { margin-top:12px; padding:12px 14px; background:var(--paper); border-radius:10px; font-size:13px; line-height:1.5; }
+  .take .l { font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-text); font-weight:600; display:block; margin-bottom:4px; }
+  .links { font-size:12px; margin-top:12px; }
+  .links a { color:var(--accent-text); text-decoration:none; margin-right:14px; }
+  .verdict { margin-top:56px; padding:34px 36px; background:var(--ink); color:var(--paper); border-radius:18px; }
+  .verdict h2 { font-family:Fraunces, serif; font-weight:500; font-size:32px; letter-spacing:-.02em; margin:0 0 14px; }
+  .verdict ol { margin:0; padding-left:22px; font-size:15px; line-height:1.6; }
+  .verdict li + li { margin-top:8px; }
+  .verdict .muted { color:#CFC7B8; font-size:13px; margin-top:18px; line-height:1.55; }
+  .verdict em { color:#E39A5F; font-style:italic; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Turnout · tour final · deux studios, six idées</p>
+  <h1>Six idées. Une seule doit <em>surprendre et tenir</em> à 20 pixels.</h1>
+  <p class="lead">Studio A a cherché une seconde vie au radar : une porte, un verre, une foule. Studio B a cherché l'idée dans la lettre et dans le geste : un n retourné, un sceau de brasserie, une façade ouverte. Chaque carte montre le lockup, la marque de 64 à 16 px, le favicon dans un onglet et l'en-tête réel de l'app. Les pages complètes des studios sont liées sous chaque carte.</p>
+
+  <div class="grid">
+
+    <section class="card pick" id="swing">
+      <div class="head"><span class="num">A1 · Swing</span><span class="studio">Studio A</span></div>
+      <div class="hero"><img src="../studio-a/marks/01-swing-32.svg" alt="Swing" /><div><div class="word">Turnout</div><div class="desc">Crowd to campaign</div></div></div>
+      <div class="row">
+        <div class="sizes">
+          <figure><img src="../studio-a/marks/01-swing-32.svg" width="64" height="64" alt="" /><figcaption>64</figcaption></figure>
+          <figure><img src="../studio-a/marks/01-swing-32.svg" width="32" height="32" alt="" /><figcaption>32</figcaption></figure>
+          <figure><img src="../studio-a/marks/01-swing-20.svg" width="20" height="20" alt="" /><figcaption>20</figcaption></figure>
+          <figure><img src="../studio-a/marks/01-swing-16.svg" width="16" height="16" alt="" /><figcaption>16</figcaption></figure>
+          <figure><img src="../studio-a/marks/01-swing-mono.svg" width="32" height="32" alt="" /><figcaption>encre</figcaption></figure>
+        </div>
+        <span class="tab"><img src="../studio-a/marks/01-swing-16.svg" alt="" /> Turnout, radar <span style="color:var(--muted)">×</span></span>
+      </div>
+      <div class="header"><div class="lock"><img src="../studio-a/marks/01-swing-20.svg" alt="" /><div><div class="w">Turnout</div><div class="d">Crowd to campaign</div></div></div><nav><b>Radar</b><span>Campaigns</span><span>Settings</span></nav></div>
+      <p class="idea"><b>L'idée.</b> Sur un plan d'architecte, une porte se dessine avec une charnière, un battant et un quart d'arc. C'est exactement un balayage radar : le battant est la lisière ambre, l'arc l'anneau, la rémanence la lumière qui franchit le seuil. Deux bouts de mur font la porte.</p>
+      <div class="take"><span class="l">Mon avis</span>La seule idée qui garde tout ce que tu as aimé du radar et y ajoute le sens du produit : la foule qui passe ta porte. Risque réel : sans ses deux murs, ce n'est qu'un quart d'éventail. La charte devra les protéger.</div>
+      <p class="links"><a href="../studio-a/index.html#01-swing">Page Studio A</a><a href="../studio-a/01-swing.svg">Master SVG</a></p>
+    </section>
+
+    <section class="card" id="turn">
+      <div class="head"><span class="num">B1 · The Turn</span><span class="studio">Studio B</span></div>
+      <div class="hero"><img src="../studio-b/marks/01-turn-hero.svg" alt="The Turn" /><div><div class="word">Turnout</div><div class="desc">Crowd to campaign</div></div></div>
+      <div class="row">
+        <div class="sizes">
+          <figure><img src="../studio-b/marks/01-turn-32.svg" width="64" height="64" alt="" /><figcaption>64</figcaption></figure>
+          <figure><img src="../studio-b/marks/01-turn-32.svg" width="32" height="32" alt="" /><figcaption>32</figcaption></figure>
+          <figure><img src="../studio-b/marks/01-turn-32.svg" width="20" height="20" alt="" /><figcaption>20</figcaption></figure>
+          <figure><img src="../studio-b/marks/01-turn-16.svg" width="16" height="16" alt="" /><figcaption>16</figcaption></figure>
+          <figure><img src="../studio-b/marks/01-turn-mono.svg" width="32" height="32" alt="" /><figcaption>encre</figcaption></figure>
+        </div>
+        <span class="tab"><img src="../studio-b/marks/01-turn-16.svg" alt="" /> Turnout, radar <span style="color:var(--muted)">×</span></span>
+      </div>
+      <div class="header"><div class="lock"><img src="../studio-b/marks/01-turn-32.svg" alt="" /><div><div class="w">Turnout</div><div class="d">Crowd to campaign</div></div></div><nav><b>Radar</b><span>Campaigns</span><span>Settings</span></nav></div>
+      <p class="idea"><b>L'idée.</b> Le n de Fraunces, et le même n retourné de 180° autour du pied de sa hampe, réunis en une diagonale. Arche encre au-dessus de la ligne, coupe ambre en dessous : l'arena et le verre sont la même forme, retournée. Se lit pareil à l'envers.</p>
+      <div class="take"><span class="l">Mon avis</span>La plus intelligente et la plus typographique. Deux réserves : aucun radar dedans, et de gauche à droite on peut y lire "nu". Belle comme monogramme, moins comme marque produit.</div>
+      <p class="links"><a href="../studio-b/index.html">Page Studio B</a><a href="../studio-b/01-the-turn.svg">Master SVG</a></p>
+    </section>
+
+    <section class="card" id="coupe">
+      <div class="head"><span class="num">A2 · Coupe</span><span class="studio">Studio A</span></div>
+      <div class="hero"><img src="../studio-a/marks/02-coupe-32.svg" alt="Coupe" /><div><div class="word">Turnout</div><div class="desc">Crowd to campaign</div></div></div>
+      <div class="row">
+        <div class="sizes">
+          <figure><img src="../studio-a/marks/02-coupe-32.svg" width="64" height="64" alt="" /><figcaption>64</figcaption></figure>
+          <figure><img src="../studio-a/marks/02-coupe-32.svg" width="32" height="32" alt="" /><figcaption>32</figcaption></figure>
+          <figure><img src="../studio-a/marks/02-coupe-20.svg" width="20" height="20" alt="" /><figcaption>20</figcaption></figure>
+          <figure><img src="../studio-a/marks/02-coupe-16.svg" width="16" height="16" alt="" /><figcaption>16</figcaption></figure>
+          <figure><img src="../studio-a/marks/02-coupe-mono.svg" width="32" height="32" alt="" /><figcaption>encre</figcaption></figure>
+        </div>
+        <span class="tab"><img src="../studio-a/marks/02-coupe-16.svg" alt="" /> Turnout, radar <span style="color:var(--muted)">×</span></span>
+      </div>
+      <div class="header"><div class="lock"><img src="../studio-a/marks/02-coupe-20.svg" alt="" /><div><div class="w">Turnout</div><div class="d">Crowd to campaign</div></div></div><nav><b>Radar</b><span>Campaigns</span><span>Settings</span></nav></div>
+      <p class="idea"><b>L'idée.</b> Un demi-radar suspendu à une ligne forme un T majuscule. Avec un pied, c'est une coupe, et la rémanence devient le verre. Verre en encre, balayage et lueur en ambre.</p>
+      <div class="take"><span class="l">Mon avis</span>Charmant et très hospitalité, mais dit "bar" avant "commerce", et à 16 px il frôle l'icône de bar des cartes. Excellent pour les gabarits de campagne, pas pour la marque.</div>
+      <p class="links"><a href="../studio-a/index.html#02-coupe">Page Studio A</a><a href="../studio-a/02-coupe.svg">Master SVG</a></p>
+    </section>
+
+    <section class="card" id="seal">
+      <div class="head"><span class="num">B2 · The Seal</span><span class="studio">Studio B</span></div>
+      <div class="hero wide"><img src="../studio-b/marks/02-seal-full.svg" alt="The Seal" /><div><div class="word">Turnout</div><div class="desc">Crowd to campaign</div></div></div>
+      <div class="row">
+        <div class="sizes">
+          <figure><img src="../studio-b/marks/02-seal-32.svg" width="64" height="64" alt="" /><figcaption>64</figcaption></figure>
+          <figure><img src="../studio-b/marks/02-seal-32.svg" width="32" height="32" alt="" /><figcaption>32</figcaption></figure>
+          <figure><img src="../studio-b/marks/02-seal-32.svg" width="20" height="20" alt="" /><figcaption>20</figcaption></figure>
+          <figure><img src="../studio-b/marks/02-seal-16.svg" width="16" height="16" alt="" /><figcaption>16</figcaption></figure>
+          <figure><img src="../studio-b/marks/02-seal-mono.svg" width="32" height="32" alt="" /><figcaption>encre</figcaption></figure>
+        </div>
+        <span class="tab"><img src="../studio-b/marks/02-seal-16.svg" alt="" /> Turnout, radar <span style="color:var(--muted)">×</span></span>
+      </div>
+      <div class="header"><div class="lock"><img src="../studio-b/marks/02-seal-32.svg" alt="" /><div><div class="w">Turnout</div><div class="d">Crowd to campaign</div></div></div><nav><b>Radar</b><span>Campaigns</span><span>Settings</span></nav></div>
+      <p class="idea"><b>L'idée.</b> Un sceau de brasserie dont le champ intérieur est un vrai radar : anneaux, lisière nette, rémanence. La rémanence continue dans les lettres du bord, qui se lisent TURN en encre et OUT en ambre. Sous 96 px, il perd les lettres et redevient le radar nu.</p>
+      <div class="take"><span class="l">Mon avis</span>Le radar reconnaissable, en version premium. Le sceau vit très bien en icône d'app et en tampon sur une ardoise. Dans l'en-tête, il redevient le radar classique que tu connais déjà.</div>
+      <p class="links"><a href="../studio-b/index.html">Page Studio B</a><a href="../studio-b/02-the-seal.svg">Master SVG</a></p>
+    </section>
+
+    <section class="card" id="ola">
+      <div class="head"><span class="num">A3 · Ola</span><span class="studio">Studio A</span></div>
+      <div class="hero"><img src="../studio-a/marks/03-ola-32.svg" alt="Ola" /><div><div class="word">Turnout</div><div class="desc">Crowd to campaign</div></div></div>
+      <div class="row">
+        <div class="sizes">
+          <figure><img src="../studio-a/marks/03-ola-32.svg" width="64" height="64" alt="" /><figcaption>64</figcaption></figure>
+          <figure><img src="../studio-a/marks/03-ola-32.svg" width="32" height="32" alt="" /><figcaption>32</figcaption></figure>
+          <figure><img src="../studio-a/marks/03-ola-20.svg" width="20" height="20" alt="" /><figcaption>20</figcaption></figure>
+          <figure><img src="../studio-a/marks/03-ola-16.svg" width="16" height="16" alt="" /><figcaption>16</figcaption></figure>
+          <figure><img src="../studio-a/marks/03-ola-mono.svg" width="32" height="32" alt="" /><figcaption>encre</figcaption></figure>
+        </div>
+        <span class="tab"><img src="../studio-a/marks/03-ola-16.svg" alt="" /> Turnout, radar <span style="color:var(--muted)">×</span></span>
+      </div>
+      <div class="header"><div class="lock"><img src="../studio-a/marks/03-ola-20.svg" alt="" /><div><div class="w">Turnout</div><div class="d">Crowd to campaign</div></div></div><nav><b>Radar</b><span>Campaigns</span><span>Settings</span></nav></div>
+      <p class="idea"><b>L'idée.</b> Trente-six graduations comme les tribunes d'un stade. La ola se lève à la lisière et se rassied derrière, ambre vers encre. La rémanence est faite de gens. Pensée comme animation de chargement.</p>
+      <div class="take"><span class="l">Mon avis</span>L'idée la plus audacieuse et la plus juste sur le fond : la foule est le signal. Mais elle s'effondre sous 24 px et ressemble à un spinner système. À garder comme état de chargement dans l'app.</div>
+      <p class="links"><a href="../studio-a/index.html#03-ola">Page Studio A</a><a href="../studio-a/03-ola.svg">Master SVG</a></p>
+    </section>
+
+    <section class="card" id="opening">
+      <div class="head"><span class="num">B3 · The Opening</span><span class="studio">Studio B</span></div>
+      <div class="hero wide"><img src="../studio-b/marks/03-opening-hero.svg" alt="The Opening" /><div><div class="word">Turnout</div><div class="desc">Crowd to campaign</div></div></div>
+      <div class="row">
+        <div class="sizes">
+          <figure><img src="../studio-b/marks/03-opening-32.svg" width="64" height="64" alt="" /><figcaption>64</figcaption></figure>
+          <figure><img src="../studio-b/marks/03-opening-32.svg" width="32" height="32" alt="" /><figcaption>32</figcaption></figure>
+          <figure><img src="../studio-b/marks/03-opening-32.svg" width="20" height="20" alt="" /><figcaption>20</figcaption></figure>
+          <figure><img src="../studio-b/marks/03-opening-16.svg" width="16" height="16" alt="" /><figcaption>16</figcaption></figure>
+          <figure><img src="../studio-b/marks/03-opening-mono.svg" width="32" height="32" alt="" /><figcaption>encre</figcaption></figure>
+        </div>
+        <span class="tab"><img src="../studio-b/marks/03-opening-16.svg" alt="" /> Turnout, radar <span style="color:var(--muted)">×</span></span>
+      </div>
+      <div class="header"><div class="lock"><img src="../studio-b/marks/03-opening-32.svg" alt="" /><div><div class="w">Turnout</div><div class="d">Crowd to campaign</div></div></div><nav><b>Radar</b><span>Campaigns</span><span>Settings</span></nav></div>
+      <p class="idea"><b>L'idée.</b> Le mot se sépare en "Turn" et "out". La ligne de base devient une façade vue du dessus, avec une ouverture de porte d'où la lumière chaude tombe sur le trottoir. Recadrée, la porte est un T : le mur est la barre, la lumière la hampe.</p>
+      <div class="take"><span class="l">Mon avis</span>Celle qui ose. Le vrai lockup est le mot coupé, montré sur la page de Studio B. En marque seule, le T lumineux est propre mais abstrait sans le mot. Très fort en pub, fragile en favicon.</div>
+      <p class="links"><a href="../studio-b/index.html">Page Studio B</a><a href="../studio-b/03-the-opening.svg">Master SVG</a></p>
+    </section>
+
+  </div>
+
+  <section class="verdict">
+    <h2>Mon classement, et ce que je mettrais devant le jury</h2>
+    <ol>
+      <li><em>Swing</em> (A1) comme marque. Radar et porte à la fois, lisible à 20 px, dans la continuité de tout ce que tu as validé. Avec une règle stricte : les deux murs ne se recadrent jamais.</li>
+      <li><em>The Seal</em> (B2) comme icône d'app et tampon : le radar que tu voulais, en habit de brasserie. Il peut cohabiter avec Swing sans conflit, puisqu'il redevient un radar nu en petit.</li>
+      <li><em>Ola</em> (A3) comme animation de chargement du radar, jamais comme logo.</li>
+    </ol>
+    <p class="muted">The Turn est le plus beau comme objet, mais il parle de typographie plus que de foules, et la lecture "nu" est un risque gratuit. The Opening est une idée de campagne plus qu'une marque. Coupe enferme Turnout dans le bar.<br /><br />Si tu veux une surprise assumée plutôt qu'une marque sûre : The Turn en monogramme, Swing en marque produit. Sinon : Swing, point.</p>
+  </section>
+</div>
+</body>
+</html>

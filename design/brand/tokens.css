@@ -1,0 +1,115 @@
+/* Turnout design tokens. Paste into src/app/globals.css (replaces the current :root block).
+   Existing names are kept; new names follow the same style. Contrast ratios in GUIDELINES.md. */
+:root {
+  /* Surfaces */
+  --paper: #f7f4ee;          /* page background */
+  --panel: #ffffff;          /* cards, fields */
+  --panel-2: #fbf9f5;        /* flat cards, table header, chips */
+  --panel-ink: #17150f;      /* reverse surfaces: chalkboard, OG, tooltips */
+
+  /* Lines */
+  --line: #e4ded3;           /* 1 px default border */
+  --line-strong: #cfc7b8;    /* field borders, dividers that must be seen */
+
+  /* Ink scale, warm greys. Text roles below point at these. */
+  --ink-950: #17150f;
+  --ink-900: #2a2721;
+  --ink-700: #4a463e;
+  --ink-600: #6b655b;
+  --ink-500: #857e71;
+  --ink-400: #a39c8f;
+  --ink-300: #cfc7b8;
+  --ink-200: #e4ded3;
+  --ink-100: #efebe3;
+  --ink-50:  #fbf9f5;
+
+  --ink: var(--ink-950);     /* titles, primary buttons, marks */
+  --text: var(--ink-900);    /* body */
+  --muted: var(--ink-600);   /* secondary text, eyebrows: 5.26:1 on paper */
+  --faint: var(--ink-500);   /* disabled text, non-essential meta only (3.66:1) */
+  --placeholder: var(--ink-400);
+
+  /* Amber, the one accent */
+  --amber-50:  #fbe9d9;
+  --amber-100: #f5d3b4;
+  --amber-300: #e0955a;
+  --amber-500: #b4530a;
+  --amber-600: #9d4808;
+  --amber-700: #7f3a06;
+  --amber-800: #5e2b05;
+
+  --accent: var(--amber-500);        /* fills, rings, dots, display italics: 4.57:1 on paper */
+  --accent-hover: var(--amber-600);
+  --accent-ink: #ffffff;             /* text on accent: 5.02:1 */
+  --accent-soft: var(--amber-50);    /* tints, focus halo */
+  --accent-text: #a54a07;            /* amber text under 18 px: 5.34:1 on paper, 4.96:1 on amber-soft */
+
+  /* Semantic */
+  --ok: #1f7a4d;             --ok-soft: #e3f3ea;     --ok-text: #1b6b44;
+  --warn: #9a6400;           --warn-soft: #fff3d6;   --warn-text: #805300;
+  --danger: #b42318;         --danger-soft: #fde8e6; --danger-text: #b42318;
+  --info: #3b5b7a;           --info-soft: #e6edf3;   --info-text: #3b5b7a;
+
+  /* Data visualisation */
+  --seq-1: #f3e6d6;          /* sequential, paper to amber: concentration, affinity */
+  --seq-2: #eacbaa;
+  --seq-3: #dda874;
+  --seq-4: #c97d3e;
+  --seq-5: #b4530a;
+  --neu-1: #efebe3;          /* neutral, for comparison series and "cold" venues */
+  --neu-2: #d9d2c5;
+  --neu-3: #b8af9f;
+  --neu-4: #857e71;
+  --neu-5: #4a463e;
+  --map-merchant: var(--ink-950);
+  --map-hot: var(--amber-500);
+  --map-cold: var(--ink-300);
+  --map-radius: var(--line-strong);
+
+  /* Type */
+  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --font-sans: "Inter", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --text-12: 12px; --lh-12: 16px;
+  --text-13: 13px; --lh-13: 18px;
+  --text-14: 14px; --lh-14: 20px;
+  --text-16: 16px; --lh-16: 24px;
+  --text-18: 18px; --lh-18: 26px;
+  --text-22: 22px; --lh-22: 28px;
+  --text-28: 28px; --lh-28: 34px;
+  --text-36: 36px; --lh-36: 42px;
+  --text-48: 48px; --lh-48: 52px;
+  --text-64: 64px; --lh-64: 66px;
+  --track-display: -0.02em;
+  --track-eyebrow: 0.14em;
+
+  /* Space, 8 px scale with a 4 px half step */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px; --space-9: 96px;
+  --container: 1200px; --container-md: 960px; --container-sm: 640px;
+
+  /* Shape */
+  --radius: 14px;            /* cards */
+  --radius-sm: 8px;          /* badges, tooltips, small panels */
+  --radius-field: 10px;      /* inputs, selects */
+  --radius-pill: 999px;      /* buttons, chips */
+
+  /* Elevation */
+  --shadow: 0 1px 2px rgba(23, 21, 15, 0.04), 0 8px 24px -12px rgba(23, 21, 15, 0.18);
+  --shadow-lift: 0 1px 2px rgba(23, 21, 15, 0.05), 0 14px 32px -12px rgba(23, 21, 15, 0.22);
+  --shadow-pop: 0 2px 4px rgba(23, 21, 15, 0.06), 0 24px 48px -16px rgba(23, 21, 15, 0.28);
+
+  /* Focus */
+  --focus-ring: 0 0 0 3px var(--accent-soft);
+  --focus-outline: 2px solid var(--accent);
+
+  /* Motion */
+  --dur-1: 120ms;            /* hover, press, colour */
+  --dur-2: 200ms;            /* reveal, expand, badge change */
+  --dur-3: 320ms;            /* score ring fill, publish confirmation */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-1: 0ms; --dur-2: 0ms; --dur-3: 0ms; }
+}

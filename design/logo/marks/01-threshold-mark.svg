@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Turnout, 01 The threshold: 32 px master drawing. -->
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#17150F" stroke-width="2.4" stroke-linecap="butt" stroke-linejoin="miter"/><circle cx="4.8" cy="25.2" r="1.6" fill="#17150F"/><circle cx="12" cy="24.5" r="2.3" fill="#17150F"/><circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/></svg>

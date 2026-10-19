@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Turnout favicon. The 16 px drawing of Threshold A: 2 px strokes on even grid units, crisp at 16 and 32. Ink flips to paper in dark browser chrome. -->
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <style>.ink{stroke:#17150F}.dot{fill:#17150F}@media (prefers-color-scheme:dark){.ink{stroke:#F7F4EE}.dot{fill:#F7F4EE}}</style>
+  <path class="ink" d="M12 14V4H28V28H2" fill="none" stroke-width="4" stroke-linejoin="miter" stroke-linecap="butt"/>
+  <circle class="dot" cx="11" cy="23.5" r="2.5"/>
+  <circle cx="20" cy="22.5" r="3.5" fill="#B4530A"/>
+</svg>

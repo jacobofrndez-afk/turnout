@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Turnout, 02 The turn: 16 px drawing (2 px strokes on even grid units). -->
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M4 8H16A8 8 0 0 1 24 16V18" fill="none" stroke="#17150F" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="24" cy="26.5" r="3.5" fill="#B4530A"/></svg>

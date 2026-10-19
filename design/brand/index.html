@@ -1,0 +1,1031 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Turnout, brand guidelines</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  /* ---------- page ---------- */
+  * { box-sizing: border-box; }
+  html { background: var(--paper); scroll-behavior: smooth; }
+  body { margin: 0; background: var(--paper); color: var(--text); font-family: var(--font-sans); font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; font-feature-settings: "ss01", "cv11"; }
+  .wrap { max-width: var(--container); margin: 0 auto; padding: 64px 24px 120px; }
+  h1, h2, h3, .display { font-family: var(--font-display); font-weight: 500; letter-spacing: var(--track-display); margin: 0; color: var(--ink); font-variation-settings: "opsz" 144; }
+  h1 { font-size: var(--text-64); line-height: var(--lh-64); letter-spacing: -0.025em; max-width: 900px; }
+  h1 em, .amber-em { font-style: italic; color: var(--accent); }
+  h2 { font-size: var(--text-36); line-height: var(--lh-36); }
+  h3 { font-size: var(--text-22); line-height: var(--lh-22); letter-spacing: -0.01em; font-variation-settings: "opsz" 48; }
+  h4 { margin: 0 0 10px; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  p { margin: 0; }
+  .lede { font-size: var(--text-18); line-height: var(--lh-18); color: var(--muted); max-width: 720px; margin-top: 20px; }
+  .eyebrow { font-size: 11px; line-height: 16px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  a { color: var(--ink); text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+  code, .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; }
+  code { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; color: var(--ink); }
+  section { margin-top: 112px; padding-top: 40px; border-top: 1px solid var(--line); }
+  section > .intro { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: end; margin-bottom: 36px; }
+  section > .intro p { color: var(--muted); font-size: 16px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .mt { margin-top: 32px; }
+  .mt-s { margin-top: 16px; }
+  .rules { margin: 0; padding: 0; list-style: none; }
+  .rules li { padding: 10px 0; border-top: 1px solid var(--line); font-size: 14px; display: grid; grid-template-columns: 24px 1fr; gap: 8px; }
+  .rules li:first-child { border-top: 0; }
+  .rules li::before { content: "·"; color: var(--accent); font-weight: 600; }
+  .demo { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; }
+  .demo.paper { background: var(--paper); }
+  .demo.ink { background: var(--panel-ink); color: var(--paper); border-color: var(--panel-ink); }
+  .note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .toc { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 40px; }
+  .toc a { display: block; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; font-size: 12.5px; text-decoration: none; color: var(--ink); }
+  .toc a span { display: block; color: var(--accent); font-family: var(--font-display); font-size: 16px; }
+  header .meta { display: flex; gap: 32px; margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+  header .meta b { color: var(--ink); font-weight: 600; display: block; }
+  .principles { margin-top: 40px; }
+  .principles div { padding: 24px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+  .principles h3 { margin-bottom: 8px; }
+  .principles p { font-size: 14px; color: var(--muted); }
+  table.spec { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.spec th { text-align: left; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line); }
+  table.spec td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--line); vertical-align: middle; font-variant-numeric: tabular-nums; }
+  table.spec td.num { text-align: right; padding-right: 24px; }
+  .pass { color: var(--ok-text); font-weight: 600; }
+  .fail { color: var(--danger-text); font-weight: 600; }
+  .large { color: var(--warn-text); font-weight: 600; }
+
+  /* ---------- logo section ---------- */
+  .logo-hero { display: grid; grid-template-columns: 1.3fr 1fr; gap: 24px; }
+  .logo-hero .demo { display: grid; place-items: center; min-height: 260px; }
+  .dodont { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .dodont figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .dodont figure svg { display: block; margin: 0 auto 10px; }
+  .dodont figcaption { font-size: 12.5px; color: var(--muted); }
+  .dodont figcaption b { display: block; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+  .dodont .no b { color: var(--danger-text); }
+  .dodont .yes b { color: var(--ok-text); }
+
+  /* ---------- colour ---------- */
+  .swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .sw { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel); font-size: 12px; }
+  .sw .chip { height: 72px; border-bottom: 1px solid var(--line); }
+  .sw .body { padding: 10px 12px; }
+  .sw b { display: block; font-weight: 600; color: var(--ink); font-size: 12.5px; }
+  .sw .hex { color: var(--muted); font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; }
+  .sw .cr { color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .ramp { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .ramp div { height: 40px; border-radius: 6px; border: 1px solid var(--line); }
+  .bars { display: grid; gap: 10px; margin-top: 16px; }
+  .bar { display: grid; grid-template-columns: 96px 1fr 48px; gap: 12px; align-items: center; font-size: 13px; }
+  .bar .track { height: 10px; background: var(--neu-1); border-radius: 999px; overflow: hidden; }
+  .bar .fill { height: 100%; border-radius: 999px; }
+  .bar .v { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .map { position: relative; height: 300px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); background:
+      repeating-linear-gradient(90deg, transparent 0 38px, #E7E2D9 38px 40px),
+      repeating-linear-gradient(0deg, transparent 0 46px, #E7E2D9 46px 48px),
+      linear-gradient(135deg, #EEEAE2, #F3EFE7); }
+  .map .road { position: absolute; background: #FFFFFF; border: 1px solid #E2DCD0; }
+  .map .radius { position: absolute; width: 220px; height: 220px; left: 180px; top: 40px; border: 1.5px dashed var(--map-radius); border-radius: 50%; }
+  .map .pin { position: absolute; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--paper); box-shadow: 0 0 0 1px var(--line-strong); }
+  .map .merchant { background: var(--map-merchant); left: 283px; top: 143px; width: 16px; height: 16px; }
+  .map .hot { background: var(--map-hot); }
+  .map .cold { background: var(--map-cold); }
+  .map .lbl { position: absolute; font-size: 11px; font-weight: 600; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 8px; padding: 3px 7px; color: var(--ink); }
+
+  /* ---------- type ---------- */
+  .specimen { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .specimen .demo { min-height: 220px; }
+  .specimen .big { font-size: 96px; line-height: 1; letter-spacing: -0.025em; }
+  .scale .row { display: grid; grid-template-columns: 120px 1fr 260px; gap: 16px; align-items: baseline; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .scale .row:last-child { border-bottom: 0; }
+  .scale .m { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tnum { font-variant-numeric: tabular-nums; }
+  .pnum { font-variant-numeric: proportional-nums; }
+
+  /* ---------- layout ---------- */
+  .space { display: flex; align-items: flex-end; gap: 12px; }
+  .space div { background: var(--accent-soft); border: 1px solid var(--amber-100); border-radius: 4px; font-size: 11px; color: var(--accent-text); display: grid; place-items: end center; padding-bottom: 4px; }
+  .containers div { height: 24px; border-radius: 6px; background: var(--panel); border: 1px solid var(--line-strong); font-size: 11px; color: var(--muted); display: grid; place-items: center; margin-top: 8px; }
+  .radii { display: flex; gap: 16px; align-items: center; }
+  .radii div { width: 72px; height: 56px; background: var(--panel); border: 1px solid var(--line-strong); display: grid; place-items: center; font-size: 11px; color: var(--muted); }
+  .shadows { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .shadows div { height: 96px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); display: grid; place-items: center; font-size: 12px; color: var(--muted); }
+
+  /* ---------- components (the actual system) ---------- */
+  .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: var(--radius-pill); padding: 12px 22px; font-weight: 600; font-size: 14px; line-height: 1; border: 1px solid transparent; cursor: pointer; font-family: inherit; transition: transform var(--dur-1) var(--ease-out), background var(--dur-1) var(--ease-out), border-color var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out); }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible { outline: var(--focus-outline); outline-offset: 2px; }
+  .btn-primary { background: var(--ink); color: #fff; }
+  .btn-primary:hover { background: var(--ink-900); }
+  .btn-accent { background: var(--accent); color: var(--accent-ink); }
+  .btn-accent:hover { background: var(--accent-hover); }
+  .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line-strong); }
+  .btn-ghost:hover { background: var(--panel); }
+  .btn[disabled] { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-sm { padding: 8px 14px; font-size: 13px; }
+  .states { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .states .lab { font-size: 11px; color: var(--muted); width: 72px; }
+  .hover { filter: brightness(0.95); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; border-radius: var(--radius-pill); padding: 4px 10px; font-size: 12px; background: var(--panel-2); border: 1px solid var(--line); color: var(--text); }
+  .chip.on { background: var(--accent-soft); border-color: var(--amber-100); color: var(--accent-text); font-weight: 600; }
+  .chip .x { color: var(--muted); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; transition: transform var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out); }
+  .card:hover { transform: translateY(-1px); box-shadow: var(--shadow-lift); }
+  .card-flat { background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+  .ring { --p: 0; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--line) 0); }
+  .ring > span { width: 46px; height: 46px; border-radius: 50%; background: var(--panel); display: grid; place-items: center; font-family: var(--font-display); font-weight: 500; font-size: 18px; color: var(--ink); font-variation-settings: "opsz" 48; }
+  .ring.lg { width: 88px; height: 88px; } .ring.lg > span { width: 74px; height: 74px; font-size: 28px; }
+  .ring.sm { width: 36px; height: 36px; } .ring.sm > span { width: 28px; height: 28px; font-size: 11px; font-family: var(--font-sans); font-weight: 600; }
+  .pat-head .eyebrow { margin-bottom: 8px; }
+  .pat-head h3 { font-size: 28px; line-height: 34px; letter-spacing: -0.015em; font-variation-settings: "opsz" 72; }
+  .pat-head .meta { margin-top: 8px; font-size: 13px; color: var(--muted); display: flex; gap: 14px; }
+  table.data { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  table.data th { text-align: left; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 10px 14px; background: var(--panel-2); border-bottom: 1px solid var(--line); }
+  table.data td { padding: 12px 14px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; vertical-align: middle; }
+  table.data tr:last-child td { border-bottom: 0; }
+  table.data td.num, table.data th.num { text-align: right; }
+  table.data.compact td { padding: 8px 14px; }
+  table.data tr:hover td { background: var(--panel-2); }
+  .field { width: 100%; border-radius: var(--radius-field); padding: 10px 12px; font-size: 14px; background: var(--panel); border: 1px solid var(--line-strong); color: var(--ink); outline: none; font-family: inherit; transition: border-color var(--dur-1), box-shadow var(--dur-1); }
+  .field:focus { border-color: var(--accent); box-shadow: var(--focus-ring); }
+  .field.focus { border-color: var(--accent); box-shadow: var(--focus-ring); }
+  .field.err { border-color: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
+  .field::placeholder { color: var(--placeholder); }
+  label.lbl { display: block; font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 6px; }
+  .help { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .help.err { color: var(--danger-text); }
+  .badge { display: inline-flex; align-items: center; gap: 6px; border-radius: var(--radius-pill); padding: 3px 10px 3px 8px; font-size: 12px; font-weight: 600; line-height: 18px; border: 1px solid transparent; }
+  .badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .badge-draft { background: var(--panel-2); color: var(--ink-700); border-color: var(--line); }
+  .badge-working { background: var(--info-soft); color: var(--info-text); }
+  .badge-working::before { animation: pulse 1.2s ease-in-out infinite; }
+  .badge-pick { background: var(--accent-soft); color: var(--accent-text); }
+  .badge-approved { background: var(--ok-soft); color: var(--ok-text); }
+  .badge-published { background: var(--ink); color: var(--paper); }
+  .badge-failed { background: var(--danger-soft); color: var(--danger-text); }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+  @media (prefers-reduced-motion: reduce) { .badge-working::before { animation: none; } .card:hover { transform: none; } }
+  table.prov { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.prov th { text-align: left; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 8px 0; border-bottom: 1px solid var(--line-strong); }
+  table.prov td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.prov td:first-child { color: var(--muted); width: 140px; }
+  table.prov code { font-size: 11.5px; }
+  .caution { border: 1px solid var(--line-strong); border-left: 3px solid var(--warn); border-radius: 10px; padding: 14px 16px; background: var(--panel); font-size: 13.5px; }
+  .caution b { display: block; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--warn-text); font-weight: 600; margin-bottom: 6px; }
+  .caution ul { margin: 6px 0 0; padding-left: 18px; color: var(--text); }
+  .empty { text-align: center; padding: 40px 24px; border: 1px dashed var(--line-strong); border-radius: var(--radius); background: var(--panel-2); }
+  .empty h3 { margin: 12px 0 6px; }
+  .empty p { color: var(--muted); font-size: 14px; max-width: 360px; margin: 0 auto 16px; }
+
+  /* ---------- icons ---------- */
+  .icons { display: grid; grid-template-columns: repeat(8, 1fr); gap: 12px; }
+  .icons figure { margin: 0; text-align: center; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 8px; }
+  .icons svg { display: block; margin: 0 auto; }
+  .icons figcaption { font-size: 11px; color: var(--muted); margin-top: 10px; }
+  .icons .ico { stroke: var(--ink); fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  .icons .big .ico { stroke-width: 1.75; }
+
+  /* ---------- voice ---------- */
+  .copy { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .copy .demo p + p { margin-top: 10px; }
+  .copy .no, .copy .yes { display: block; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; margin-bottom: 6px; }
+  .copy .no { color: var(--danger-text); } .copy .yes { color: var(--ok-text); }
+
+  /* ---------- applications ---------- */
+  .appbar { height: 56px; background: var(--paper); border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-radius: var(--radius) var(--radius) 0 0; }
+  .appbar nav { display: flex; gap: 22px; font-size: 13px; font-weight: 500; color: var(--muted); }
+  .appbar nav b { color: var(--ink); font-weight: 600; }
+  .lockup { display: inline-flex; align-items: flex-start; gap: 10px; color: var(--ink); }
+  .lockup > svg { margin-top: -5px; }
+  .lockup .wm { font-family: var(--font-display); font-weight: 500; font-size: 20px; line-height: 1; letter-spacing: -0.02em; font-variation-settings: "opsz" 144; }
+  .lockup .ds { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-top: 4px; }
+  .radar-row { display: grid; grid-template-columns: 56px 1fr auto auto; gap: 16px; align-items: center; padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+  .radar-row .t { font-weight: 600; color: var(--ink); font-size: 14px; }
+  .radar-row .m { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .radar-row .n { font-family: var(--font-display); font-weight: 500; font-size: 22px; color: var(--ink); font-variation-settings: "opsz" 48; letter-spacing: -0.01em; text-align: right; }
+  .radar-row .n small { display: block; font-family: var(--font-sans); font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; }
+  .camp { padding: 0; overflow: hidden; }
+  .camp .top { padding: 18px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+  .camp .body { padding: 20px; }
+  .camp .offer { font-family: var(--font-display); font-weight: 500; font-size: 24px; line-height: 1.15; letter-spacing: -0.015em; color: var(--ink); font-variation-settings: "opsz" 72; }
+  .camp .why { font-size: 13px; color: var(--muted); margin-top: 10px; }
+  .camp .foot { padding: 14px 20px; background: var(--panel-2); border-top: 1px solid var(--line); display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+  .ad { width: 360px; height: 360px; background: var(--paper); border: 1px solid var(--line); position: relative; padding: 36px; display: flex; flex-direction: column; justify-content: space-between; }
+  .ad .h { font-family: var(--font-display); font-weight: 500; font-size: 44px; line-height: 0.98; letter-spacing: -0.025em; color: var(--ink); font-variation-settings: "opsz" 144; }
+  .ad .s { font-size: 14px; color: var(--muted); margin-top: 16px; }
+  .ad .k { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; color: var(--muted); }
+  .chalk { width: 360px; height: 280px; background: #1B1A14; border: 10px solid #5E4630; border-radius: 4px; padding: 26px; color: #F2EEE4; display: flex; flex-direction: column; justify-content: space-between; box-shadow: inset 0 0 40px rgba(0,0,0,0.5); }
+  .chalk .h { font-family: var(--font-display); font-weight: 500; font-size: 30px; line-height: 1.08; letter-spacing: -0.015em; font-variation-settings: "opsz" 96; }
+  .chalk .h i { color: #E8A35D; font-style: italic; }
+  .chalk .s { font-size: 13px; opacity: 0.8; margin-top: 12px; }
+  .chalk .k { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; opacity: 0.6; }
+  .wa { width: 360px; padding: 20px; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); }
+  .wa .b { background: var(--panel); border: 1px solid var(--line); border-radius: 12px 12px 12px 2px; padding: 12px 14px; font-size: 14px; max-width: 290px; position: relative; }
+  .wa .b + .b { margin-top: 8px; }
+  .wa .time { font-size: 10.5px; color: var(--muted); text-align: right; margin-top: 6px; }
+  .wa .me { margin-left: auto; background: var(--accent-soft); border-color: var(--amber-100); border-radius: 12px 12px 2px 12px; }
+  .favs { display: flex; gap: 32px; align-items: flex-end; }
+  .favs figure { margin: 0; text-align: center; }
+  .favs figcaption { font-size: 11px; color: var(--muted); margin-top: 10px; }
+  .favs img, .favs svg { display: block; }
+  .og { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 12px; display: block; }
+
+  /* ---------- motion ---------- */
+  .motion { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .motion .demo { font-size: 14px; }
+  .motion .n { font-family: var(--font-display); font-size: 36px; color: var(--ink); font-variation-settings: "opsz" 96; letter-spacing: -0.02em; }
+  .pub { display: inline-flex; align-items: center; gap: 8px; color: var(--ok-text); font-weight: 600; font-size: 13px; }
+
+  /* ---------- a11y ---------- */
+  .focus-demo { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+  .focus-demo .btn { outline: var(--focus-outline); outline-offset: 2px; }
+  .target { display: inline-grid; place-items: center; width: 40px; height: 40px; border: 1px dashed var(--line-strong); border-radius: 8px; font-size: 10px; color: var(--muted); }
+  .target.t44 { width: 44px; height: 44px; }
+
+  footer { margin-top: 96px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); padding-top: 20px; }
+  @media (max-width: 960px) {
+    h1 { font-size: 40px; line-height: 44px; }
+    .toc, .grid4, .icons { grid-template-columns: repeat(2, 1fr); }
+    .grid3, .grid2, .logo-hero, .specimen, .copy, .shadows, .motion, .dodont, section > .intro { grid-template-columns: 1fr; }
+    .swatches { grid-template-columns: repeat(2, 1fr); }
+    .scale .row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Turnout &nbsp;·&nbsp; brand guidelines &nbsp;·&nbsp; v1.0, October 2026</div>
+  <h1 style="margin-top:20px">Turn the crowd outside into customers <em>inside</em>.</h1>
+  <p class="lede">Turnout is an agent for independent bars, restaurants and shops near venues. It sees a crowd coming, learns what that crowd loves, picks the offer, writes the campaign and publishes it once the owner says yes. The brand has to feel like both halves of that sentence: the warmth of a good room, and the precision of a tool that is right about people.</p>
+  <div class="meta">
+    <div><b>World</b>Warm paper, never dark glass</div>
+    <div><b>Type</b>Fraunces for what matters, Inter for the work</div>
+    <div><b>Colour</b>Ink, paper, one amber</div>
+    <div><b>Logo</b>Direction 01, the threshold (<a href="../logo/index.html">six directions</a>)</div>
+  </div>
+  <nav class="toc">
+    <a href="#idea"><span>01</span>Brand idea</a>
+    <a href="#logo"><span>02</span>Logo system</a>
+    <a href="#colour"><span>03</span>Colour</a>
+    <a href="#type"><span>04</span>Typography</a>
+    <a href="#layout"><span>05</span>Layout</a>
+    <a href="#components"><span>06</span>Components</a>
+    <a href="#icons"><span>07</span>Iconography</a>
+    <a href="#voice"><span>08</span>Voice</a>
+    <a href="#applications"><span>09</span>Applications</a>
+    <a href="#motion"><span>10</span>Motion</a>
+    <a href="#a11y"><span>11</span>Accessibility</a>
+    <a href="#changes"><span>12</span>Changes</a>
+  </nav>
+</header>
+
+<!-- ================================================================ 01 IDEA -->
+<section id="idea">
+  <div class="intro">
+    <h2>01 &nbsp;Brand idea</h2>
+    <p>One paragraph the whole team can repeat, and three principles that decide every visual call.</p>
+  </div>
+  <div class="demo paper" style="padding:40px">
+    <p class="display" style="font-size:30px;line-height:38px;max-width:900px">Turnout. Turn the crowd outside into customers inside. We are the host who already knows what the people walking past will love, and who says so plainly. Hospitality warmth, data precision. Paper, ink and one amber light. Never dark, never neon, never a dashboard pretending to be a nightclub.</p>
+  </div>
+  <div class="grid3 principles">
+    <div><h3>Warm paper, not dark glass</h3><p>The product lives on paper <code>#F7F4EE</code> with white panels. Ink is for text and primary actions. The owner rejected dark and "geek" aesthetics; every screen should look fine printed.</p></div>
+    <div><h3>One amber</h3><p>Amber <code>#B4530A</code> is the person who showed up, the thing to look at, the one decision on the page. One accent per view. If two things are amber, neither is.</p></div>
+    <div><h3>Evidence, not promises</h3><p>We say what the taste graph shows and what it does not establish. Numbers are tabular, sources are visible, verbs are careful. We never say "they will come".</p></div>
+  </div>
+</section>
+
+<!-- ================================================================ 02 LOGO -->
+<section id="logo">
+  <div class="intro">
+    <h2>02 &nbsp;Logo system</h2>
+    <p>Direction 01, the threshold: a doorway open on the reading side, three people on the floor growing as they come in, the amber one just crossed. Masters live in <code>design/logo/</code>. If the founder picks another direction, only this section and the two icon files change.</p>
+  </div>
+  <div class="logo-hero">
+    <div class="demo paper">
+      <svg width="400" height="120" viewBox="0 0 400 120" role="img" aria-label="Turnout lockup">
+        <svg x="30.7" y="21.5" width="56.4" height="56.4" viewBox="0 0 32 32" overflow="visible">
+          <path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#17150F" stroke-width="2.4" stroke-linejoin="miter" stroke-linecap="butt"/>
+          <circle cx="4.8" cy="25.2" r="1.6" fill="#17150F"/><circle cx="12" cy="24.5" r="2.3" fill="#17150F"/><circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/>
+        </svg>
+        <text x="112" y="73" font-family="Fraunces, Georgia, serif" font-weight="500" font-size="58" letter-spacing="-1.16" fill="#17150F" style="font-variation-settings:'opsz' 144">Turnout</text>
+        <text x="113" y="104" font-family="Inter, sans-serif" font-weight="600" font-size="12" letter-spacing="1.68" fill="#6B655B">CROWD TO CAMPAIGN</text>
+      </svg>
+    </div>
+    <div class="demo">
+      <h4>Construction and clear space</h4>
+      <svg width="100%" viewBox="0 0 320 200" style="display:block">
+        <rect x="84.1" y="22.9" width="151.7" height="154.2" fill="none" stroke="#CFC7B8" stroke-dasharray="3 3"/>
+        <rect x="113.2" y="52" width="93.5" height="96" fill="none" stroke="#B4530A" stroke-width="0.75" stroke-dasharray="2 2"/>
+        <svg x="102.3" y="41.8" width="116.4" height="116.4" viewBox="0 0 32 32" overflow="visible">
+          <path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#17150F" stroke-width="2.4" stroke-linejoin="miter" stroke-linecap="butt"/>
+          <circle cx="4.8" cy="25.2" r="1.6" fill="#17150F"/><circle cx="12" cy="24.5" r="2.3" fill="#17150F"/><circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/>
+        </svg>
+        <text x="160" y="14" font-family="Inter" font-size="9" fill="#6B655B" text-anchor="middle" letter-spacing="1">CLEAR SPACE = 8 GRID UNITS = 25 % OF MARK HEIGHT</text>
+        <text x="160" y="196" font-family="Inter" font-size="9" fill="#6B655B" text-anchor="middle">32 unit grid · stroke 2.4 · dots r 1.6 / 2.3 / 3.2 · floor on y 28</text>
+      </svg>
+    </div>
+  </div>
+  <div class="grid3 mt">
+    <div class="demo">
+      <h4>Lockups</h4>
+      <svg width="100%" viewBox="0 0 320 170" style="display:block">
+        <svg x="8" y="10" width="33" height="33" viewBox="0 0 32 32" overflow="visible"><path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#17150F" stroke-width="2.4"/><circle cx="4.8" cy="25.2" r="1.6" fill="#17150F"/><circle cx="12" cy="24.5" r="2.3" fill="#17150F"/><circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/></svg>
+        <text x="50" y="40" font-family="Fraunces, Georgia, serif" font-weight="500" font-size="34" letter-spacing="-0.68" fill="#17150F" style="font-variation-settings:'opsz' 144">Turnout</text>
+        <text x="51" y="58" font-family="Inter" font-weight="600" font-size="10" letter-spacing="1.4" fill="#6B655B">CROWD TO CAMPAIGN</text>
+        <text x="8" y="82" font-family="Inter" font-size="9" fill="#6B655B">Horizontal: default. Mark height = cap x 1.15, gap 0.5 cap.</text>
+        <svg x="230" y="92" width="48" height="48" viewBox="0 0 32 32" overflow="visible"><path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#17150F" stroke-width="2.4"/><circle cx="4.8" cy="25.2" r="1.6" fill="#17150F"/><circle cx="12" cy="24.5" r="2.3" fill="#17150F"/><circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/></svg>
+        <text x="254" y="160" font-family="Fraunces, Georgia, serif" font-weight="500" font-size="18" letter-spacing="-0.36" fill="#17150F" text-anchor="middle" style="font-variation-settings:'opsz' 144">Turnout</text>
+        <text x="8" y="112" font-family="Inter" font-size="9" fill="#6B655B">Stacked: square formats, stamps, social avatars.</text>
+        <text x="8" y="126" font-family="Inter" font-size="9" fill="#6B655B">Mark alone: favicon, app icon, 16 px and up.</text>
+        <text x="8" y="140" font-family="Inter" font-size="9" fill="#6B655B">Wordmark alone: only when the mark is already</text>
+        <text x="8" y="152" font-family="Inter" font-size="9" fill="#6B655B">on the same surface.</text>
+      </svg>
+    </div>
+    <div class="demo">
+      <h4>Minimum sizes</h4>
+      <svg width="100%" viewBox="0 0 320 170" style="display:block">
+        <svg x="8" y="22" width="16" height="16" viewBox="0 0 32 32"><path d="M12 14V4H28V28H2" fill="none" stroke="#17150F" stroke-width="4"/><circle cx="11" cy="23.5" r="2.5" fill="#17150F"/><circle cx="20" cy="22.5" r="3.5" fill="#B4530A"/></svg>
+        <text x="36" y="34" font-family="Inter" font-size="11" fill="#17150F">16 px: the 16 px drawing, never the 32 px one scaled</text>
+        <svg x="8" y="52" width="24" height="24" viewBox="0 0 32 32"><path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#17150F" stroke-width="2.4"/><circle cx="4.8" cy="25.2" r="1.6" fill="#17150F"/><circle cx="12" cy="24.5" r="2.3" fill="#17150F"/><circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/></svg>
+        <text x="40" y="68" font-family="Inter" font-size="11" fill="#17150F">24 px: smallest use of the full drawing</text>
+        <svg x="8" y="92" width="22" height="22" viewBox="0 0 32 32" overflow="visible"><path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#17150F" stroke-width="2.4"/><circle cx="4.8" cy="25.2" r="1.6" fill="#17150F"/><circle cx="12" cy="24.5" r="2.3" fill="#17150F"/><circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/></svg>
+        <text x="38" y="110" font-family="Fraunces, Georgia, serif" font-weight="500" font-size="20" letter-spacing="-0.4" fill="#17150F" style="font-variation-settings:'opsz' 144">Turnout</text>
+        <text x="39" y="124" font-family="Inter" font-weight="600" font-size="8" letter-spacing="1.1" fill="#6B655B">CROWD TO CAMPAIGN</text>
+        <text x="8" y="150" font-family="Inter" font-size="11" fill="#17150F">Horizontal: wordmark 20 px minimum (the app header).</text>
+        <text x="8" y="164" font-family="Inter" font-size="11" fill="#17150F">Stacked: 64 px wide minimum. Below that, mark alone.</text>
+      </svg>
+    </div>
+    <div class="demo ink">
+      <h4 style="color:#A8A196">Reverse</h4>
+      <svg width="100%" viewBox="0 0 320 170" style="display:block">
+        <svg x="8" y="40" width="40" height="40" viewBox="0 0 32 32" overflow="visible"><path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#F7F4EE" stroke-width="2.4"/><circle cx="4.8" cy="25.2" r="1.6" fill="#F7F4EE"/><circle cx="12" cy="24.5" r="2.3" fill="#F7F4EE"/><circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/></svg>
+        <text x="60" y="76" font-family="Fraunces, Georgia, serif" font-weight="500" font-size="40" letter-spacing="-0.8" fill="#F7F4EE" style="font-variation-settings:'opsz' 144">Turnout</text>
+        <text x="61" y="97" font-family="Inter" font-weight="600" font-size="11" letter-spacing="1.5" fill="#A8A196">CROWD TO CAMPAIGN</text>
+        <text x="8" y="140" font-family="Inter" font-size="11" fill="#A8A196">Paper on ink. Amber stays amber: 3.6:1, fine for a dot,</text>
+        <text x="8" y="154" font-family="Inter" font-size="11" fill="#A8A196">never for text. Descriptor in #A8A196, not muted.</text>
+      </svg>
+    </div>
+  </div>
+  <h4 class="mt">Do and don't</h4>
+  <div class="dodont">
+    <figure class="yes"><svg width="72" height="72" viewBox="0 0 32 32"><rect width="32" height="32" fill="#F7F4EE"/><path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#17150F" stroke-width="2.4"/><circle cx="4.8" cy="25.2" r="1.6" fill="#17150F"/><circle cx="12" cy="24.5" r="2.3" fill="#17150F"/><circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/></svg><figcaption><b>Do</b>Ink mark, one amber dot, on paper or white.</figcaption></figure>
+    <figure class="yes"><svg width="72" height="72" viewBox="0 0 32 32"><rect width="32" height="32" fill="#17150F"/><path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#F7F4EE" stroke-width="2.4"/><circle cx="4.8" cy="25.2" r="1.6" fill="#F7F4EE"/><circle cx="12" cy="24.5" r="2.3" fill="#F7F4EE"/><circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/></svg><figcaption><b>Do</b>Reverse on ink for chalkboards, OG images, tooltips.</figcaption></figure>
+    <figure class="yes"><svg width="72" height="72" viewBox="0 0 32 32"><rect width="32" height="32" fill="#FFFFFF"/><path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#17150F" stroke-width="2.4"/><circle cx="4.8" cy="25.2" r="1.6" fill="#17150F"/><circle cx="12" cy="24.5" r="2.3" fill="#17150F"/><circle cx="20.8" cy="23.6" r="3.2" fill="#17150F"/></svg><figcaption><b>Do</b>One colour when amber is unavailable (print, engraving, embroidery).</figcaption></figure>
+    <figure class="no"><svg width="72" height="72" viewBox="0 0 32 32"><rect width="32" height="32" fill="#F7F4EE"/><path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#B4530A" stroke-width="2.4"/><circle cx="4.8" cy="25.2" r="1.6" fill="#B4530A"/><circle cx="12" cy="24.5" r="2.3" fill="#B4530A"/><circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/></svg><figcaption><b>Don't</b>Make it all amber, or recolour the dots. Amber is for one person.</figcaption></figure>
+    <figure class="no"><svg width="72" height="72" viewBox="0 0 32 32"><rect width="32" height="32" fill="#FBE9D9"/><g transform="translate(16 16) rotate(-12) translate(-16 -16)"><path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#17150F" stroke-width="2.4"/><circle cx="4.8" cy="25.2" r="1.6" fill="#17150F"/><circle cx="12" cy="24.5" r="2.3" fill="#17150F"/><circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/></g></svg><figcaption><b>Don't</b>Rotate it, or put it on amber tints: the dot disappears.</figcaption></figure>
+    <figure class="no"><svg width="72" height="72" viewBox="0 0 32 32"><rect width="32" height="32" fill="#F7F4EE"/><g transform="translate(2 0) scale(0.85 1.1)"><path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#17150F" stroke-width="1.2"/><circle cx="4.8" cy="25.2" r="1.6" fill="#17150F" opacity="0.4"/><circle cx="12" cy="24.5" r="2.3" fill="#17150F" opacity="0.7"/><circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/></g></svg><figcaption><b>Don't</b>Stretch it, thin the stroke, fade the dots with opacity, add shadows or gradients.</figcaption></figure>
+  </div>
+</section>
+
+<!-- ================================================================ 03 COLOUR -->
+<section id="colour">
+  <div class="intro">
+    <h2>03 &nbsp;Colour</h2>
+    <p>Three families: warm greys (ink), one amber, and four semantic colours. Every swatch states its WCAG contrast on paper and on white. Values marked AA pass 4.5:1 for normal text; "large" passes 3:1 for 18 px+ or 14 px bold; "fill" means never use it for text.</p>
+  </div>
+
+  <h4>Surfaces and lines</h4>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#F7F4EE"></div><div class="body"><b>paper</b><span class="hex">#F7F4EE</span><div class="cr">Page background. 1.10:1 vs white</div></div></div>
+    <div class="sw"><div class="chip" style="background:#FFFFFF"></div><div class="body"><b>panel</b><span class="hex">#FFFFFF</span><div class="cr">Cards, fields, tables</div></div></div>
+    <div class="sw"><div class="chip" style="background:#FBF9F5"></div><div class="body"><b>panel-2</b><span class="hex">#FBF9F5</span><div class="cr">Flat cards, table heads, chips</div></div></div>
+    <div class="sw"><div class="chip" style="background:#E4DED3"></div><div class="body"><b>line</b><span class="hex">#E4DED3</span><div class="cr">1 px borders. 1.22:1 on paper</div></div></div>
+    <div class="sw"><div class="chip" style="background:#CFC7B8"></div><div class="body"><b>line-strong</b><span class="hex">#CFC7B8</span><div class="cr">Field borders, dividers. 1.53:1</div></div></div>
+  </div>
+
+  <h4 class="mt">Ink scale, warm greys</h4>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#17150F"></div><div class="body"><b>ink-950 · ink</b><span class="hex">#17150F</span><div class="cr">paper 16.63 · white 18.25 <span class="pass">AAA</span></div></div></div>
+    <div class="sw"><div class="chip" style="background:#2A2721"></div><div class="body"><b>ink-900 · text</b><span class="hex">#2A2721</span><div class="cr">paper 13.56 · white 14.89 <span class="pass">AAA</span></div></div></div>
+    <div class="sw"><div class="chip" style="background:#4A463E"></div><div class="body"><b>ink-700</b><span class="hex">#4A463E</span><div class="cr">paper 8.55 · white 9.39 <span class="pass">AAA</span></div></div></div>
+    <div class="sw"><div class="chip" style="background:#6B655B"></div><div class="body"><b>ink-600 · muted</b><span class="hex">#6B655B</span><div class="cr">paper 5.26 · white 5.77 <span class="pass">AA</span></div></div></div>
+    <div class="sw"><div class="chip" style="background:#857E71"></div><div class="body"><b>ink-500 · faint</b><span class="hex">#857E71</span><div class="cr">paper 3.66 · white 4.02 <span class="large">large only</span></div></div></div>
+    <div class="sw"><div class="chip" style="background:#A39C8F"></div><div class="body"><b>ink-400 · placeholder</b><span class="hex">#A39C8F</span><div class="cr">paper 2.48 · white 2.72 <span class="fail">fill</span></div></div></div>
+    <div class="sw"><div class="chip" style="background:#CFC7B8"></div><div class="body"><b>ink-300</b><span class="hex">#CFC7B8</span><div class="cr">1.53 · 1.68 <span class="fail">fill</span></div></div></div>
+    <div class="sw"><div class="chip" style="background:#E4DED3"></div><div class="body"><b>ink-200</b><span class="hex">#E4DED3</span><div class="cr">1.22 · 1.34 <span class="fail">fill</span></div></div></div>
+    <div class="sw"><div class="chip" style="background:#EFEBE3"></div><div class="body"><b>ink-100</b><span class="hex">#EFEBE3</span><div class="cr">1.08 · 1.19 <span class="fail">fill</span></div></div></div>
+    <div class="sw"><div class="chip" style="background:#FBF9F5"></div><div class="body"><b>ink-50</b><span class="hex">#FBF9F5</span><div class="cr">1.04 · 1.05 <span class="fail">fill</span></div></div></div>
+  </div>
+
+  <h4 class="mt">Amber, the accent</h4>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#FBE9D9"></div><div class="body"><b>amber-50 · accent-soft</b><span class="hex">#FBE9D9</span><div class="cr">Tints, focus halo <span class="fail">fill</span></div></div></div>
+    <div class="sw"><div class="chip" style="background:#F5D3B4"></div><div class="body"><b>amber-100</b><span class="hex">#F5D3B4</span><div class="cr">Chip borders on tints <span class="fail">fill</span></div></div></div>
+    <div class="sw"><div class="chip" style="background:#E0955A"></div><div class="body"><b>amber-300</b><span class="hex">#E0955A</span><div class="cr">paper 2.22 · charts only <span class="fail">fill</span></div></div></div>
+    <div class="sw"><div class="chip" style="background:#B4530A"></div><div class="body"><b>amber-500 · accent</b><span class="hex">#B4530A</span><div class="cr">paper 4.57 · white 5.02 <span class="pass">AA</span> · on amber-50 4.25 <span class="large">large</span></div></div></div>
+    <div class="sw"><div class="chip" style="background:#A54A07"></div><div class="body"><b>accent-text</b><span class="hex">#A54A07</span><div class="cr">paper 5.34 · white 5.86 · amber-50 4.96 <span class="pass">AA</span></div></div></div>
+    <div class="sw"><div class="chip" style="background:#9D4808"></div><div class="body"><b>amber-600 · hover</b><span class="hex">#9D4808</span><div class="cr">paper 5.69 · white 6.24 <span class="pass">AA</span></div></div></div>
+    <div class="sw"><div class="chip" style="background:#7F3A06"></div><div class="body"><b>amber-700</b><span class="hex">#7F3A06</span><div class="cr">paper 7.62 · white 8.37 <span class="pass">AAA</span></div></div></div>
+    <div class="sw"><div class="chip" style="background:#5E2B05"></div><div class="body"><b>amber-800</b><span class="hex">#5E2B05</span><div class="cr">paper 10.49 · white 11.52 <span class="pass">AAA</span></div></div></div>
+    <div class="sw"><div class="chip" style="background:#B4530A;display:grid;place-items:center;color:#fff;font-weight:600">Aa</div><div class="body"><b>accent-ink on accent</b><span class="hex">#FFFFFF on #B4530A</span><div class="cr">5.02 <span class="pass">AA</span></div></div></div>
+    <div class="sw"><div class="chip" style="background:#17150F;display:grid;place-items:center"><span style="width:14px;height:14px;border-radius:50%;background:#B4530A"></span></div><div class="body"><b>amber on ink</b><span class="hex">#B4530A on #17150F</span><div class="cr">3.63 <span class="large">dots and large only</span></div></div></div>
+  </div>
+
+  <h4 class="mt">Semantic</h4>
+  <div class="swatches" style="grid-template-columns:repeat(4,1fr)">
+    <div class="sw"><div class="chip" style="background:#E3F3EA;display:grid;place-items:center"><span class="badge badge-approved">Approved</span></div><div class="body"><b>ok</b><span class="hex">#1F7A4D · soft #E3F3EA · text #1B6B44</span><div class="cr">ok on paper 4.84 <span class="pass">AA</span> · ok-text on soft 4.63 <span class="pass">AA</span> · white on ok 5.32</div></div></div>
+    <div class="sw"><div class="chip" style="background:#FFF3D6;display:grid;place-items:center"><span class="badge" style="background:transparent;color:#805300;border-color:#9A6400">Needs input</span></div><div class="body"><b>warn</b><span class="hex">#9A6400 · soft #FFF3D6 · text #805300</span><div class="cr">warn on paper 4.56 <span class="large">borders</span> · warn-text on soft 5.63 <span class="pass">AA</span></div></div></div>
+    <div class="sw"><div class="chip" style="background:#FDE8E6;display:grid;place-items:center"><span class="badge badge-failed">Failed</span></div><div class="body"><b>danger</b><span class="hex">#B42318 · soft #FDE8E6</span><div class="cr">on paper 5.99 · on soft 5.59 <span class="pass">AA</span> · white on danger 6.57</div></div></div>
+    <div class="sw"><div class="chip" style="background:#E6EDF3;display:grid;place-items:center"><span class="badge badge-working">Agent working</span></div><div class="body"><b>info</b><span class="hex">#3B5B7A · soft #E6EDF3</span><div class="cr">on paper 6.46 · on soft 6.00 <span class="pass">AA</span> · a slate, never SaaS blue</div></div></div>
+  </div>
+
+  <div class="grid2 mt">
+    <div>
+      <h4>Rules</h4>
+      <ul class="rules">
+        <li><span>Amber is scarce: one accent per view. The score ring, the one call to action, the lit dot. Not all three.</span></li>
+        <li><span>Ink is the primary action. <code>.btn-primary</code> is ink; <code>.btn-accent</code> is reserved for the single moment of approval ("Publish").</span></li>
+        <li><span>Amber text on paper or white: use <code>--accent-text</code> below 18 px. <code>--accent</code> itself is AA on paper (4.57) but fails on amber-soft; never set amber text on amber-soft below 14 px bold.</span></li>
+        <li><span>Muted text (<code>--muted</code>) is the floor for anything the user must read. <code>--faint</code> is for disabled states and large labels only.</span></li>
+        <li><span>Semantic colours speak once, in a badge or a left border. No coloured backgrounds on whole cards.</span></li>
+        <li><span>Reverse surfaces (ink) are for physical objects and previews: chalkboards, OG images, tooltips. Never a whole screen.</span></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Data visualisation</h4>
+      <div class="demo">
+        <div class="eyebrow">Sequential, paper to amber (concentration, affinity)</div>
+        <div class="ramp mt-s"><div style="background:#F3E6D6"></div><div style="background:#EACBAA"></div><div style="background:#DDA874"></div><div style="background:#C97D3E"></div><div style="background:#B4530A"></div></div>
+        <div class="note mono">#F3E6D6 · #EACBAA · #DDA874 · #C97D3E · #B4530A</div>
+        <div class="eyebrow mt-s" style="margin-top:20px">Neutral (comparison series, cold venues)</div>
+        <div class="ramp mt-s"><div style="background:#EFEBE3"></div><div style="background:#D9D2C5"></div><div style="background:#B8AF9F"></div><div style="background:#857E71"></div><div style="background:#4A463E"></div></div>
+        <div class="note mono">#EFEBE3 · #D9D2C5 · #B8AF9F · #857E71 · #4A463E</div>
+        <div class="eyebrow" style="margin-top:20px">Age affinity, fans of the headliner vs city baseline</div>
+        <div class="bars">
+          <div class="bar"><span>18 to 24</span><div class="track"><div class="fill" style="width:82%;background:var(--seq-5)"></div></div><span class="v">1.8x</span></div>
+          <div class="bar"><span>25 to 34</span><div class="track"><div class="fill" style="width:64%;background:var(--seq-4)"></div></div><span class="v">1.4x</span></div>
+          <div class="bar"><span>35 to 44</span><div class="track"><div class="fill" style="width:40%;background:var(--seq-3)"></div></div><span class="v">0.9x</span></div>
+          <div class="bar"><span>45 to 54</span><div class="track"><div class="fill" style="width:24%;background:var(--seq-2)"></div></div><span class="v">0.6x</span></div>
+          <div class="bar"><span>55 and over</span><div class="track"><div class="fill" style="width:14%;background:var(--neu-3)"></div></div><span class="v">0.4x</span></div>
+        </div>
+        <p class="note">Bars encode value with length and the sequential ramp with intensity; the only neutral bar is the one below baseline. Numbers are tabular Inter, ratios with one decimal, never percentages of a percentage.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2 mt">
+    <div class="map" aria-hidden="true">
+      <div class="road" style="left:0;top:118px;width:100%;height:14px"></div>
+      <div class="road" style="left:300px;top:0;width:12px;height:100%"></div>
+      <div class="road" style="left:0;top:220px;width:100%;height:8px"></div>
+      <div class="radius"></div>
+      <div class="pin merchant"></div><div class="lbl" style="left:306px;top:150px">Your bar</div>
+      <div class="pin hot" style="left:364px;top:84px"></div><div class="lbl" style="left:384px;top:76px">Arena · 19 000 · 20:30</div>
+      <div class="pin hot" style="left:226px;top:196px"></div><div class="lbl" style="left:246px;top:188px">Club · 1 200</div>
+      <div class="pin cold" style="left:120px;top:60px"></div><div class="lbl" style="left:140px;top:52px;color:var(--muted)">Theatre · dark tonight</div>
+      <div class="pin cold" style="left:470px;top:236px"></div><div class="lbl" style="left:490px;top:228px;color:var(--muted)">Stadium · no event</div>
+      <div class="lbl" style="right:12px;bottom:12px;background:transparent;border:0;color:var(--muted);font-weight:500">600 m radius</div>
+    </div>
+    <div>
+      <h4>Map styling</h4>
+      <ul class="rules">
+        <li><span>Tiles: OSM or Carto light, desaturated with <code>filter: saturate(0.55) contrast(0.95)</code>, 14 px radius, 1 px line border. The map should look like it was printed on the page.</span></li>
+        <li><span>Merchant: ink dot 16 px, 2 px paper ring, 1 px line-strong halo. Always the darkest thing on the map.</span></li>
+        <li><span>Hot venues (event in window): amber dot 14 px, same rings. Label on a white chip with line-strong border, Inter 600 11 px.</span></li>
+        <li><span>Cold venues: ink-300 dot, muted label. Present, so the merchant sees what the radar watches, but quiet.</span></li>
+        <li><span>Radius: 1.5 px dashed line-strong circle, no fill. Label bottom right, muted, "600 m radius".</span></li>
+        <li><span>No heatmaps, no pulsing circles, no blue. Concentration is shown in the list beside the map, not painted on it.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ 04 TYPE -->
+<section id="type">
+  <div class="intro">
+    <h2>04 &nbsp;Typography</h2>
+    <p>Fraunces for what the merchant should feel (titles, offers, big numbers). Inter for what they should read and compare (UI, data, forms). Both from Google Fonts, both variable.</p>
+  </div>
+  <div class="specimen">
+    <div class="demo paper">
+      <div class="eyebrow">Fraunces · 500 · opsz 144 · -0.025 em</div>
+      <div class="display big" style="margin-top:16px">Turnout</div>
+      <div class="display" style="font-size:28px;line-height:34px;margin-top:14px">Tonight, 19 000 people walk past your door. <span class="amber-em">Nine hundred</span> of them love natural wine.</div>
+      <p class="note">Weight 500 only, upright and italic. Optical size follows the size (auto) except the wordmark and heroes, pinned at 144. Italic amber emphasis: one phrase per headline, never a full sentence, never in body copy.</p>
+    </div>
+    <div class="demo">
+      <div class="eyebrow">Inter · 400 / 500 / 600 · ss01, cv11</div>
+      <p style="font-size:16px;line-height:24px;margin-top:16px">The crowd profile is built from Qloo's taste graph. Fans of the headliner over-index on natural wine, late dinners and vinyl shops. Turnout turns that into one offer, one message, one chalkboard line.</p>
+      <table class="spec" style="margin-top:16px">
+        <tr><th>Metric</th><th class="num">Tabular</th><th class="num">Proportional</th></tr>
+        <tr><td>Concentration</td><td class="num tnum">1 184</td><td class="num pnum">1 184</td></tr>
+        <tr><td>Affinity</td><td class="num tnum">11.3x</td><td class="num pnum">11.3x</td></tr>
+        <tr><td>Window</td><td class="num tnum">17:45 to 20:30</td><td class="num pnum">17:45 to 20:30</td></tr>
+      </table>
+      <p class="note">Data always in <code>font-variant-numeric: tabular-nums</code> (class <code>.tnum</code>) so columns align. Display numbers in Fraunces may stay proportional.</p>
+    </div>
+  </div>
+
+  <h4 class="mt">Type scale</h4>
+  <div class="demo scale">
+    <div class="row"><span class="m">64 / 66 · -0.025em</span><span class="display" style="font-size:64px;line-height:66px;letter-spacing:-0.025em">Showing up</span><span class="m">Fraunces 500 · marketing hero only · opsz 144</span></div>
+    <div class="row"><span class="m">48 / 52 · -0.02em</span><span class="display" style="font-size:48px;line-height:52px">Showing up</span><span class="m">Fraunces 500 · hero, big numbers · opsz 144</span></div>
+    <div class="row"><span class="m">36 / 42 · -0.02em</span><span class="display" style="font-size:36px;line-height:42px">Showing up</span><span class="m">Fraunces 500 · page titles · opsz 96</span></div>
+    <div class="row"><span class="m">28 / 34 · -0.015em</span><span class="display" style="font-size:28px;line-height:34px;letter-spacing:-0.015em;font-variation-settings:'opsz' 72">Showing up</span><span class="m">Fraunces 500 · section titles, offers · opsz 72</span></div>
+    <div class="row"><span class="m">22 / 28 · -0.01em</span><span class="display" style="font-size:22px;line-height:28px;letter-spacing:-0.01em;font-variation-settings:'opsz' 48">Showing up</span><span class="m">Fraunces 500 · card titles · opsz 48</span></div>
+    <div class="row"><span class="m">18 / 26 · -0.005em</span><span style="font-size:18px;line-height:26px;letter-spacing:-0.005em;color:var(--ink)">Showing up at the door</span><span class="m">Inter 500 · lede, card titles in UI</span></div>
+    <div class="row"><span class="m">16 / 24 · 0</span><span style="font-size:16px;line-height:24px">Showing up at the door</span><span class="m">Inter 400 · body</span></div>
+    <div class="row"><span class="m">14 / 20 · 0</span><span style="font-size:14px;line-height:20px">Showing up at the door</span><span class="m">Inter 400/600 · UI default, buttons, fields</span></div>
+    <div class="row"><span class="m">13 / 18 · 0</span><span style="font-size:13px;line-height:18px">Showing up at the door</span><span class="m">Inter 400/500 · table cells, secondary UI</span></div>
+    <div class="row"><span class="m">12 / 16 · 0.01em</span><span style="font-size:12px;line-height:16px;letter-spacing:0.01em">Showing up at the door</span><span class="m">Inter 400/600 · meta, captions, badges</span></div>
+    <div class="row"><span class="m">11 / 16 · 0.14em</span><span class="eyebrow">Showing up at the door</span><span class="m">Inter 600 · eyebrow, uppercase, muted</span></div>
+  </div>
+
+  <div class="grid3 mt">
+    <div class="demo">
+      <h4>Eyebrow + title + meta</h4>
+      <div class="pat-head">
+        <div class="eyebrow">Tonight · Madison Square Garden</div>
+        <h3>Nine hundred natural-wine drinkers, two blocks away</h3>
+        <div class="meta"><span>Doors 18:30</span><span>·</span><span>Window 17:45 to 20:30</span><span>·</span><span class="tnum">Concentration 1 184</span></div>
+      </div>
+    </div>
+    <div class="demo">
+      <h4>Italic amber emphasis</h4>
+      <p class="display" style="font-size:22px;line-height:28px;letter-spacing:-0.01em;font-variation-settings:'opsz' 48">Open the terrace <span class="amber-em">forty minutes</span> before doors.</p>
+      <p class="note" style="margin-top:14px">One phrase, the one the merchant should act on. If you cannot pick the phrase, the sentence has two ideas: split it.</p>
+      <p class="display" style="font-size:22px;line-height:28px;letter-spacing:-0.01em;font-variation-settings:'opsz' 48;margin-top:14px;color:var(--faint)"><s>Open the <span class="amber-em">terrace</span> forty minutes before <span class="amber-em">doors</span>.</s></p>
+    </div>
+    <div class="demo">
+      <h4>Pairing rules</h4>
+      <ul class="rules">
+        <li><span>Fraunces never below 22 px, and never for body text or table cells.</span></li>
+        <li><span>Inter never above 18 px, except nav numbers in tables.</span></li>
+        <li><span>Titles in ink, body in text (<code>#2A2721</code>), meta in muted. No fourth grey.</span></li>
+        <li><span>No bold Fraunces. Emphasis is italic amber or size, not weight.</span></li>
+        <li><span>Uppercase only in the eyebrow and the descriptor, always tracked 0.14 em.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ 05 LAYOUT -->
+<section id="layout">
+  <div class="intro">
+    <h2>05 &nbsp;Layout</h2>
+    <p>An 8 px scale with one 4 px half step, three containers, two radii, one border, three shadows. Density comes from the type scale and row heights, not from shrinking padding.</p>
+  </div>
+  <div class="grid2">
+    <div class="demo">
+      <h4>Spacing scale</h4>
+      <div class="space">
+        <div style="width:4px;height:4px"></div><div style="width:8px;height:8px"></div><div style="width:12px;height:12px"></div><div style="width:16px;height:16px"></div><div style="width:24px;height:24px"></div><div style="width:32px;height:32px"></div><div style="width:48px;height:48px">48</div><div style="width:64px;height:64px">64</div><div style="width:96px;height:96px">96</div>
+      </div>
+      <p class="note">4 · 8 · 12 · 16 · 24 · 32 · 48 · 64 · 96. Inside components: 8, 12, 16. Between components: 24, 32. Between sections: 64, 96. Card padding 20 px (16 + 4) is the one exception, because 24 looks loose at 14 px type.</p>
+      <h4 style="margin-top:24px">Containers</h4>
+      <div class="containers">
+        <div style="width:100%">1200 · marketing, radar with map, guidelines</div>
+        <div style="width:80%">960 · app pages, campaign editor</div>
+        <div style="width:53.3%">640 · forms, onboarding, reading</div>
+      </div>
+      <p class="note">24 px gutters, 16 px under 640 px wide. Columns on a 12 unit grid with 24 px gaps.</p>
+    </div>
+    <div class="demo">
+      <h4>Radius, border, shadow</h4>
+      <div class="radii">
+        <div style="border-radius:14px">14 card</div><div style="border-radius:10px">10 field</div><div style="border-radius:8px">8 badge</div><div style="border-radius:999px">pill</div>
+      </div>
+      <p class="note">Nested radii: inner = outer minus padding, never the same radius twice in a row. Pills (999) for buttons and chips only.</p>
+      <div class="shadows" style="margin-top:20px">
+        <div style="box-shadow:var(--shadow)">shadow · cards at rest</div>
+        <div style="box-shadow:var(--shadow-lift)">lift · hover, 1 px up</div>
+        <div style="box-shadow:var(--shadow-pop)">pop · menus, dialogs</div>
+      </div>
+      <p class="note mono">--shadow: 0 1px 2px rgba(23,21,15,.04), 0 8px 24px -12px rgba(23,21,15,.18)</p>
+      <p class="note">Borders: always 1 px <code>--line</code>; <code>--line-strong</code> only on fields and on dividers that separate data. A shadow never replaces a border; cards have both. Flat cards (<code>.card-flat</code>) have border and tint, no shadow.</p>
+    </div>
+  </div>
+  <div class="grid2 mt">
+    <div>
+      <h4>Data table density</h4>
+      <table class="data">
+        <tr><th>Venue</th><th>Event</th><th class="num">Crowd</th><th class="num">Fit</th></tr>
+        <tr><td>Madison Square Garden</td><td>Hozier · 20:30</td><td class="num">19 000</td><td class="num">0.82</td></tr>
+        <tr><td>Radio City</td><td>Comedy night · 21:00</td><td class="num">5 900</td><td class="num">0.41</td></tr>
+        <tr><td>Hammerstein Ballroom</td><td>No event</td><td class="num">·</td><td class="num">·</td></tr>
+      </table>
+      <p class="note">Regular rows 44 px (12 px padding, 13 px type). Table head on panel-2 with an eyebrow. Numbers right aligned and tabular. Empty cells show a middle dot, never a dash or "N/A".</p>
+    </div>
+    <div>
+      <h4>Compact, for provenance and long lists</h4>
+      <table class="data compact">
+        <tr><th>Field</th><th>Value</th><th class="num">Source</th></tr>
+        <tr><td>Headliner</td><td>Hozier</td><td class="num">Ticketmaster</td></tr>
+        <tr><td>Doors</td><td>18:30</td><td class="num">Ticketmaster</td></tr>
+        <tr><td>Capacity</td><td class="tnum">19 500</td><td class="num">Seed, manual</td></tr>
+        <tr><td>Affinity set</td><td>Natural wine, vinyl, late dinner</td><td class="num">Qloo</td></tr>
+      </table>
+      <p class="note">Compact rows 36 px. Use for provenance and anything over 12 rows. Never below 36 px: rows are targets.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ 06 COMPONENTS -->
+<section id="components">
+  <div class="intro">
+    <h2>06 &nbsp;Components</h2>
+    <p>Live HTML and CSS, the same classes as <code>globals.css</code>. Hover the cards and buttons, tab through the fields. Where a state cannot be hovered on this page it is shown frozen with a label.</p>
+  </div>
+
+  <div class="grid3">
+    <div class="demo">
+      <h4>Buttons</h4>
+      <div class="states"><span class="lab">rest</span><button class="btn btn-primary">Review campaign</button><button class="btn btn-accent">Publish</button><button class="btn btn-ghost">Not now</button></div>
+      <div class="states mt-s"><span class="lab">hover</span><button class="btn btn-primary" style="background:var(--ink-900)">Review campaign</button><button class="btn btn-accent" style="background:var(--accent-hover)">Publish</button><button class="btn btn-ghost" style="background:var(--panel)">Not now</button></div>
+      <div class="states mt-s"><span class="lab">active</span><button class="btn btn-primary" style="transform:translateY(1px)">Review campaign</button><button class="btn btn-accent" style="transform:translateY(1px);background:var(--accent-hover)">Publish</button><button class="btn btn-ghost" style="transform:translateY(1px)">Not now</button></div>
+      <div class="states mt-s"><span class="lab">disabled</span><button class="btn btn-primary" disabled>Review campaign</button><button class="btn btn-accent" disabled>Publish</button><button class="btn btn-ghost" disabled>Not now</button></div>
+      <div class="states mt-s"><span class="lab">small</span><button class="btn btn-primary btn-sm">Approve</button><button class="btn btn-ghost btn-sm">Edit</button></div>
+      <p class="note">Primary is ink. Accent only for the one irreversible step on the page (publish, send). Ghost for everything secondary. Disabled is 50 % opacity, never grey fills. 12 px vertical padding keeps a 40 px target at 14 px type.</p>
+    </div>
+    <div class="demo">
+      <h4>Chips</h4>
+      <div class="states"><span class="chip">Natural wine</span><span class="chip">Late dinner</span><span class="chip on">Vinyl shops</span><span class="chip">Craft beer <span class="x">×</span></span></div>
+      <p class="note">Chips are facts (Qloo tags, filters). Selected chips go amber-soft with accent-text, never filled amber. Max two lines of chips; after that, "and 6 more".</p>
+      <h4 style="margin-top:24px">Score ring</h4>
+      <div class="states">
+        <div class="ring lg" style="--p:82"><span>82</span></div>
+        <div class="ring" style="--p:41"><span>41</span></div>
+        <div class="ring sm" style="--p:12"><span>12</span></div>
+        <div class="ring" style="--p:0"><span style="color:var(--faint)">·</span></div>
+      </div>
+      <p class="note">Conic gradient, amber on line, 5 px track. Number in Fraunces 500 at 56 and 88 px, Inter 600 at 36 px. The ring is amber at any score; it is the <em>value</em> that tells the story, not a traffic-light colour. Fills from 0 over 320 ms on first paint.</p>
+    </div>
+    <div class="demo">
+      <h4>Cards</h4>
+      <div class="card" style="padding:16px"><div class="eyebrow">card</div><p style="font-size:14px;margin-top:6px">White, 1 px line, 14 px radius, resting shadow. Lifts 1 px on hover.</p></div>
+      <div class="card-flat mt-s" style="padding:16px"><div class="eyebrow">card-flat</div><p style="font-size:14px;margin-top:6px">Panel-2 tint, 1 px line, no shadow. For secondary groups inside a card, and for evidence blocks.</p></div>
+      <p class="note">Never a card in a card in a card. Two levels: card, then card-flat. A third level is a divider.</p>
+    </div>
+  </div>
+
+  <div class="grid3 mt">
+    <div class="demo">
+      <h4>Form fields</h4>
+      <label class="lbl">Address of your place</label>
+      <input class="field" placeholder="12 rue Oberkampf, Paris">
+      <div class="help">We only use it to draw the radius.</div>
+      <label class="lbl" style="margin-top:16px">Focused</label>
+      <input class="field focus" value="Natural wine, small plates">
+      <div class="help">3 px amber-soft halo, 1 px amber border. Keyboard focus elsewhere uses the 2 px outline.</div>
+      <label class="lbl" style="margin-top:16px">Error</label>
+      <input class="field err" value="tomorrow-ish">
+      <div class="help err">Give us a time like 18:30.</div>
+    </div>
+    <div class="demo">
+      <h4>Status badges</h4>
+      <div class="states" style="gap:10px"><span class="badge badge-draft">Draft ready</span><span class="badge badge-working">Agent working</span><span class="badge badge-pick">Needs your pick</span></div>
+      <div class="states mt-s" style="gap:10px"><span class="badge badge-approved">Approved</span><span class="badge badge-published">Published</span><span class="badge badge-failed">Failed</span></div>
+      <p class="note">Six states, one badge each. "Needs your pick" is the only amber badge because it is the only one that asks the merchant for something. "Agent working" pulses its dot (1.2 s) and stops under reduced motion. "Published" is ink: done, calm, final.</p>
+      <h4 style="margin-top:24px">The caution box</h4>
+      <div class="caution"><b>What this does not establish</b>Fans of Hozier over-index on natural wine in Qloo's graph. It does not mean tonight's ticket holders will walk past, or that they will stop.<ul><li>No footfall data for this block</li><li>Weather not considered</li></ul></div>
+    </div>
+    <div class="demo">
+      <h4>Provenance table</h4>
+      <table class="prov">
+        <tr><th>Claim</th><th>Evidence</th></tr>
+        <tr><td>Crowd size</td><td>19 000 · Ticketmaster capacity, <code>ev_8k2</code></td></tr>
+        <tr><td>Taste profile</td><td>Qloo, insights v2, entity <code>urn:qloo:artist:hozier</code>, 2026-10-18</td></tr>
+        <tr><td>Offer fit</td><td>0.82 · cosine of merchant tags vs crowd tags</td></tr>
+        <tr><td>Copy</td><td>Claude, structured output, prompt <code>campaign_v3</code></td></tr>
+      </table>
+      <p class="note">Every number the agent shows can be traced in one click. Keys in monospace, dates ISO, sources named as the merchant would know them.</p>
+      <h4 style="margin-top:24px">Empty state</h4>
+      <div class="empty">
+        <svg width="40" height="40" viewBox="0 0 32 32"><path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#CFC7B8" stroke-width="2.4"/><circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/></svg>
+        <h3>Nothing within 600 m tonight</h3>
+        <p>The radar checks every hour. Widen the radius, or look at the week.</p>
+        <button class="btn btn-ghost btn-sm">Show this week</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ 07 ICONS -->
+<section id="icons">
+  <div class="intro">
+    <h2>07 &nbsp;Iconography</h2>
+    <p>A 20 px grid, 1.75 px stroke, round caps and joins, 1.5 px inner padding, no fills except the one amber dot where an icon needs a focal point. Drawn to sit beside Inter 14 px at 20 px, and beside 13 px at 16 px (same stroke, simpler geometry).</p>
+  </div>
+  <div class="icons">
+    <figure><svg width="20" height="20" viewBox="0 0 20 20"><g class="ico"><circle cx="10" cy="6.5" r="2.5"/><path d="M5.5 16a4.5 4.5 0 0 1 9 0"/><circle cx="3.75" cy="9" r="1.75"/><circle cx="16.25" cy="9" r="1.75"/></g></svg><figcaption>crowd</figcaption></figure>
+    <figure><svg width="20" height="20" viewBox="0 0 20 20"><g class="ico"><path d="M7 4h6a6 6 0 0 1 0 12H7A6 6 0 0 1 7 4z"/><path d="M8 7.5h4v5H8z"/><path d="M10 4v3.5M10 12.5V16"/></g></svg><figcaption>venue</figcaption></figure>
+    <figure><svg width="20" height="20" viewBox="0 0 20 20"><g class="ico"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l2.75 1.75"/></g></svg><figcaption>window</figcaption></figure>
+    <figure><svg width="20" height="20" viewBox="0 0 20 20"><g class="ico"><path d="M3 3h6.5l7.5 7.5-6.5 6.5L3 9.5z"/><circle cx="6.5" cy="6.5" r="1" fill="#B4530A" stroke="none"/></g></svg><figcaption>offer</figcaption></figure>
+    <figure><svg width="20" height="20" viewBox="0 0 20 20"><g class="ico"><path d="M6 17V3h9v6"/><path d="M2 12.5h11"/><path d="M10 9.5l3 3-3 3"/></g></svg><figcaption>publish</figcaption></figure>
+    <figure><svg width="20" height="20" viewBox="0 0 20 20"><g class="ico"><path d="M3 5.5A2.5 2.5 0 0 1 5.5 3h9A2.5 2.5 0 0 1 17 5.5v6a2.5 2.5 0 0 1-2.5 2.5H9l-4 3v-3A2.5 2.5 0 0 1 3 11.5z"/></g></svg><figcaption>message</figcaption></figure>
+    <figure><svg width="20" height="20" viewBox="0 0 20 20"><g class="ico"><rect x="3" y="4" width="14" height="12" rx="2"/><path d="M6 8h8M6 11h5"/><circle cx="13.5" cy="12.5" r="1" fill="#B4530A" stroke="none"/></g></svg><figcaption>listing</figcaption></figure>
+    <figure><svg width="20" height="20" viewBox="0 0 20 20"><g class="ico"><rect x="3" y="3" width="14" height="11" rx="1"/><path d="M6 17h8"/><path d="M6.5 8c1-1.2 2 1.2 3 0s2-1.2 3 0"/><path d="M6.5 11h4"/></g></svg><figcaption>chalkboard</figcaption></figure>
+  </div>
+  <div class="icons big mt-s" aria-hidden="true">
+    <figure><svg width="60" height="60" viewBox="0 0 20 20"><g class="ico" style="stroke-width:1.75"><circle cx="10" cy="6.5" r="2.5"/><path d="M5.5 16a4.5 4.5 0 0 1 9 0"/><circle cx="3.75" cy="9" r="1.75"/><circle cx="16.25" cy="9" r="1.75"/></g></svg><figcaption>3x</figcaption></figure>
+    <figure><svg width="60" height="60" viewBox="0 0 20 20"><g class="ico"><path d="M7 4h6a6 6 0 0 1 0 12H7A6 6 0 0 1 7 4z"/><path d="M8 7.5h4v5H8z"/><path d="M10 4v3.5M10 12.5V16"/></g></svg><figcaption>3x</figcaption></figure>
+    <figure><svg width="60" height="60" viewBox="0 0 20 20"><g class="ico"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l2.75 1.75"/></g></svg><figcaption>3x</figcaption></figure>
+    <figure><svg width="60" height="60" viewBox="0 0 20 20"><g class="ico"><path d="M3 3h6.5l7.5 7.5-6.5 6.5L3 9.5z"/><circle cx="6.5" cy="6.5" r="1" fill="#B4530A" stroke="none"/></g></svg><figcaption>3x</figcaption></figure>
+    <figure><svg width="60" height="60" viewBox="0 0 20 20"><g class="ico"><path d="M6 17V3h9v6"/><path d="M2 12.5h11"/><path d="M10 9.5l3 3-3 3"/></g></svg><figcaption>3x</figcaption></figure>
+    <figure><svg width="60" height="60" viewBox="0 0 20 20"><g class="ico"><path d="M3 5.5A2.5 2.5 0 0 1 5.5 3h9A2.5 2.5 0 0 1 17 5.5v6a2.5 2.5 0 0 1-2.5 2.5H9l-4 3v-3A2.5 2.5 0 0 1 3 11.5z"/></g></svg><figcaption>3x</figcaption></figure>
+    <figure><svg width="60" height="60" viewBox="0 0 20 20"><g class="ico"><rect x="3" y="4" width="14" height="12" rx="2"/><path d="M6 8h8M6 11h5"/><circle cx="13.5" cy="12.5" r="1" fill="#B4530A" stroke="none"/></g></svg><figcaption>3x</figcaption></figure>
+    <figure><svg width="60" height="60" viewBox="0 0 20 20"><g class="ico"><rect x="3" y="3" width="14" height="11" rx="1"/><path d="M6 17h8"/><path d="M6.5 8c1-1.2 2 1.2 3 0s2-1.2 3 0"/><path d="M6.5 11h4"/></g></svg><figcaption>3x</figcaption></figure>
+  </div>
+  <div class="grid2 mt">
+    <ul class="rules">
+      <li><span>Stroke 1.75 px at 20 px (8.75 %), round caps and joins, <code>vector-effect</code> off: icons scale with their stroke.</span></li>
+      <li><span>Geometry on the half pixel for strokes, whole pixels for fills. Circles with overshoot: r 7 inside an 18 px safe area.</span></li>
+      <li><span>Colour: <code>currentColor</code>, inherits text colour. The only fill allowed is one amber dot, r 1, for a focal point (offer, listing).</span></li>
+      <li><span>No megaphones, no pins, no radar sweeps. "Publish" is an arrow through a door; "crowd" is heads, not a people pictogram.</span></li>
+    </ul>
+    <ul class="rules">
+      <li><span>Icons sit on the text baseline, vertically centred on the x-height of Inter: 20 px icon beside 14 px text, 16 px beside 12 and 13 px.</span></li>
+      <li><span>Icon plus label always; icon-only buttons need a tooltip and an <code>aria-label</code>.</span></li>
+      <li><span>Third-party brands (WhatsApp, Google) are never redrawn. Use the neutral "message" and "listing" icons with the channel name in text.</span></li>
+      <li><span>New icons are drawn, not downloaded. If a library is needed, Lucide at 1.75 px matches; adapt caps to round.</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================================================================ 08 VOICE -->
+<section id="voice">
+  <div class="intro">
+    <h2>08 &nbsp;Voice and copy</h2>
+    <p>Short, warm, direct. We write like a good host who has done the homework: specific, calm, never excited on the merchant's behalf.</p>
+  </div>
+  <div class="grid2">
+    <ul class="rules">
+      <li><span>Sentences under 18 words. One idea each. Verbs first in buttons ("Review campaign", "Publish", "Not now").</span></li>
+      <li><span>No exclamation marks, no emojis, no hashtags, no "Boost your sales" with a party popper. Enthusiasm is shown by precision.</span></li>
+      <li><span>Numbers are specific and sourced: "19 000 ticket holders, doors 18:30", not "a huge crowd".</span></li>
+      <li><span>We say "you" to the merchant, "they" for the crowd, "we" for Turnout. Never "our AI".</span></li>
+      <li><span>Time is written 18:30, dates 18 Oct, distances 600 m. Money in the merchant's currency with the symbol they use.</span></li>
+      <li><span>Errors say what happened and what to do next, in that order. No apologies longer than two words.</span></li>
+    </ul>
+    <div>
+      <h4>Talking about Qloo evidence</h4>
+      <div class="copy">
+        <div class="demo"><span class="no">Don't</span><p>Hozier fans will flood your bar looking for natural wine tonight!</p><p>Our AI predicts a 40 % uplift.</p><p>These people love you.</p></div>
+        <div class="demo"><span class="yes">Do</span><p>Fans of Hozier over-index on natural wine (11x the city baseline, Qloo).</p><p>Tonight, 19 000 of them pass within 600 m between 17:45 and 20:30.</p><p>This does not establish how many will stop.</p></div>
+      </div>
+      <p class="note">The verb is always "over-index", "are more likely to", "tend to". Never "will come", "love you", "are your customers". The caution box is part of the voice, not a legal footer.</p>
+    </div>
+  </div>
+  <h4 class="mt">Bilingual: English for US merchants, French for France</h4>
+  <div class="copy">
+    <div class="demo">
+      <div class="eyebrow">Campaign card · New York</div>
+      <p class="display" style="font-size:22px;line-height:28px;letter-spacing:-0.01em;font-variation-settings:'opsz' 48;margin-top:10px">Hozier crowd, 18:30 doors. Pour the natural wine by the glass tonight.</p>
+      <p style="font-size:14px;margin-top:10px;color:var(--muted)">Fans of Hozier over-index on natural wine, late dinners and record shops. 19 000 pass within 600 m. Suggested: a "pre-show glass" on the chalkboard, posted to your Google listing at 16:00.</p>
+      <div class="states mt-s"><button class="btn btn-primary btn-sm">Review campaign</button><button class="btn btn-ghost btn-sm">Not tonight</button></div>
+    </div>
+    <div class="demo">
+      <div class="eyebrow">Fiche campagne · Paris</div>
+      <p class="display" style="font-size:22px;line-height:28px;letter-spacing:-0.01em;font-variation-settings:'opsz' 48;margin-top:10px">Public de Hozier, ouverture des portes 18 h 30. Servez le vin nature au verre ce soir.</p>
+      <p style="font-size:14px;margin-top:10px;color:var(--muted)">Les fans de Hozier sur-indexent sur le vin nature, les dîners tardifs et les disquaires. 19 000 personnes passent à moins de 600 m. Suggestion : un « verre d'avant-concert » à l'ardoise, publié sur votre fiche Google à 16 h.</p>
+      <div class="states mt-s"><button class="btn btn-primary btn-sm">Relire la campagne</button><button class="btn btn-ghost btn-sm">Pas ce soir</button></div>
+    </div>
+  </div>
+  <p class="note">French uses French typography: espaces insécables before « : ; ! ? », guillemets « », 18 h 30 for times, "sur-indexent" for over-index. Tu is never used; vous throughout. The UI language follows the merchant's country, not the browser.</p>
+</section>
+
+<!-- ================================================================ 09 APPLICATIONS -->
+<section id="applications">
+  <div class="intro">
+    <h2>09 &nbsp;Applications</h2>
+    <p>The system in use: the app, the campaign, the things the merchant prints or posts. All drawn in HTML and CSS from the tokens; nothing here is a screenshot.</p>
+  </div>
+
+  <h4>App header and a radar row</h4>
+  <div style="background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden">
+    <div class="appbar" style="border-radius:0">
+      <div class="lockup">
+        <svg width="24.2" height="24.2" viewBox="0 0 32 32" style="overflow:visible"><path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#17150F" stroke-width="2.4"/><circle cx="4.8" cy="25.2" r="1.6" fill="#17150F"/><circle cx="12" cy="24.5" r="2.3" fill="#17150F"/><circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/></svg>
+        <div><div class="wm">Turnout</div><div class="ds">Crowd to campaign</div></div>
+      </div>
+      <nav><b>Radar</b><span>Campaigns</span><span>Settings</span></nav>
+    </div>
+    <div style="padding:20px;display:grid;gap:12px">
+      <div class="radar-row">
+        <div class="ring" style="--p:82"><span>82</span></div>
+        <div><div class="t">Madison Square Garden · Hozier</div><div class="m">Doors 18:30 · 19 000 · 420 m · window 17:45 to 20:30</div></div>
+        <span class="badge badge-pick">Needs your pick</span>
+        <div class="n"><small>Fit</small>0.82</div>
+      </div>
+      <div class="radar-row">
+        <div class="ring" style="--p:41"><span>41</span></div>
+        <div><div class="t">Radio City Music Hall · Comedy night</div><div class="m">Doors 20:00 · 5 900 · 560 m · window 19:15 to 22:00</div></div>
+        <span class="badge badge-draft">Draft ready</span>
+        <div class="n"><small>Fit</small>0.41</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid3 mt">
+    <div>
+      <h4>Campaign card</h4>
+      <div class="card camp">
+        <div class="top"><div><div class="eyebrow">Tonight · Hozier · MSG</div><div style="font-size:13px;color:var(--muted);margin-top:2px">Posted at 16:00 if approved</div></div><span class="badge badge-approved">Approved</span></div>
+        <div class="body">
+          <div class="offer">Pre-show glass of natural wine, <span class="amber-em">9 €</span> until doors.</div>
+          <p class="why">Fans of Hozier over-index on natural wine (11x). 19 000 pass within 600 m between 17:45 and 20:30.</p>
+          <div class="states mt-s"><span class="chip">Google listing</span><span class="chip">Chalkboard</span><span class="chip">WhatsApp</span></div>
+        </div>
+        <div class="foot"><span style="font-size:12px;color:var(--muted)">Provenance · 4 sources</span><div class="states" style="gap:8px"><button class="btn btn-ghost btn-sm">Edit</button><button class="btn btn-accent btn-sm">Publish</button></div></div>
+      </div>
+    </div>
+    <div>
+      <h4>Geofenced ad creative · 1080 x 1080 at 1/3</h4>
+      <div class="ad">
+        <div class="k">Tonight · 2 min from MSG</div>
+        <div><div class="h">A glass of natural wine before <span class="amber-em">Hozier</span>.</div><div class="s">9 € until doors at 18:30. Le Petit Comptoir, 22 W 32nd St.</div></div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end"><div class="k">Show this screen</div><svg width="28" height="28" viewBox="0 0 32 32"><path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#17150F" stroke-width="2.4"/><circle cx="4.8" cy="25.2" r="1.6" fill="#17150F"/><circle cx="12" cy="24.5" r="2.3" fill="#17150F"/><circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/></svg></div>
+      </div>
+      <p class="note">Paper background, Fraunces 132 px at full size (44 at 1/3), one amber phrase, the merchant's name and address in Inter, the mark small in the corner. No photo required; a photo may replace the paper if it is warm and under 40 % of the area.</p>
+    </div>
+    <div>
+      <h4>Chalkboard</h4>
+      <div class="chalk">
+        <div class="k">Tonight</div>
+        <div><div class="h">Pre-show glass of natural wine, <i>9 €</i> until doors.</div><div class="s">Ask for the Hozier pour.</div></div>
+        <div class="k">Le Petit Comptoir</div>
+      </div>
+      <p class="note">The chalkboard is a physical object, so it is dark: chalk on slate, wooden frame. Fraunces at 30 px+, the price in a warm chalk amber (#E8A35D), two lines maximum. Turnout prints this as a PDF; the merchant copies it by hand.</p>
+    </div>
+  </div>
+
+  <div class="grid3 mt">
+    <div>
+      <h4>WhatsApp broadcast</h4>
+      <div class="wa">
+        <div class="b">Hozier plays MSG tonight, doors 18:30. We are pouring a glass of natural wine for 9 € until then, two minutes from the arena. Table or bar, no booking needed.<div class="time">16:02</div></div>
+        <div class="b">Le Petit Comptoir · 22 W 32nd St<div class="time">16:02</div></div>
+        <div class="b me">On our way, 6 of us<div class="time">17:48</div></div>
+      </div>
+      <p class="note">Plain text, under 300 characters, no emoji, no link shorteners. Two messages: the offer, then the address. Neutral bubbles: we never imitate the channel's UI in our own product.</p>
+    </div>
+    <div style="grid-column:span 2">
+      <h4>OG and social preview · 1200 x 630 (<code>og.svg</code>)</h4>
+      <svg class="og" role="img" aria-label="Turnout social preview" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#F7F4EE"/>
+  <svg x="76.3" y="84.4" width="39" height="39" viewBox="0 0 32 32" overflow="visible">
+    <path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#17150F" stroke-width="2.4" stroke-linejoin="miter" stroke-linecap="butt"/>
+    <circle cx="4.8" cy="25.2" r="1.6" fill="#17150F"/>
+    <circle cx="12" cy="24.5" r="2.3" fill="#17150F"/>
+    <circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/>
+  </svg>
+  <text x="125.4" y="120" font-family="Fraunces, Iowan Old Style, Georgia, serif" font-weight="500" font-size="40" letter-spacing="-0.8" fill="#17150F" style="font-variation-settings:'opsz' 144">Turnout</text>
+  <text x="126.4" y="141" font-family="Inter, Helvetica Neue, Arial, sans-serif" font-weight="600" font-size="12" letter-spacing="1.68" fill="#6B655B">CROWD TO CAMPAIGN</text>
+  <text font-family="Fraunces, Iowan Old Style, Georgia, serif" font-weight="500" font-size="76" letter-spacing="-1.9" fill="#17150F" style="font-variation-settings:'opsz' 144">
+    <tspan x="80" y="356">Turn the crowd outside</tspan>
+    <tspan x="80" y="440">into customers <tspan font-style="italic" fill="#B4530A">inside</tspan>.</tspan>
+  </text>
+  <text x="82" y="520" font-family="Inter, Helvetica Neue, Arial, sans-serif" font-weight="400" font-size="22" fill="#6B655B">An agent for bars, restaurants and shops near venues. It sees the crowd coming,</text>
+  <text x="82" y="552" font-family="Inter, Helvetica Neue, Arial, sans-serif" font-weight="400" font-size="22" fill="#6B655B">learns what they love, and writes the offer. You approve.</text>
+  <svg x="872" y="96" width="256" height="256" viewBox="0 0 32 32" overflow="visible">
+    <path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#17150F" stroke-width="2.4" stroke-linejoin="miter" stroke-linecap="butt"/>
+    <circle cx="4.8" cy="25.2" r="1.6" fill="#17150F"/>
+    <circle cx="12" cy="24.5" r="2.3" fill="#17150F"/>
+    <circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/>
+  </svg>
+  <path d="M80 590H1120" stroke="#E4DED3" stroke-width="1"/>
+  <text x="80" y="612" font-family="Inter, Helvetica Neue, Arial, sans-serif" font-weight="600" font-size="11" letter-spacing="1.54" fill="#6B655B">TURNOUT.APP</text>
+</svg>
+      <p class="note">Paper, lockup at 40 px, headline Fraunces 76 px with one amber italic, two lines of Inter 22 px, the mark large on the right. Rasterise with Fraunces and Inter installed; the SVG references them by family name.</p>
+    </div>
+  </div>
+
+  <h4 class="mt">Favicon and app icon (<code>icon.svg</code>, <code>apple-touch.svg</code>)</h4>
+  <div class="demo">
+    <div class="favs">
+      <figure><svg width="16" height="16" viewBox="0 0 32 32"><path d="M12 14V4H28V28H2" fill="none" stroke="#17150F" stroke-width="4"/><circle cx="11" cy="23.5" r="2.5" fill="#17150F"/><circle cx="20" cy="22.5" r="3.5" fill="#B4530A"/></svg><figcaption>16 · icon.svg</figcaption></figure>
+      <figure><svg width="32" height="32" viewBox="0 0 32 32"><path d="M12 14V4H28V28H2" fill="none" stroke="#17150F" stroke-width="4"/><circle cx="11" cy="23.5" r="2.5" fill="#17150F"/><circle cx="20" cy="22.5" r="3.5" fill="#B4530A"/></svg><figcaption>32 · icon.svg</figcaption></figure>
+      <figure><svg width="180" height="180" viewBox="0 0 180 180" style="border-radius:40px;overflow:hidden"><rect width="180" height="180" fill="#F7F4EE"/><svg x="18.7" y="18" width="144" height="144" viewBox="0 0 32 32"><path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#17150F" stroke-width="2.4"/><circle cx="4.8" cy="25.2" r="1.6" fill="#17150F"/><circle cx="12" cy="24.5" r="2.3" fill="#17150F"/><circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/></svg></svg><figcaption>180 · apple-touch.svg (iOS mask shown)</figcaption></figure>
+      <figure><svg width="256" height="256" viewBox="0 0 180 180" style="border-radius:56px;overflow:hidden"><rect width="180" height="180" fill="#F7F4EE"/><svg x="18.7" y="18" width="144" height="144" viewBox="0 0 32 32"><path d="M12.5 13V4H27.5V28H3" fill="none" stroke="#17150F" stroke-width="2.4"/><circle cx="4.8" cy="25.2" r="1.6" fill="#17150F"/><circle cx="12" cy="24.5" r="2.3" fill="#17150F"/><circle cx="20.8" cy="23.6" r="3.2" fill="#B4530A"/></svg></svg><figcaption>512 · same file, shown at half</figcaption></figure>
+    </div>
+    <p class="note">The favicon uses the 16 px drawing (2 px strokes on even units) with no background, and flips ink to paper under <code>prefers-color-scheme: dark</code> so it survives dark browser chrome. The app icon uses the 32 px drawing on a paper square; the OS applies its own mask.</p>
+  </div>
+</section>
+
+<!-- ================================================================ 10 MOTION -->
+<section id="motion">
+  <div class="intro">
+    <h2>10 &nbsp;Motion</h2>
+    <p>Motion confirms, it never decorates. Three durations, two curves, a short list of things that move and a longer list of things that do not.</p>
+  </div>
+  <div class="motion">
+    <div class="demo"><div class="eyebrow">dur-1</div><div class="n">120 ms</div><p>Hover and press: button background, card lift of 1 px, chip selection. <code>ease-out</code>.</p></div>
+    <div class="demo"><div class="eyebrow">dur-2</div><div class="n">200 ms</div><p>Reveal and state: badge colour change, expand a provenance row, open a menu. <code>ease-out</code> in, <code>ease-in-out</code> for height.</p></div>
+    <div class="demo"><div class="eyebrow">dur-3</div><div class="n">320 ms</div><p>The two moments that deserve it: the score ring filling on first paint, and the publish confirmation. <code>ease-out</code>.</p></div>
+  </div>
+  <div class="grid2 mt">
+    <div class="demo">
+      <h4>Publish confirmation</h4>
+      <div class="states"><button class="btn btn-accent">Publish</button><span style="color:var(--muted)">→</span><span class="pub"><svg width="18" height="18" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="var(--ok-soft)"/><path d="M6 10.5l2.5 2.5L14 7.5" fill="none" stroke="var(--ok-text)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>Published to Google listing, 16:00</span></div>
+      <p class="note">The accent button becomes a line of text with a check that draws in over 320 ms (stroke-dashoffset). No confetti, no toast sliding in from a corner. The badge on the card changes to "Published" at the same time (200 ms).</p>
+      <p class="note mono">--ease-out: cubic-bezier(0.2, 0, 0, 1) · --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1)</p>
+    </div>
+    <div>
+      <h4>Never animates</h4>
+      <ul class="rules">
+        <li><span>Page backgrounds, gradients, the paper. Nothing breathes.</span></li>
+        <li><span>The logo. No spinning door, no dots walking in. The mark is still.</span></li>
+        <li><span>Table rows on load, cards staggering in, numbers counting up. Data appears, it does not perform.</span></li>
+        <li><span>Anything that loops, except the 7 px dot of "Agent working" at 1.2 s, which stops under reduced motion.</span></li>
+        <li><span>Map markers. No pulsing radius, no ripples. The radar is a list, not a sonar.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ 11 A11Y -->
+<section id="a11y">
+  <div class="intro">
+    <h2>11 &nbsp;Accessibility</h2>
+    <p>AA for everything readable, AAA for body text, a visible focus ring everywhere, 40 px targets, and no information carried by colour alone.</p>
+  </div>
+  <div class="grid2">
+    <div>
+      <h4>Contrast, text pairs in use</h4>
+      <table class="spec">
+        <tr><th>Foreground on background</th><th class="num">Ratio</th><th>Verdict</th></tr>
+        <tr><td>ink #17150F on paper</td><td class="num">16.63</td><td class="pass">AAA</td></tr>
+        <tr><td>text #2A2721 on paper</td><td class="num">13.56</td><td class="pass">AAA</td></tr>
+        <tr><td>text #2A2721 on white</td><td class="num">14.89</td><td class="pass">AAA</td></tr>
+        <tr><td>muted #6B655B on paper</td><td class="num">5.26</td><td class="pass">AA</td></tr>
+        <tr><td>muted #6B655B on panel-2</td><td class="num">5.49</td><td class="pass">AA</td></tr>
+        <tr><td>faint #857E71 on paper</td><td class="num">3.66</td><td class="large">large text only</td></tr>
+        <tr><td>accent #B4530A on paper</td><td class="num">4.57</td><td class="pass">AA, prefer accent-text</td></tr>
+        <tr><td>accent-text #A54A07 on paper</td><td class="num">5.34</td><td class="pass">AA</td></tr>
+        <tr><td>accent-text #A54A07 on amber-soft</td><td class="num">4.96</td><td class="pass">AA</td></tr>
+        <tr><td>white on accent #B4530A</td><td class="num">5.02</td><td class="pass">AA</td></tr>
+        <tr><td>white on ink #17150F</td><td class="num">18.25</td><td class="pass">AAA</td></tr>
+        <tr><td>paper on ink (reverse)</td><td class="num">16.63</td><td class="pass">AAA</td></tr>
+        <tr><td>#A8A196 on ink (reverse descriptor)</td><td class="num">7.13</td><td class="pass">AAA</td></tr>
+        <tr><td>ok-text #1B6B44 on ok-soft</td><td class="num">4.63</td><td class="pass">AA</td></tr>
+        <tr><td>warn-text #805300 on warn-soft</td><td class="num">5.63</td><td class="pass">AA</td></tr>
+        <tr><td>danger #B42318 on danger-soft</td><td class="num">5.59</td><td class="pass">AA</td></tr>
+        <tr><td>info #3B5B7A on info-soft</td><td class="num">6.00</td><td class="pass">AA</td></tr>
+        <tr><td>placeholder #A39C8F on white</td><td class="num">2.72</td><td class="fail">placeholder only, label required</td></tr>
+      </table>
+    </div>
+    <div>
+      <h4>Focus ring</h4>
+      <div class="demo">
+        <div class="focus-demo"><button class="btn btn-primary">Review campaign</button><button class="btn btn-ghost">Not now</button><span class="chip" style="outline:2px solid var(--accent);outline-offset:2px">Vinyl shops</span></div>
+        <p class="note mono" style="margin-top:14px">:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }<br>.field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }</p>
+        <p class="note">Amber is the only focus colour, on every element, including links and table rows. Never <code>outline: none</code> without a replacement of equal visibility.</p>
+      </div>
+      <h4 style="margin-top:24px">Target sizes</h4>
+      <div class="demo">
+        <div class="states"><span class="target">40</span><span class="target t44">44</span><button class="btn btn-primary btn-sm">Approve</button><span class="chip">chip 26 px, needs 8 px gap</span></div>
+        <p class="note">40 x 40 px minimum for pointer, 44 x 44 on touch layouts (under 768 px). Small buttons (30 px tall) get invisible padding to 40. Chips are not targets unless they remove or toggle, in which case they are 32 px tall.</p>
+      </div>
+      <h4 style="margin-top:24px">Reduced motion and other rules</h4>
+      <ul class="rules">
+        <li><span><code>prefers-reduced-motion: reduce</code> sets all three durations to 0 and stops the working-dot pulse. The ring renders filled.</span></li>
+        <li><span>Status is never colour alone: every badge has a word, every ring has a number, every hot venue has a label.</span></li>
+        <li><span>Fields have visible labels; placeholders are examples, not labels.</span></li>
+        <li><span>Fraunces italic amber is decoration: screen readers get the same sentence without emphasis markup unless it changes meaning.</span></li>
+        <li><span>Language attribute follows the merchant's locale (<code>lang="fr"</code> for France) so dates and numbers are read correctly.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ 12 CHANGES -->
+<section id="changes">
+  <div class="intro">
+    <h2>12 &nbsp;Changes from the current app</h2>
+    <p>Everything here keeps the existing variable names in <code>globals.css</code>. These are the differences, and why.</p>
+  </div>
+  <div class="grid2">
+    <ul class="rules">
+      <li><span><b>Added <code>--accent-text #A54A07</code>.</b> <code>--accent</code> stays <code>#B4530A</code> for fills and the mark; it is AA on paper (4.57) but 4.25 on amber-soft. Amber text under 18 px uses accent-text.</span></li>
+      <li><span><b>Added <code>--warn-text #805300</code>, <code>--ok-text #1B6B44</code>.</b> <code>--warn #9A6400</code> is 4.56 on paper; fine for borders, marginal for 12 px badge text. The text variants pass with room.</span></li>
+      <li><span><b>Added <code>--info</code> / <code>--info-soft</code> (#3B5B7A / #E6EDF3).</b> The app had no colour for "agent working"; a slate, so it never reads as SaaS blue.</span></li>
+      <li><span><b>Added the ink scale</b> (ink-50 to ink-950), <code>--faint</code>, <code>--placeholder</code>. The app used <code>#a39c8f</code> and <code>#2b2820</code> as literals; they are now tokens, and the hover ink is <code>--ink-900</code>.</span></li>
+      <li><span><b>Added <code>--accent-hover #9D4808</code></b>, which the app had as a literal in <code>.btn-accent:hover</code>.</span></li>
+    </ul>
+    <ul class="rules">
+      <li><span><b>Added <code>--radius-sm 8</code>, <code>--radius-field 10</code>, <code>--radius-pill 999</code>.</b> Fields already used 10 px as a literal.</span></li>
+      <li><span><b>Added <code>--shadow-lift</code> and <code>--shadow-pop</code></b> for hover and menus; <code>--shadow</code> unchanged.</span></li>
+      <li><span><b>Added data-viz tokens</b> (<code>--seq-1..5</code>, <code>--neu-1..5</code>, <code>--map-*</code>) and the type scale, spacing, motion and focus tokens. None existed.</span></li>
+      <li><span><b>Logo:</b> the mark in <code>Logo.tsx</code> changes to direction 01 (open side on the left, solid dots, no opacity), the wordmark gains <code>font-variation-settings: "opsz" 144</code> and letter-spacing -0.02 em (was -0.015 to -0.02), and the header uses the mark at 20 px tall beside the 20 px wordmark (was 1.45 x font size). <code>public/logo.svg</code> and <code>src/app/icon.svg</code> are replaced by <code>design/logo/01-threshold.svg</code> and <code>design/brand/icon.svg</code>.</span></li>
+      <li><span><b>Unchanged:</b> paper, panel, panel-2, line, line-strong, ink, text, muted, accent, accent-ink, accent-soft, ok, ok-soft, warn, warn-soft, danger, danger-soft, radius, shadow.</span></li>
+    </ul>
+  </div>
+  <div class="demo mt" style="font-size:13px">
+    <h4>Files</h4>
+    <p><code>design/brand/index.html</code> this page · <code>tokens.css</code> paste into <code>src/app/globals.css</code> · <code>tokens.json</code> the same as data · <code>GUIDELINES.md</code> the written rules · <code>og.svg</code> 1200 x 630 · <code>icon.svg</code> favicon · <code>apple-touch.svg</code> 180 and 512 app icon · <code>../logo/</code> the six directions, masters in <code>0X-*.svg</code> and <code>marks/</code>.</p>
+  </div>
+</section>
+
+<footer>Turnout brand guidelines v1.0. Static HTML and CSS; the only network request is Google Fonts. Written around logo direction 01; sections 02 and 09 and the two icon files are the only places that change if another direction is chosen.</footer>
+</div>
+</body>
+</html>

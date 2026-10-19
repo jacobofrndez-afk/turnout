@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Turnout, 25 Screen, three rings and ticks: 32 px master drawing, one colour. -->
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="14" fill="none" stroke="#17150F" stroke-width="0.9"/><circle cx="16" cy="16" r="10" fill="none" stroke="#17150F" stroke-width="0.7"/><circle cx="16" cy="16" r="6" fill="none" stroke="#17150F" stroke-width="0.7"/><path d="M16 16L26.38 7.29" stroke="#17150F" stroke-width="1" stroke-linecap="butt"/></svg>

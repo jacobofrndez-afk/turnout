@@ -133,3 +133,17 @@ Trail construction (SVG has no conic gradient): N = 14 stacked sectors to r 13.3
 - **23 Afterglow, light rings.** Rings r 14 (1.2), r 8.5 (0.8) at 85 % ink; trail 110 degrees, max 0.26; blip r 1.8. Header: rings 1.5 at 85 %, measured, they stay. 16 px uses full ink.
 
 **Top one: Afterglow (21).** Geometry for React (viewBox 0 0 32 32): rings r 14 stroke 1.4 and r 8.5 stroke 0.9 (both 1.5 at header size), `var(--ink)`; trail: 14 sectors `M16 16 L sx sy A13.3 13.3 0 0 1 24.55 7.45 Z` with sx,sy = 16 + 13.3 cos a, 16 - 13.3 sin a, a = 40 + 90 (1 - i/14) degrees polar, fill `var(--accent)`, fill-opacity `1 - (1 - T_i)/(1 - T_(i-1))` with `T_i = 0.28 ((i+1)/14)^1.35`; blip r 1.7 (2.0 at header) at (21.80, 9.78), solid accent; no centre, no edge. 16 px master: ring r 13 stroke 2, flat sector 60 degrees to r 12 at 0.18, blip r 2.6. CSS hero alternative: `conic-gradient(from 320deg, transparent 0deg, accent at --sweep-tint 90deg, transparent 90deg)` clipped by a circular SVG mask of r 13.3/32, with rings and blip as inline SVG above it.
+
+---
+
+# Sixth sheet: the screen (`radar5.html`)
+
+Founder, with a classic radar-screen reference: thinner rings, a line for the sweep's leading edge from the centre to the rim, and no dot at all. Three executions, each at 96 px, in P1 and P4.
+
+Shared: edge line from exactly (16,16) to the inner side of the outer ring (r 14 minus half its stroke) at 50 degrees from vertical, butt caps; afterglow as 14 stacked sectors clipped to r 13.5, fading to 0 behind the edge; nothing at the centre; header strokes snap to 1.5 / 1.2; 16 px: one ring at 2 units, edge at 2 units, flat 60 degree glow at 0.2. One colour: edge and trail ink (trail x0.6). Reverse: rings paper, trail x1.5; edge accent in 24, paper in 25 and 26.
+
+- **24 Screen.** Rings r 14 (1.0), r 8.5 (0.7); accent edge 1.1 to (26.34, 7.32); afterglow 100 degrees, max 0.26. The one crisp accent element is the sweep itself.
+- **25 Screen, three rings and ticks.** Rings r 14 / 10 / 6 at 0.9 / 0.7 / 0.7; ink edge 1.0; afterglow 110 degrees, max 0.24; twelve hairline ticks 0.6 x 1.2 inside the rim every 30 degrees, drawn at 48 px and above only; third ring dropped at header size. The instrument; two of its five ideas vanish small.
+- **26 Screen, line in ink.** As 24 with the edge in ink; afterglow 90 degrees, max 0.30, the only accent. Quietest; on white under 24 px the accent is barely there.
+
+**Top one: Screen (24).** React geometry (viewBox 0 0 32 32): rings r 14 stroke 1.0 and r 8.5 stroke 0.7 (1.5 / 1.2 at header), `var(--ink)`, fill none; edge `M16 16 L26.34 7.32`, stroke `var(--accent)`, width 1.1 (1.5 at header), butt caps; afterglow 14 sectors `M16 16 L(16 + 13.5 cos a) (16 - 13.5 sin a) A13.5 13.5 0 0 1 26.34 7.32 Z`, a = 40 + 100 (1 - i/14) degrees polar, fill accent, opacity `1 - (1 - T_i)/(1 - T_(i-1))`, `T_i = 0.26 ((i+1)/14)^1.35`; no dots. 16 px master: ring r 13 stroke 2, edge `M16 16 L25.19 8.29` stroke 2 accent, flat sector 60 degrees to r 12 at 0.20. Tokens: `--ring-outer 1.0`, `--ring-inner 0.7`, `--edge 1.1`, `--sweep-tint 0.26`.

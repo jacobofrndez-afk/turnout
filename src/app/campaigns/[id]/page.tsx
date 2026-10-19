@@ -20,6 +20,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   const offer = offers.find((o) => o.id === draft?.chosen_offer_id);
   const prov = getProvenance(campaign);
   const sends = getSends(campaign.id);
+  const weatherByWindow = new Map(prov.filter((p) => p.kind === "weather").map((p) => [String(JSON.parse(p.input_json).window ?? ""), { kind: p.envelope_status, label: (p.note ?? "").split(": ").slice(1).join(": ") }]));
   const fmt = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: merchant.timezone });
   const statusLabel: Record<string, string> = { drafted: "Draft ready", awaiting_operator: "Agent working", needs_input: "Needs your pick", approved: "Approved", sent: "Published", failed: "Failed" };
 
@@ -112,6 +113,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                   {draft.windows.map((w) => (
                     <li key={w.label}>
                       <span className="font-semibold" style={{ color: "var(--ink)" }}>{w.label}</span> <span className="tnum">{w.start_local} to {w.end_local}</span>
+                      {weatherByWindow.get(w.label) && <WeatherChip kind={weatherByWindow.get(w.label)!.kind} label={weatherByWindow.get(w.label)!.label} />}
                       <span className="block text-xs" style={{ color: "var(--muted)" }}>{w.why}</span>
                     </li>
                   ))}
@@ -160,13 +162,23 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
             {prov.map((r) => (
               <tr key={`${r.kind}-${r.seq}`}>
                 <td>{r.seq}</td><td>{r.kind}</td><td><code>{r.workflow}</code></td><td>{r.envelope_status}</td><td className="text-right">{r.result_count}</td>
-                <td>{r.kind === "qloo" ? (r.cache_hit ? "cache" : "Qloo live") : r.kind === "llm" ? "agent" : "local"}</td><td style={{ color: "var(--muted)" }}>{r.note}</td>
+                <td>{r.kind === "qloo" ? (r.cache_hit ? "cache" : "Qloo live") : r.kind === "llm" ? "agent" : r.kind === "weather" ? "Open-Meteo" : "local"}</td><td style={{ color: "var(--muted)" }}>{r.note}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </details>
     </main>
+  );
+}
+
+function WeatherChip({ kind, label }: { kind: string; label: string }) {
+  const wet = kind === "rain" || kind === "storm" || kind === "snow";
+  const style = wet || kind === "cold" ? { background: "var(--warn-soft)", color: "var(--warn)" } : kind === "hot" ? { background: "var(--accent-soft)", color: "var(--accent)" } : { background: "var(--ok-soft)", color: "var(--ok)" };
+  return (
+    <span className="chip ml-2" style={{ ...style, borderColor: "transparent", fontSize: 11, padding: "1px 8px" }} title="Open-Meteo forecast at your place">
+      {label}
+    </span>
   );
 }
 

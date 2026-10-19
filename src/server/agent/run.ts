@@ -10,7 +10,8 @@ import { getDb, newId } from "@/server/db/client";
 import type { Merchant } from "@/server/events/radar";
 import { buildCrowdProfile, getEvent, getOffers, type CrowdProfile, type EventRow } from "@/server/qloo/crowd";
 import { CampaignDraftSchema, type CampaignDraft } from "./schema";
-import { SYSTEM_PROMPT, buildUserPrompt } from "./prompt";
+import { SYSTEM_PROMPT, buildUserPrompt, windowsIso, type WindowWeather } from "./prompt";
+import { weatherWindow } from "@/server/weather/openmeteo";
 
 export type CampaignStatus = "needs_input" | "awaiting_operator" | "drafted" | "approved" | "sent" | "failed";
 export type CampaignRow = {
@@ -43,7 +44,8 @@ export async function createCampaign(merchant: Merchant, event: EventRow, picked
   db.prepare(`INSERT INTO campaigns (id, merchant_id, event_id, crowd_profile_id, status) VALUES (?, ?, ?, ?, ?)`).run(id, merchant.id, event.id, profile.id, status);
   if (!profile.entity) return getCampaign(id)!;
   const offers = getOffers(merchant.id);
-  const user = buildUserPrompt(merchant, event, profile, offers);
+  const weather = await forecastWindows(id, profile.id, merchant, event);
+  const user = buildUserPrompt(merchant, event, profile, offers, weather);
   if (provider() === "anthropic") {
     try {
       const { draft, usage } = await draftWithClaude(user);
@@ -55,6 +57,32 @@ export async function createCampaign(merchant: Merchant, event: EventRow, picked
     writePromptForOperator(id, user);
   }
   return getCampaign(id)!;
+}
+
+// Weather for each window, recorded in provenance so the campaign page and the judge can see what the agent saw.
+async function forecastWindows(campaignId: string, profileId: string, merchant: Merchant, event: EventRow): Promise<WindowWeather[]> {
+  const out: WindowWeather[] = [];
+  const db = getDb();
+  const seq0 = (db.prepare("SELECT COALESCE(MAX(seq), 0) AS m FROM provenance WHERE crowd_profile_id = ?").get(profileId) as { m: number }).m;
+  let seq = seq0;
+  for (const w of windowsIso(event)) {
+    try {
+      const s = await weatherWindow(merchant.lat, merchant.lon, w.startIso, w.endIso, merchant.timezone);
+      if (!s) continue;
+      out.push({ label: w.label, summary: s.label });
+      db.prepare(`INSERT INTO provenance (campaign_id, crowd_profile_id, seq, kind, workflow, input_json, envelope_status, result_count, cache_hit, duration_ms, note) VALUES (?, ?, ?, 'weather', 'open_meteo_forecast', ?, ?, 1, 0, 0, ?)`).run(
+        campaignId,
+        profileId,
+        ++seq,
+        JSON.stringify({ window: w.label, start: w.startIso, end: w.endIso }),
+        s.kind,
+        `${w.label}: ${s.label}`,
+      );
+    } catch {
+      // Weather is a bonus signal: never block a campaign on it.
+    }
+  }
+  return out;
 }
 
 async function draftWithClaude(user: string): Promise<{ draft: CampaignDraft; usage: unknown }> {

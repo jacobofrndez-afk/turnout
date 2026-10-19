@@ -4,13 +4,14 @@ import type { CrowdProfile, EventRow, OfferRow } from "@/server/qloo/crowd";
 import { describeDemographics } from "@/server/qloo/crowd";
 import { tagId } from "@/server/qloo/api";
 
-export const SYSTEM_PROMPT = `You are the campaign agent of Crowd to Campaign, a tool for independent merchants (bars, restaurants, shops).
+export const SYSTEM_PROMPT = `You are the campaign agent of Turnout, a tool for independent merchants (bars, restaurants, shops).
 
 A crowd is about to gather near the merchant for an event. You receive:
 - the event (headliner, venue, time),
 - Qloo taste data about people who like the headliner: demographics (age and gender affinity relative to average; positive means over-index), taste tags for places, brands they over-index on, bars near the merchant they like,
 - the merchant's offers, each with Qloo tag URNs and a fit score (affinity of places with those tags, near the merchant, for this crowd),
-- the merchant's tone of voice and suggested time windows.
+- the merchant's tone of voice and suggested time windows,
+- the weather forecast at the merchant for each window (Open-Meteo), when available.
 
 Your job: pick the one offer that best fits this crowd, write the copy for each channel, and explain why using the Qloo evidence.
 
@@ -22,6 +23,7 @@ Rules:
 - Use the merchant's city language: English for US cities, French for France. Prices stay as given.
 - Interest keywords for the geofenced ad come from the Qloo tags and brands, phrased as ad-platform interests (e.g. "Cocktail bars", "Luxury fashion", "Pop music").
 - Time windows: use the suggested ones unless the evidence says otherwise; keep local HH:MM.
+- Weather does not change who the crowd is; it changes what to offer and how to say it. Rain, storm, snow or cold favour shelter, warm food and indoor comfort; heat favours cold drinks and outdoor seating; a pleasant dry evening favours terraces and lingering. Say so in the rationale when it tips the choice, and use it in the copy only when it helps. Never invent weather that is not given.
 - No exclamation marks. No emojis. No hashtags.`;
 
 export function timeWindows(event: EventRow, merchant: Merchant): { label: string; start_local: string; end_local: string; why: string }[] {
@@ -36,7 +38,21 @@ export function timeWindows(event: EventRow, merchant: Merchant): { label: strin
   ];
 }
 
-export function buildUserPrompt(merchant: Merchant, event: EventRow, profile: CrowdProfile, offers: OfferRow[]): string {
+// The same two windows as ISO instants, for the weather lookup.
+export function windowsIso(event: EventRow): { label: string; startIso: string; endIso: string }[] {
+  const start = new Date(event.starts_at).getTime();
+  const isSport = (event.segment ?? "").toLowerCase() === "sports";
+  const durationMin = isSport ? 150 : 165;
+  const iso = (offsetMin: number) => new Date(start + offsetMin * 60_000).toISOString();
+  return [
+    { label: "Before doors", startIso: iso(-150), endIso: iso(-30) },
+    { label: "After the show", startIso: iso(durationMin), endIso: iso(durationMin + 90) },
+  ];
+}
+
+export type WindowWeather = { label: string; summary: string };
+
+export function buildUserPrompt(merchant: Merchant, event: EventRow, profile: CrowdProfile, offers: OfferRow[], weather: WindowWeather[] = []): string {
   const demo = describeDemographics(profile.demographics);
   const fmt = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: merchant.timezone });
   const lines: string[] = [];
@@ -58,6 +74,9 @@ export function buildUserPrompt(merchant: Merchant, event: EventRow, profile: Cr
   }
   lines.push("", `# Suggested windows (local time)`);
   for (const w of timeWindows(event, merchant)) lines.push(`- ${w.label}: ${w.start_local} to ${w.end_local}. ${w.why}`);
+  lines.push("", `# Weather at the merchant (Open-Meteo forecast)`);
+  if (weather.length) for (const w of weather) lines.push(`- ${w.label}: ${w.summary}.`);
+  else lines.push("Not available. Do not mention the weather.");
   lines.push("", `# Task`, `Choose the offer, write the campaign for every channel, explain with the Qloo evidence above, and state the limitations. Output must match the required schema.`);
   return lines.join("\n");
 }

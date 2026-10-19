@@ -36,6 +36,8 @@ Same bar, same radius, same code: the agent picks the cocktail happy hour for on
 | Offers → Qloo tags (onboarding) | `/v2/tags` semantic search, merchant confirms | Free-text offers become stable tag URNs |
 | Taste of the street (weekly mode) | Insights `urn:tag`, `urn:entity:brand`, `urn:entity:place` with `signal.location` = the merchant's GPS point | Structural taste of the everyday flow, no event needed |
 
+Weather comes from Open-Meteo (free, no key), forecast at the merchant for each window. Like Ticketmaster it is a signal Qloo does not have: it does not change who the crowd is, it changes what to offer (rain favours shelter and warm food, heat favours cold drinks and terraces). The agent cites it when it tips the choice, and it is logged in provenance.
+
 The harness workflows (`qloo mcp`) were used to spike and validate the recipe; the app calls the Insights API directly because the `recommend` workflow only exposes a locality name, not a point and radius. Every call is cached by content hash for seven days and logged to a provenance table shown in the UI (live vs cached, status, result count).
 
 ## Request-to-result trace (redacted)
@@ -86,6 +88,7 @@ Deploy: the Dockerfile runs `next start` as a persistent Node process with SQLit
 - `src/server/qloo/` direct Qloo API client with cache and provenance, crowd profile recipe, neighbourhood pulse, tag selection.
 - `src/server/agent/` campaign and weekly-brief agents (Claude structured output, or operator inbox), prompts and schemas.
 - `src/server/channels/` publishing pipeline and adapters.
+- `src/server/weather/` Open-Meteo forecast per window and evenings of the week.
 - `src/app/` radar, crowd profile, campaign, neighbourhood pulse, onboarding.
 - `docs/QLOO_API.md` what the API returns, verified live.
 

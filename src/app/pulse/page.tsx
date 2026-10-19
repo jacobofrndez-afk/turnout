@@ -4,6 +4,7 @@ import { buildNeighborhoodPulse } from "@/server/qloo/neighborhood";
 import { getBrief, latestPulse } from "@/server/agent/pulse";
 import { getOffers } from "@/server/qloo/crowd";
 import { tagId } from "@/server/qloo/api";
+import { eveningsThisWeek } from "@/server/weather/openmeteo";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
   const brief = getBrief(row);
   const offers = getOffers(merchant.id);
   const featured = offers.find((o) => o.id === brief?.featured_offer_id);
+  const evenings = await eveningsThisWeek(merchant.lat, merchant.lon, merchant.timezone).catch(() => []);
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-10">
@@ -41,7 +43,24 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
         </form>
       </header>
 
-      <section className="mt-8 grid gap-4 md:grid-cols-3">
+      {evenings.length > 0 && (
+        <section className="card-flat mt-8 p-4">
+          <p className="eyebrow">Evenings this week at your door · 17:00 to 21:00 · Open-Meteo</p>
+          <div className="mt-2 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4 lg:grid-cols-7">
+            {evenings.map((e) => {
+              const wet = ["rain", "storm", "snow", "cold"].includes(e.summary.kind);
+              return (
+                <div key={e.day} className="rounded-lg px-2 py-1.5" style={{ background: wet ? "var(--warn-soft)" : "var(--ok-soft)", color: wet ? "var(--warn)" : "var(--ok)" }}>
+                  <p className="font-semibold">{e.day}</p>
+                  <p>{e.summary.label}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      <section className="mt-4 grid gap-4 md:grid-cols-3">
         <div className="card p-5">
           <p className="eyebrow">Who walks past</p>
           <div className="mt-3 flex flex-wrap gap-1.5">

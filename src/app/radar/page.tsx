@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getMerchant, listMerchants, radarFor, type RadarItem } from "@/server/events/radar";
 import RadarMap from "./RadarMap";
+import { weatherWindow, type WeatherSummary } from "@/server/weather/openmeteo";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,17 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
     error = (e as Error).message;
   }
   const top = items.slice(0, 40);
+  // Weather at the merchant around each crowd worth a campaign (one forecast call per place, cached 1 h).
+  const weather = new Map<string, WeatherSummary>();
+  for (const it of top.filter((i) => i.interesting)) {
+    const start = new Date(it.event.startsAt).getTime();
+    try {
+      const w = await weatherWindow(merchant.lat, merchant.lon, new Date(start - 150 * 60_000).toISOString(), new Date(start + 255 * 60_000).toISOString(), merchant.timezone);
+      if (w) weather.set(it.event.id, w);
+    } catch {
+      // no weather, no chip
+    }
+  }
   const hot = top.filter((i) => i.interesting).length;
   const fmt = new Intl.DateTimeFormat("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: merchant.timezone });
 
@@ -76,6 +88,11 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
                   <p className="tnum mt-1 text-xs" style={{ color: "var(--muted)" }}>
                     ~{it.capacity.toLocaleString("en-US")} people · {it.event.segment ?? "?"}{it.event.genre ? ` / ${it.event.genre}` : ""}
                   </p>
+                  {weather.get(it.event.id) && (
+                    <p className="mt-1 text-xs font-semibold" style={{ color: ["rain", "storm", "snow", "cold"].includes(weather.get(it.event.id)!.kind) ? "var(--warn)" : "var(--ok)" }}>
+                      Weather at your door: {weather.get(it.event.id)!.label}
+                    </p>
+                  )}
                   {it.interesting && (
                     <Link href={`/campaigns/new?merchant=${merchant.id}&event=${it.event.id}`} className="mt-3 inline-flex text-sm font-semibold" style={{ color: "var(--accent)" }}>
                       Qualify this crowd with Qloo →

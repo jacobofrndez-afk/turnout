@@ -29,7 +29,7 @@ Ticketmaster says a crowd is coming; only Qloo says who they are. Fans of Harry 
 
 ## How we built it
 
-Next.js 16 on a persistent Node process, SQLite, direct Qloo Insights API with a content-hash cache, Ticketmaster Discovery API, Claude with structured output for the agent (or an operator inbox for local tests), Twilio WhatsApp sandbox, Snapchat Marketing API payloads (campaigns created paused), OpenStreetMap for geocoding and tiles. The Qloo harness (`qloo mcp`) was used to spike and validate the recipe.
+Next.js 16 on a persistent Node process, SQLite, direct Qloo Insights API with a content-hash cache, Ticketmaster Discovery API, Claude with structured output for the agent (or an operator inbox for local tests), Open-Meteo for the weather at the door, Twilio WhatsApp sandbox, Snapchat Marketing API payloads (campaigns created paused), OpenStreetMap for geocoding and tiles. The Qloo harness (`qloo mcp`) was used to spike and validate the recipe.
 
 ## Challenges
 
@@ -45,4 +45,4 @@ Snapchat and Google Business Profile wired end to end, a Meta fallback, PredictH
 
 ## Built with
 
-next.js, typescript, qloo, ticketmaster-api, anthropic, sqlite, twilio, snapchat-marketing-api, openstreetmap, railway
+next.js, typescript, qloo, ticketmaster-api, open-meteo, anthropic, sqlite, twilio, snapchat-marketing-api, openstreetmap, railway

@@ -11,6 +11,7 @@ import { getOffers } from "@/server/qloo/crowd";
 import { tagId } from "@/server/qloo/api";
 import { buildNeighborhoodPulse, type NeighborhoodPulse } from "@/server/qloo/neighborhood";
 import { INBOX, provider } from "./run";
+import { eveningsThisWeek } from "@/server/weather/openmeteo";
 
 export const PulseBriefSchema = z.object({
   language: z.enum(["en", "fr"]),
@@ -28,6 +29,8 @@ export type PulseBrief = z.infer<typeof PulseBriefSchema>;
 const SYSTEM = `You are Turnout's neighbourhood agent for an independent merchant. No event tonight: this is about the everyday flow of people who walk past the door.
 
 You receive Qloo's taste profile of the street (signal = the merchant's GPS point): audience tags (who is here), ambience tags (what they like in a place), brands and media they over-index on, nearby bars and restaurants they already like, and the merchant's offers with a fit score.
+
+You also get the evening weather forecast for the coming week (Open-Meteo): use it to say which evenings to push which line (wet or cold evenings favour shelter and warm food, warm dry evenings favour terraces and cold drinks), never invent weather.
 
 Pick the one offer to feature this week, write the board line, the Google post, the note to regulars and a small always-on geofenced ad. Cite Qloo evidence by name. Qloo describes aggregate affinities of an area, never individuals, and never predicts a visit: say so in limitations. Use the city's language (English for US cities, French for France). No exclamation marks, no emojis, no hashtags.`;
 
@@ -49,7 +52,13 @@ export async function createPulseBrief(merchant: Merchant, pulse?: NeighborhoodP
   const id = newId("pulse");
   const db = getDb();
   db.prepare("INSERT INTO pulses (id, merchant_id, status) VALUES (?, ?, 'awaiting_operator')").run(id, merchant.id);
-  const user = buildPrompt(merchant, p);
+  let evenings: { day: string; label: string }[] = [];
+  try {
+    evenings = (await eveningsThisWeek(merchant.lat, merchant.lon, merchant.timezone)).map((e) => ({ day: e.day, label: e.summary.label }));
+  } catch {
+    evenings = [];
+  }
+  const user = buildPrompt(merchant, p, evenings);
   if (provider() === "anthropic") {
     try {
       const client = new Anthropic();
@@ -89,7 +98,7 @@ export function getBrief(row: PulseRow | undefined): PulseBrief | undefined {
   return r.success ? r.data : undefined;
 }
 
-function buildPrompt(m: Merchant, p: NeighborhoodPulse): string {
+function buildPrompt(m: Merchant, p: NeighborhoodPulse, evenings: { day: string; label: string }[] = []): string {
   const offers = getOffers(m.id);
   const L: string[] = [];
   L.push(`# Merchant`, `${m.name}, a ${m.kind} at ${m.address ?? m.city}. City: ${m.city}. Timezone: ${m.timezone}. Voice: ${m.voice ?? "friendly and direct"}.`, "");
@@ -103,6 +112,8 @@ function buildPrompt(m: Merchant, p: NeighborhoodPulse): string {
     const f = p.offerFits.find((x) => x.offerId === o.id);
     L.push(`- id=${o.id} | ${o.title} | ${o.description} | ${o.price} | tags: ${JSON.parse(o.tag_names_json).join(", ")} | fit ${f ? f.affinity.toFixed(2) : "n/a"}${f?.topPlaces.length ? ` (e.g. ${f.topPlaces.join(", ")})` : ""}`);
   }
+  L.push("", `# Evenings this week at the merchant (17:00 to 21:00 local, Open-Meteo)`);
+  L.push(evenings.length ? evenings.map((e) => `${e.day}: ${e.label}`).join("; ") + "." : "Not available. Do not mention the weather.");
   L.push("", `# Task`, `Choose the offer to feature for the everyday flow this week and write the board, Google post, regulars note and always-on ad. Output must match the schema.`);
   return L.join("\n");
 }

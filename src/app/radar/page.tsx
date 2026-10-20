@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getMerchant, listMerchants, radarFor, type RadarItem } from "@/server/events/radar";
-import RadarMap from "./RadarMap";
+import RadarView, { type ViewItem } from "./RadarView";
 import { weatherWindow, type WeatherSummary } from "@/server/weather/openmeteo";
 
 export const dynamic = "force-dynamic";
@@ -40,10 +40,24 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
     }
   }
   const hot = top.filter((i) => i.interesting).length;
-  const fmt = new Intl.DateTimeFormat("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: merchant.timezone });
+  const view: ViewItem[] = top.map((it) => ({
+    id: it.event.id,
+    headliner: it.headliner.name,
+    venue: it.event.venue.name,
+    lat: it.event.venue.lat,
+    lon: it.event.venue.lon,
+    startsAt: it.event.startsAt,
+    segment: it.event.segment,
+    genre: it.event.genre,
+    capacity: it.capacity,
+    score: it.score,
+    interesting: it.interesting,
+    distanceKm: it.distanceKm,
+    weather: weather.get(it.event.id) ? { label: weather.get(it.event.id)!.label, kind: weather.get(it.event.id)!.kind } : undefined,
+  }));
 
   return (
-    <main className="mx-auto max-w-6xl px-5 py-10">
+    <main className="mx-auto max-w-[1200px] px-5 py-10">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">Radar · next {hours} h</p>
@@ -69,44 +83,14 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
         </p>
       )}
 
-      <section className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_1fr]">
-        <div className="card overflow-hidden p-2">
-          <RadarMap
-            merchant={{ name: merchant.name, lat: merchant.lat, lon: merchant.lon, radiusM: merchant.radius_m }}
-            points={top.map((it) => ({ id: it.event.id, name: it.headliner.name, venue: it.event.venue.name, lat: it.event.venue.lat, lon: it.event.venue.lon, score: it.score, capacity: it.capacity, startsAt: it.event.startsAt }))}
-          />
-        </div>
-        <ol className="space-y-3">
-          {top.map((it) => (
-            <li key={it.event.id} className={it.interesting ? "card p-4" : "card-flat p-4"} style={it.interesting ? { borderColor: "var(--accent)" } : undefined}>
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="truncate font-display text-lg">{it.headliner.name}</p>
-                  <p className="truncate text-sm" style={{ color: "var(--muted)" }}>
-                    {fmt.format(new Date(it.event.startsAt))} · {it.event.venue.name} · {it.distanceKm.toFixed(1)} km
-                  </p>
-                  <p className="tnum mt-1 text-xs" style={{ color: "var(--muted)" }}>
-                    ~{it.capacity.toLocaleString("en-US")} people · {it.event.segment ?? "?"}{it.event.genre ? ` / ${it.event.genre}` : ""}
-                  </p>
-                  {weather.get(it.event.id) && (
-                    <p className="mt-1 text-xs font-semibold" style={{ color: ["rain", "storm", "snow", "cold"].includes(weather.get(it.event.id)!.kind) ? "var(--warn)" : "var(--ok)" }}>
-                      Weather at your door: {weather.get(it.event.id)!.label}
-                    </p>
-                  )}
-                  {it.interesting && (
-                    <Link href={`/campaigns/new?merchant=${merchant.id}&event=${it.event.id}`} className="mt-3 inline-flex text-sm font-semibold" style={{ color: "var(--accent)" }}>
-                      Qualify this crowd with Qloo →
-                    </Link>
-                  )}
-                </div>
-                <div className="score-ring shrink-0" style={{ ["--p" as string]: it.score }} title="Concentration score">
-                  <span>{it.score}</span>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
+      <div className="mt-8">
+        <RadarView
+          merchant={{ id: merchant.id, name: merchant.name, lat: merchant.lat, lon: merchant.lon, radiusM: merchant.radius_m, timezone: merchant.timezone }}
+          items={view}
+          nowIso={new Date().toISOString()}
+          hours={hours}
+        />
+      </div>
     </main>
   );
 }

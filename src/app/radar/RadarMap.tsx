@@ -35,10 +35,48 @@ type ML = any;
 const STYLE_URL = "https://tiles.openfreemap.org/styles/positron";
 const FONT = ["Noto Sans Regular"];
 const FONT_BOLD = ["Noto Sans Bold"];
-const INK = "#17150f";
-const AMBER = "#b4530a";
-const NEUTRAL = "#b8af9f";
-const LINE_STRONG = "#cfc7b8";
+// MapLibre paint cannot read CSS variables: resolve the design tokens to concrete colours once, at map load,
+// so a new identity in globals.css restyles the map too. A canvas pixel handles any CSS colour syntax.
+type Palette = { ink: string; accent: string; neutral: string; ring: string; lineStrong: string; muted: string; panel: string; paper: string; sky: string };
+function resolveColor(css: string, fallback: string, under?: string, alpha = 1): string {
+  try {
+    const c = document.createElement("canvas");
+    c.width = c.height = 1;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return fallback;
+    if (under) {
+      ctx.fillStyle = under;
+      ctx.fillRect(0, 0, 1, 1);
+    }
+    ctx.fillStyle = fallback;
+    ctx.fillStyle = css;
+    ctx.globalAlpha = alpha;
+    ctx.fillRect(0, 0, 1, 1);
+    const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+    return `rgb(${r}, ${g}, ${b})`;
+  } catch {
+    return fallback;
+  }
+}
+function palette(): Palette {
+  const css = getComputedStyle(document.documentElement);
+  const tok = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
+  const ink = tok("--ink", "#17150f");
+  const muted = tok("--muted", "#6b655b");
+  const panel = tok("--panel", "#ffffff");
+  const paper = tok("--paper", "#f7f4ee");
+  return {
+    ink: resolveColor(ink, "#17150f"),
+    accent: resolveColor(tok("--accent", "#b4530a"), "#b4530a"),
+    neutral: resolveColor(muted, "#b8af9f", panel, 0.5),
+    ring: resolveColor(muted, "#a39c8f", panel, 0.7),
+    lineStrong: resolveColor(tok("--line-strong", "#cfc7b8"), "#cfc7b8"),
+    muted: resolveColor(muted, "#6b655b"),
+    panel: resolveColor(panel, "#ffffff"),
+    paper: resolveColor(paper, "#f7f4ee"),
+    sky: resolveColor(tok("--line", "#e4ded3"), "#e4ded3", panel, 0.6),
+  };
+}
 const MIN_R = 300;
 const MAX_R = 5000;
 
@@ -72,7 +110,8 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
       try {
         style = await (await fetch(STYLE_URL)).json();
         style.projection = { type: "globe" };
-        style.sky = { "sky-color": "#dfe7ef", "horizon-color": "#f1ede6", "fog-color": "#f7f4ee", "sky-horizon-blend": 0.7, "horizon-fog-blend": 0.8, "fog-ground-blend": 0.9, "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 0.8, 4, 0.5, 6.5, 0] };
+        const pal = palette();
+        style.sky = { "sky-color": pal.sky, "horizon-color": pal.paper, "fog-color": pal.paper, "sky-horizon-blend": 0.7, "horizon-fog-blend": 0.8, "fog-ground-blend": 0.9, "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 0.8, 4, 0.5, 6.5, 0] };
       } catch {
         // keep the style URL; the map still renders
       }
@@ -98,7 +137,7 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
       m.touchPitch?.disable?.();
       m.on("load", () => {
         if (cancelled) return;
-        addLayers(m);
+        addLayers(m, palette());
         drawRings(m, merchant, merchant.radiusM);
         // merchant
         const me = document.createElement("div");
@@ -211,12 +250,12 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
   );
 }
 
-function addLayers(m: ML) {
+function addLayers(m: ML, P: Palette) {
   m.addSource("rings", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-  m.addLayer({ id: "ring-fill", type: "fill", source: "rings", filter: ["==", ["get", "main"], 1], paint: { "fill-color": INK, "fill-opacity": 0.025 } });
-  m.addLayer({ id: "ring-line", type: "line", source: "rings", filter: ["==", ["geometry-type"], "Polygon"], paint: { "line-color": ["case", ["==", ["get", "main"], 1], "#a39c8f", LINE_STRONG], "line-width": ["case", ["==", ["get", "main"], 1], 1.5, 0.8], "line-dasharray": ["case", ["==", ["get", "main"], 1], ["literal", [3, 2.5]], ["literal", [1]]] } });
+  m.addLayer({ id: "ring-fill", type: "fill", source: "rings", filter: ["==", ["get", "main"], 1], paint: { "fill-color": P.ink, "fill-opacity": 0.025 } });
+  m.addLayer({ id: "ring-line", type: "line", source: "rings", filter: ["==", ["geometry-type"], "Polygon"], paint: { "line-color": ["case", ["==", ["get", "main"], 1], P.ring, P.lineStrong], "line-width": ["case", ["==", ["get", "main"], 1], 1.5, 0.8], "line-dasharray": ["case", ["==", ["get", "main"], 1], ["literal", [3, 2.5]], ["literal", [1]]] } });
   m.addSource("ring-labels", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-  m.addLayer({ id: "ring-label", type: "symbol", source: "ring-labels", layout: { "text-field": ["get", "label"], "text-font": FONT, "text-size": 10.5, "text-anchor": "bottom", "text-offset": [0, -0.2], "text-allow-overlap": true }, paint: { "text-color": "#6b655b", "text-halo-color": "#ffffff", "text-halo-width": 1.6 } });
+  m.addLayer({ id: "ring-label", type: "symbol", source: "ring-labels", layout: { "text-field": ["get", "label"], "text-font": FONT, "text-size": 10.5, "text-anchor": "bottom", "text-offset": [0, -0.2], "text-allow-overlap": true }, paint: { "text-color": P.muted, "text-halo-color": P.panel, "text-halo-width": 1.6 } });
   m.addSource("venues", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
   // crowd mass: radius grows with the square root of the crowd
   m.addLayer({
@@ -225,9 +264,9 @@ function addLayers(m: ML) {
     source: "venues",
     paint: {
       "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, ["*", 0.12, ["sqrt", ["get", "cap"]]], 16, ["*", 0.34, ["sqrt", ["get", "cap"]]]],
-      "circle-color": ["case", ["==", ["get", "hot"], 1], AMBER, NEUTRAL],
+      "circle-color": ["case", ["==", ["get", "hot"], 1], P.accent, P.neutral],
       "circle-opacity": ["case", ["==", ["get", "active"], 1], 0.2, 0.06],
-      "circle-stroke-color": ["case", ["==", ["get", "hot"], 1], AMBER, NEUTRAL],
+      "circle-stroke-color": ["case", ["==", ["get", "hot"], 1], P.accent, P.neutral],
       "circle-stroke-width": ["case", ["==", ["get", "active"], 1], 1, 0],
       "circle-stroke-opacity": 0.5,
     },
@@ -239,9 +278,9 @@ function addLayers(m: ML) {
     layout: { "circle-sort-key": ["+", ["get", "hot"], ["*", 2, ["get", "selected"]]] },
     paint: {
       "circle-radius": ["case", ["==", ["get", "hot"], 1], 7, 5],
-      "circle-color": ["case", ["==", ["get", "hot"], 1], AMBER, NEUTRAL],
+      "circle-color": ["case", ["==", ["get", "hot"], 1], P.accent, P.neutral],
       "circle-opacity": ["case", ["==", ["get", "active"], 1], 1, 0.5],
-      "circle-stroke-color": ["case", ["==", ["get", "selected"], 1], INK, "#ffffff"],
+      "circle-stroke-color": ["case", ["==", ["get", "selected"], 1], P.ink, P.panel],
       "circle-stroke-width": ["case", ["==", ["get", "selected"], 1], 2.5, 1.8],
     },
   });
@@ -251,7 +290,7 @@ function addLayers(m: ML) {
     source: "venues",
     filter: ["all", ["==", ["get", "labelled"], 1], ["==", ["get", "selected"], 0]],
     layout: { "text-field": ["get", "label"], "text-font": FONT_BOLD, "text-size": 12, "text-anchor": "left", "text-offset": [0.9, 0], "text-max-width": 12, "text-padding": 4, "symbol-sort-key": ["-", 2, ["get", "hot"]] },
-    paint: { "text-color": ["case", ["==", ["get", "hot"], 1], INK, "#6b655b"], "text-halo-color": "#ffffff", "text-halo-width": 1.8 },
+    paint: { "text-color": ["case", ["==", ["get", "hot"], 1], P.ink, P.muted], "text-halo-color": P.panel, "text-halo-width": 1.8 },
   });
 }
 

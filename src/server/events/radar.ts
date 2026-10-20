@@ -3,6 +3,7 @@ import { getDb } from "@/server/db/client";
 import { fetchEventsNear, type TmEvent } from "./ticketmaster";
 import { scoreConcentration, headliner, type Scored } from "./concentration";
 import { detectWaves } from "./moments";
+import { collectMoments } from "./sources";
 
 export type Merchant = {
   id: string;
@@ -45,8 +46,11 @@ export async function radarFor(merchant: Merchant, hoursAhead = 72): Promise<Rad
   const scored = events.map((e) => scoreConcentration(e, m, now));
   // Waves: several small shows starting or ending together near the merchant.
   const waves = detectWaves(scored, { id: merchant.id, ...m }, now, hoursAhead);
-  persist(waves);
-  return [...scored, ...waves.map((w) => scoreConcentration(w, m, now))]
+  // Crowds outside venues: games on TV, street and city events, calendar moments.
+  const { moments, errors } = await collectMoments({ id: merchant.id, ...m, city: merchant.city, timezone: merchant.timezone }, now, hoursAhead);
+  for (const err of errors) console.warn(`[radar] source ${err.source} failed: ${err.message}`);
+  persist([...waves, ...moments]);
+  return [...scored, ...[...waves, ...moments].map((w) => scoreConcentration(w, m, now))]
     .map((s) => ({ ...s, headliner: headliner(s.event) }))
     .filter((s) => s.hoursUntil > -3 || (s.event.windowEnd && Date.parse(s.event.windowEnd) > now.getTime()))
     .sort((a, b) => b.score - a.score || a.hoursUntil - b.hoursUntil);

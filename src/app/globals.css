@@ -123,8 +123,11 @@ h1, h2.display {
 
 .leaflet-container {
   font-family: inherit;
-  filter: saturate(0.55) contrast(0.95);
   border-radius: var(--radius);
+}
+/* Desaturate the map tiles only, never the markers (guidelines, maps). */
+.leaflet-tile-pane {
+  filter: saturate(0.55) contrast(0.95);
 }
 .leaflet-tooltip {
   font-family: var(--font-sans), sans-serif;

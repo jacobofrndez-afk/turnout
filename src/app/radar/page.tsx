@@ -27,7 +27,7 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
   } catch (e) {
     error = (e as Error).message;
   }
-  const top = items.slice(0, 40);
+  const top = items.slice(0, 90);
   // Weather at the merchant around each crowd worth a campaign (one forecast call per place, cached 1 h).
   const weather = new Map<string, WeatherSummary>();
   for (const it of top.filter((i) => i.interesting)) {
@@ -63,7 +63,7 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
           <p className="eyebrow">Radar · next {hours} h</p>
           <h1 className="mt-1 text-4xl">{merchant.name}</h1>
           <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
-            {merchant.address} · {items.length} events within reach · <span style={{ color: "var(--accent)" }}>{hot} worth a campaign</span>
+            {merchant.address} · watching {merchant.radius_m >= 1000 ? `${(merchant.radius_m / 1000).toLocaleString("en-US")} km` : `${merchant.radius_m} m`} around you · {items.length} events within reach · <span style={{ color: "var(--accent)" }}>{hot} worth a campaign</span>
           </p>
         </div>
         <nav className="flex flex-wrap gap-2 text-sm">

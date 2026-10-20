@@ -1,19 +1,24 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 
-// Map styled per design/brand/GUIDELINES.md: desaturated tiles, merchant ink dot with paper ring,
-// hot venues amber with a label on a white chip, cold venues neutral with a muted label,
-// radius as a thin dashed circle with no fill, no blue, no pulsing.
+// Vector map in the spirit of the global search prototype: MapLibre on OpenFreeMap "positron" (free, no key),
+// a short flight in from the globe on first open, venues drawn as map layers (size = crowd), a peek card on the
+// selected crowd, radar rings with walking times, and a draggable handle to widen or narrow the merchant's radius.
+// Brand rules (design/brand/GUIDELINES.md): merchant in ink, hot crowds in amber, others neutral, no blue, no pulsing.
 
 export type MapPoint = {
-  key: string; // venue key (one marker per venue)
+  key: string;
   eventId: string;
   label: string;
-  sub: string;
+  time: string;
+  venue: string;
+  capacity: number;
+  distanceKm: number;
+  href?: string;
   lat: number;
   lon: number;
   hot: boolean;
-  active: boolean; // crowd present at the cursor time
+  active: boolean;
   selected: boolean;
 };
 
@@ -21,123 +26,289 @@ type Props = {
   merchant: { name: string; lat: number; lon: number; radiusM: number };
   points: MapPoint[];
   onSelect?: (eventId: string) => void;
+  onRadiusChange?: (radiusM: number) => void;
 };
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-type L = any;
+type ML = any;
 
-export default function RadarMap({ merchant, points, onSelect }: Props) {
+const STYLE_URL = "https://tiles.openfreemap.org/styles/positron";
+const FONT = ["Noto Sans Regular"];
+const FONT_BOLD = ["Noto Sans Bold"];
+const INK = "#17150f";
+const AMBER = "#b4530a";
+const NEUTRAL = "#b8af9f";
+const LINE_STRONG = "#cfc7b8";
+const MIN_R = 300;
+const MAX_R = 5000;
+
+export const walkMin = (m: number) => Math.max(1, Math.round(m / 80));
+
+export default function RadarMap({ merchant, points, onSelect, onRadiusChange }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const mapEl = useRef<HTMLDivElement>(null);
-  const map = useRef<L>(null);
-  const layer = useRef<L>(null);
+  const map = useRef<ML>(null);
+  const card = useRef<ML>(null);
+  const handle = useRef<ML>(null);
   const [ready, setReady] = useState(false);
-  const [full, setFull] = useState(false);
-  const onSelectRef = useRef(onSelect);
-  onSelectRef.current = onSelect;
+  const [radius, setRadius] = useState(merchant.radiusM);
+  const cb = useRef({ onSelect, onRadiusChange });
+  cb.current = { onSelect, onRadiusChange };
+  const radiusRef = useRef(merchant.radiusM);
+  const pointsRef = useRef(points);
+  pointsRef.current = points;
+
+  useEffect(() => setRadius(merchant.radiusM), [merchant.radiusM]);
+  radiusRef.current = radius;
 
   // Create the map once per merchant.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      await loadLeaflet();
+      await loadMapLibre();
       if (cancelled || !mapEl.current) return;
-      const Lf = (window as unknown as { L: L }).L;
-      const m = Lf.map(mapEl.current, { zoomControl: true, attributionControl: true, scrollWheelZoom: false }).setView([merchant.lat, merchant.lon], 15);
-      Lf.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap contributors", maxZoom: 19 }).addTo(m);
-      Lf.circle([merchant.lat, merchant.lon], { radius: merchant.radiusM, color: "#cfc7b8", weight: 1.5, dashArray: "6 6", fill: false, interactive: false }).addTo(m);
-      Lf.marker([merchant.lat, merchant.lon], {
-        icon: Lf.divIcon({ className: "tm-marker", iconSize: [0, 0], html: `<span class="tm-me" aria-hidden="true"></span><span class="tm-chip tm-chip-me">${escapeHtml(merchant.name)}</span>` }),
-        keyboard: false,
-        zIndexOffset: 1000,
-      }).addTo(m);
-      layer.current = Lf.layerGroup().addTo(m);
-      map.current = m;
-      setReady(true);
+      const ml = (window as unknown as { maplibregl: ML }).maplibregl;
+      let style: ML = STYLE_URL;
+      try {
+        style = await (await fetch(STYLE_URL)).json();
+        style.projection = { type: "globe" };
+        style.sky = { "sky-color": "#dfe7ef", "horizon-color": "#f1ede6", "fog-color": "#f7f4ee", "sky-horizon-blend": 0.7, "horizon-fog-blend": 0.8, "fog-ground-blend": 0.9, "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 0.8, 4, 0.5, 6.5, 0] };
+      } catch {
+        // keep the style URL; the map still renders
+      }
+      if (cancelled || !mapEl.current) return;
+      let firstVisit = true;
+      try {
+        firstVisit = sessionStorage.getItem("turnout-radar-flown") !== "1";
+        sessionStorage.setItem("turnout-radar-flown", "1");
+      } catch {
+        firstVisit = false;
+      }
+      const target = { center: [merchant.lon, merchant.lat], zoom: zoomFor(merchant.radiusM) };
+      const m = new ml.Map({
+        container: mapEl.current,
+        style,
+        center: target.center,
+        zoom: firstVisit ? 2.2 : target.zoom,
+        attributionControl: { compact: true },
+        dragRotate: false,
+        pitchWithRotate: false,
+        cooperativeGestures: false,
+      });
+      m.touchPitch?.disable?.();
+      m.scrollZoom.disable();
+      m.addControl(new ml.NavigationControl({ showCompass: false }), "top-left");
+      m.on("load", () => {
+        if (cancelled) return;
+        addLayers(m);
+        drawRings(m, merchant, merchant.radiusM);
+        // merchant
+        const me = document.createElement("div");
+        me.className = "tm-me-wrap";
+        me.innerHTML = `<span class="tm-me" aria-hidden="true"></span><span class="tm-chip tm-chip-me">${escapeHtml(merchant.name)}</span>`;
+        new ml.Marker({ element: me, anchor: "center" }).setLngLat(target.center).addTo(m);
+        // radius handle
+        const h = document.createElement("button");
+        h.type = "button";
+        h.className = "tm-handle";
+        h.setAttribute("aria-label", "Drag to change your radius");
+        h.innerHTML = `<span class="tm-handle-dot" aria-hidden="true"></span><span class="tm-handle-lbl">${fmtKm(merchant.radiusM)}</span>`;
+        const mk = new ml.Marker({ element: h, draggable: true, anchor: "center" }).setLngLat(eastOf(merchant, merchant.radiusM)).addTo(m);
+        mk.on("drag", () => {
+          const r = clampR(metersBetween(merchant, mk.getLngLat()));
+          drawRings(m, merchant, r);
+          h.querySelector(".tm-handle-lbl")!.textContent = fmtKm(r);
+        });
+        mk.on("dragend", () => {
+          const r = Math.round(clampR(metersBetween(merchant, mk.getLngLat())) / 100) * 100;
+          mk.setLngLat(eastOf(merchant, r));
+          drawRings(m, merchant, r);
+          h.querySelector(".tm-handle-lbl")!.textContent = fmtKm(r);
+          setRadius(r);
+          cb.current.onRadiusChange?.(r);
+        });
+        handle.current = mk;
+        // interactions
+        m.on("mouseenter", "venue-dot", () => (m.getCanvas().style.cursor = "pointer"));
+        m.on("mouseleave", "venue-dot", () => (m.getCanvas().style.cursor = ""));
+        m.on("click", "venue-dot", (e: ML) => {
+          const id = e.features?.[0]?.properties?.eventId;
+          if (id) cb.current.onSelect?.(id);
+        });
+        map.current = m;
+        setReady(true);
+        m.resize();
+        if (firstVisit) m.flyTo({ ...target, duration: 2600, curve: 1.5, essential: true });
+      });
     })();
     return () => {
       cancelled = true;
+      card.current?.remove();
       map.current?.remove();
       map.current = null;
-      layer.current = null;
       setReady(false);
     };
-  }, [merchant.lat, merchant.lon, merchant.radiusM, merchant.name]);
+  }, [merchant.lat, merchant.lon, merchant.name]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Redraw venue markers when the points change (cursor moves, selection changes).
+  // Venues and the peek card follow the points (cursor, selection).
   useEffect(() => {
-    if (!ready || !layer.current) return;
-    const Lf = (window as unknown as { L: L }).L;
-    layer.current.clearLayers();
-    for (const p of points) {
-      const cls = ["tm-venue", p.hot ? "is-hot" : "is-cold", p.active ? "is-active" : "is-idle", p.selected ? "is-selected" : ""].join(" ");
-      const showLabel = p.hot || p.selected || p.active;
-      const html = `<span class="${cls}"><span class="tm-dot" aria-hidden="true"></span>${showLabel ? `<span class="tm-chip">${escapeHtml(p.label)}<small>${escapeHtml(p.sub)}</small></span>` : ""}</span>`;
-      const mk = Lf.marker([p.lat, p.lon], {
-        icon: Lf.divIcon({ className: "tm-marker", iconSize: [0, 0], html }),
-        title: `${p.label} · ${p.sub}`,
-        riseOnHover: true,
-        zIndexOffset: p.selected ? 900 : p.hot ? 500 : 0,
-      });
-      mk.on("click", () => onSelectRef.current?.(p.eventId));
-      layer.current.addLayer(mk);
+    const m = map.current;
+    if (!ready || !m) return;
+    const src = m.getSource("venues");
+    src?.setData({
+      type: "FeatureCollection",
+      features: points.map((p) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [p.lon, p.lat] },
+        properties: { eventId: p.eventId, label: p.label, cap: p.capacity, hot: p.hot ? 1 : 0, active: p.active ? 1 : 0, selected: p.selected ? 1 : 0, labelled: p.hot || p.active || p.selected ? 1 : 0 },
+      })),
+    });
+    const sel = points.find((p) => p.selected);
+    card.current?.remove();
+    card.current = null;
+    if (sel) {
+      const ml = (window as unknown as { maplibregl: ML }).maplibregl;
+      const el = document.createElement("div");
+      el.className = "tm-peek";
+      el.innerHTML = `<p class="tm-peek-k">${escapeHtml(sel.time)}${sel.active ? ` · <span class="on">around you now on the timeline</span>` : ""}</p><p class="tm-peek-t">${escapeHtml(sel.label)}</p><p class="tm-peek-s">${escapeHtml(sel.venue)} · ~${sel.capacity.toLocaleString("en-US")} people · ${walkMin(sel.distanceKm * 1000)} min walk</p>${sel.href && sel.hot ? `<a class="tm-peek-a" href="${sel.href}">Qualify this crowd with Qloo →</a>` : ""}`;
+      card.current = new ml.Marker({ element: el, anchor: "bottom", offset: [0, -16] }).setLngLat([sel.lon, sel.lat]).addTo(m);
     }
   }, [points, ready]);
 
-  // Pan to the selected venue.
-  const selected = points.find((p) => p.selected);
+  // Fly to a newly selected crowd.
+  const selKey = points.find((p) => p.selected)?.key;
   useEffect(() => {
-    if (!ready || !map.current || !selected) return;
-    map.current.panTo([selected.lat, selected.lon], { animate: true });
-  }, [ready, selected?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+    const m = map.current;
+    const sel = pointsRef.current.find((p) => p.selected);
+    if (!ready || !m || !sel) return;
+    // Keep the whole radius in view, plus the selected venue if it sits outside it.
+    const r = Math.max(radiusRef.current, 400);
+    const b = new (window as unknown as { maplibregl: ML }).maplibregl.LngLatBounds(offset(merchant, -r, -r), offset(merchant, r, r)).extend([sel.lon, sel.lat]);
+    m.fitBounds(b, { padding: { top: 70, bottom: 30, left: 30, right: 30 }, maxZoom: 15.4, duration: 1100 });
+  }, [ready, selKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Full screen on the map container; keep Leaflet's size in sync.
+  // Radius changes from outside (buttons): move the ring and the handle.
   useEffect(() => {
-    const onChange = () => {
-      setFull(document.fullscreenElement === wrapRef.current);
-      setTimeout(() => map.current?.invalidateSize(), 120);
-    };
-    document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
+    const m = map.current;
+    if (!ready || !m) return;
+    drawRings(m, merchant, radius);
+    handle.current?.setLngLat(eastOf(merchant, radius));
+    const lbl = handle.current?.getElement()?.querySelector(".tm-handle-lbl");
+    if (lbl) lbl.textContent = fmtKm(radius);
+  }, [radius, ready]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The radar view owns full screen; the map follows its container's size.
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => map.current?.resize());
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
-  async function toggleFull() {
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else await wrapRef.current?.requestFullscreen();
-    } catch {
-      // Fullscreen refused (embedded frame, some mobile browsers): fall back to a tall in-page map.
-      setFull((f) => !f);
-      setTimeout(() => map.current?.invalidateSize(), 120);
-    }
-  }
-
   return (
-    <div ref={wrapRef} className={`tm-mapwrap${full ? " is-full" : ""}`}>
+    <div ref={wrapRef} className="tm-mapwrap">
       <div ref={mapEl} className="tm-map" role="region" aria-label={`Map of crowds around ${merchant.name}`} />
-      <button type="button" className="tm-fullbtn" onClick={toggleFull} aria-pressed={full}>
-        {full ? "Exit full screen" : "Full screen"}
-      </button>
     </div>
   );
 }
 
-let leafletPromise: Promise<void> | undefined;
-function loadLeaflet(): Promise<void> {
-  if (leafletPromise) return leafletPromise;
-  leafletPromise = new Promise((resolve, reject) => {
-    if ((window as unknown as { L?: unknown }).L) return resolve();
+function addLayers(m: ML) {
+  m.addSource("rings", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  m.addLayer({ id: "ring-fill", type: "fill", source: "rings", filter: ["==", ["get", "main"], 1], paint: { "fill-color": INK, "fill-opacity": 0.025 } });
+  m.addLayer({ id: "ring-line", type: "line", source: "rings", filter: ["==", ["geometry-type"], "Polygon"], paint: { "line-color": ["case", ["==", ["get", "main"], 1], "#a39c8f", LINE_STRONG], "line-width": ["case", ["==", ["get", "main"], 1], 1.5, 0.8], "line-dasharray": ["case", ["==", ["get", "main"], 1], ["literal", [3, 2.5]], ["literal", [1]]] } });
+  m.addSource("ring-labels", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  m.addLayer({ id: "ring-label", type: "symbol", source: "ring-labels", layout: { "text-field": ["get", "label"], "text-font": FONT, "text-size": 10.5, "text-anchor": "bottom", "text-offset": [0, -0.2], "text-allow-overlap": true }, paint: { "text-color": "#6b655b", "text-halo-color": "#ffffff", "text-halo-width": 1.6 } });
+  m.addSource("venues", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  // crowd mass: radius grows with the square root of the crowd
+  m.addLayer({
+    id: "venue-mass",
+    type: "circle",
+    source: "venues",
+    paint: {
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, ["*", 0.12, ["sqrt", ["get", "cap"]]], 16, ["*", 0.34, ["sqrt", ["get", "cap"]]]],
+      "circle-color": ["case", ["==", ["get", "hot"], 1], AMBER, NEUTRAL],
+      "circle-opacity": ["case", ["==", ["get", "active"], 1], 0.2, 0.06],
+      "circle-stroke-color": ["case", ["==", ["get", "hot"], 1], AMBER, NEUTRAL],
+      "circle-stroke-width": ["case", ["==", ["get", "active"], 1], 1, 0],
+      "circle-stroke-opacity": 0.5,
+    },
+  });
+  m.addLayer({
+    id: "venue-dot",
+    type: "circle",
+    source: "venues",
+    layout: { "circle-sort-key": ["+", ["get", "hot"], ["*", 2, ["get", "selected"]]] },
+    paint: {
+      "circle-radius": ["case", ["==", ["get", "hot"], 1], 7, 5],
+      "circle-color": ["case", ["==", ["get", "hot"], 1], AMBER, NEUTRAL],
+      "circle-opacity": ["case", ["==", ["get", "active"], 1], 1, 0.5],
+      "circle-stroke-color": ["case", ["==", ["get", "selected"], 1], INK, "#ffffff"],
+      "circle-stroke-width": ["case", ["==", ["get", "selected"], 1], 2.5, 1.8],
+    },
+  });
+  m.addLayer({
+    id: "venue-label",
+    type: "symbol",
+    source: "venues",
+    filter: ["all", ["==", ["get", "labelled"], 1], ["==", ["get", "selected"], 0]],
+    layout: { "text-field": ["get", "label"], "text-font": FONT_BOLD, "text-size": 12, "text-anchor": "left", "text-offset": [0.9, 0], "text-max-width": 12, "text-padding": 4, "symbol-sort-key": ["-", 2, ["get", "hot"]] },
+    paint: { "text-color": ["case", ["==", ["get", "hot"], 1], INK, "#6b655b"], "text-halo-color": "#ffffff", "text-halo-width": 1.8 },
+  });
+}
+
+function drawRings(m: ML, c: { lat: number; lon: number }, r: number) {
+  const rings = [500, 1000, 2000, 3000].filter((x) => x < r - 150).map((x) => ({ r: x, main: 0 }));
+  rings.push({ r, main: 1 });
+  m.getSource("rings")?.setData({ type: "FeatureCollection", features: rings.map((x) => ({ type: "Feature", properties: { main: x.main }, geometry: { type: "Polygon", coordinates: [circle(c, x.r)] } })) });
+  m.getSource("ring-labels")?.setData({
+    type: "FeatureCollection",
+    features: rings.map((x) => ({ type: "Feature", properties: { label: `${fmtKm(x.r)} · ${walkMin(x.r)} min walk` }, geometry: { type: "Point", coordinates: northOf(c, x.r) } })),
+  });
+}
+
+function circle(c: { lat: number; lon: number }, r: number): number[][] {
+  const pts: number[][] = [];
+  for (let i = 0; i <= 96; i++) {
+    const a = (i / 96) * 2 * Math.PI;
+    pts.push(offset(c, r * Math.cos(a), r * Math.sin(a)));
+  }
+  return pts;
+}
+function offset(c: { lat: number; lon: number }, dxM: number, dyM: number): number[] {
+  const dLat = dyM / 111_320;
+  const dLon = dxM / (111_320 * Math.cos((c.lat * Math.PI) / 180));
+  return [c.lon + dLon, c.lat + dLat];
+}
+const eastOf = (c: { lat: number; lon: number }, r: number) => offset(c, r, 0);
+const northOf = (c: { lat: number; lon: number }, r: number) => offset(c, 0, r);
+function metersBetween(c: { lat: number; lon: number }, p: { lat: number; lng: number }) {
+  const dy = (p.lat - c.lat) * 111_320;
+  const dx = (p.lng - c.lon) * 111_320 * Math.cos((c.lat * Math.PI) / 180);
+  return Math.hypot(dx, dy);
+}
+const clampR = (r: number) => Math.min(MAX_R, Math.max(MIN_R, r));
+export const fmtKm = (m: number) => (m < 1000 ? `${Math.round(m / 50) * 50} m` : `${(Math.round(m / 100) / 10).toLocaleString("en-US")} km`);
+function zoomFor(r: number) {
+  return Math.max(11.5, Math.min(15.6, 14.6 - Math.log2(r / 1500)));
+}
+
+let mlPromise: Promise<void> | undefined;
+function loadMapLibre(): Promise<void> {
+  if (mlPromise) return mlPromise;
+  mlPromise = new Promise((resolve, reject) => {
+    if ((window as unknown as { maplibregl?: unknown }).maplibregl) return resolve();
     const css = document.createElement("link");
     css.rel = "stylesheet";
-    css.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
+    css.href = "https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.0/maplibre-gl.min.css";
     document.head.appendChild(css);
     const js = document.createElement("script");
-    js.src = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
+    js.src = "https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.0/maplibre-gl.min.js";
     js.onload = () => resolve();
-    js.onerror = () => reject(new Error("Leaflet failed to load"));
+    js.onerror = () => reject(new Error("MapLibre failed to load"));
     document.head.appendChild(js);
   });
-  return leafletPromise;
+  return mlPromise;
 }
 
 const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);

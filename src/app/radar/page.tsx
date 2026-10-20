@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getMerchant, listMerchants, radarFor, type RadarItem } from "@/server/events/radar";
 import RadarView, { type ViewItem } from "./RadarView";
+import MerchantSwitch from "./MerchantSwitch";
 import { weatherWindow, type WeatherSummary } from "@/server/weather/openmeteo";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +40,6 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
       // no weather, no chip
     }
   }
-  const hot = top.filter((i) => i.interesting).length;
   const view: ViewItem[] = top.map((it) => ({
     id: it.event.id,
     headliner: it.headliner.name,
@@ -60,21 +60,18 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
     <main className="mx-auto max-w-[1200px] px-5 py-10">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">Radar · next {hours} h</p>
+          <p className="eyebrow">Radar · next 3 days</p>
           <h1 className="mt-1 text-4xl">{merchant.name}</h1>
           <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
-            {merchant.address} · watching {merchant.radius_m >= 1000 ? `${(merchant.radius_m / 1000).toLocaleString("en-US")} km` : `${merchant.radius_m} m`} around you · {items.length} events within reach · <span style={{ color: "var(--accent)" }}>{hot} worth a campaign</span>
+            {merchant.address} · watching {merchant.radius_m >= 1000 ? `${(merchant.radius_m / 1000).toLocaleString("en-US")} km` : `${merchant.radius_m} m`} around you
           </p>
         </div>
-        <nav className="flex flex-wrap gap-2 text-sm">
-          {merchants.map((m) => (
-            <Link key={m.id} href={`/radar?merchant=${m.id}&hours=${hours}`} className="chip" style={m.id === merchant.id ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : undefined}>
-              {m.name}
-            </Link>
-          ))}
-          <Link href="/start" className="chip" style={{ color: "var(--accent)" }}>+ your place</Link>
-          <Link href={`/pulse?merchant=${merchant.id}`} className="chip" style={{ color: "var(--ink)", fontWeight: 600 }}>Neighbourhood pulse →</Link>
-        </nav>
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <MerchantSwitch current={merchant.id} options={merchants.map((m) => ({ id: m.id, label: `${m.name}, ${m.city}` }))} />
+          <Link href={`/pulse?merchant=${merchant.id}`} className="font-semibold" style={{ color: "var(--ink)" }}>
+            Weekly pulse →
+          </Link>
+        </div>
       </header>
 
       {error && (

@@ -172,15 +172,6 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
     return { days, ticks, nights };
   }, [t0, t1, zoom]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Day jump chips: 19:00 local of each day ahead.
-  const dayJumps = useMemo(() => {
-    const out: { label: string; t: number }[] = [];
-    for (let t = Math.ceil(now / H) * H; t <= now + 72 * H; t += H) {
-      if (Number(fmtHour.format(new Date(t))) === 19 && !out.some((o) => fmtDayKey.format(new Date(o.t)) === fmtDayKey.format(new Date(t)))) out.push({ label: `${dayLabel(t, true)} 19:00`, t });
-    }
-    return out;
-  }, [now]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const pxPerHour = zoom === 24 ? 52 : 24;
   const trackWidth = `max(100%, ${Math.round((span / H) * pxPerHour)}px)`;
   const clampT = (t: number) => Math.min(t1, Math.max(t0, t));
@@ -295,84 +286,26 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
 
   return (
     <div ref={rootRef} className={`tm-root${full ? " is-full" : ""}`}>
-      <div className="tm-bar-top">
-        <p className="tm-readout" aria-live="polite">
-          <b>{cursorLabel}</b> · {cursorPeople > 0 ? <>about <b>{cursorPeople.toLocaleString("en-US")}</b> people around you</> : "a quiet street"}
-          {active.length > 0 && (
-            <>
-              {": "}
-              {active.slice(0, 3).map((c, i) => (
-                <span key={c.id}>
-                  {i > 0 ? ", " : ""}
-                  <button type="button" className="tm-inline" onClick={() => selectCrowd(c.id)}>
-                    {c.headliner}
-                  </button>{" "}
-                  {cursor < c.w.start ? "arriving" : cursor <= c.w.end ? "inside" : "leaving"}
-                </span>
-              ))}
-              {active.length > 3 ? `, and ${active.length - 3} more` : ""}
-            </>
-          )}
-        </p>
-        <div className="tm-grp">
-          <span className="tm-radius" aria-label="Radius around your place">
-            <button type="button" onClick={() => changeRadius(radius - (radius > 1000 ? 500 : 100))} disabled={radius <= 300 || saving} aria-label="Smaller radius">
-              −
-            </button>
-            <b>{fmtKm(radius)}</b>
-            <button type="button" onClick={() => changeRadius(radius + (radius >= 1000 ? 500 : 100))} disabled={radius >= 5000 || saving} aria-label="Larger radius">
-              +
-            </button>
-            <span className="tm-hide-sm">{saving ? "updating…" : `${walkMin(radius)} min walk`}</span>
-          </span>
-          <button type="button" className="tm-btn" onClick={toggleFull} aria-pressed={full}>
-            {full ? "Exit full screen" : "Full screen"}
-          </button>
-        </div>
-      </div>
+      <p className="tm-summary">
+        {hotList.filter((c) => c.w.leave > now).length > 0 ? (
+          <>
+            <b>{hotList.filter((c) => c.w.leave > now).length} crowds worth a campaign</b> in the next 3 days. Drag the line on the timeline to see who is around you, or click a crowd.
+          </>
+        ) : (
+          <>No big crowd near you in the next 3 days. The timeline still shows the smaller events.</>
+        )}
+      </p>
 
       <div className="tm-body">
         <div className="tm-maparea">
           <RadarMap merchant={{ name: merchant.name, lat: merchant.lat, lon: merchant.lon, radiusM: radius }} points={points} onSelect={(id) => selectCrowd(id)} onRadiusChange={changeRadius} />
+          <p className="tm-maphint">{saving ? "Updating your radius…" : `Drag the white handle to change your radius · ${fmtKm(radius)}, ${walkMin(radius)} min walk`}</p>
+          <button type="button" className="tm-fs" onClick={toggleFull} aria-label={full ? "Exit full screen" : "Full screen"} title={full ? "Exit full screen" : "Full screen"}>
+            {full ? "Exit full screen" : "⤢"}
+          </button>
         </div>
 
         <section className="tm-tl" aria-label="Crowds over the next hours">
-          <div className="tm-tl-ctrl">
-            <div className="tm-grp">
-              <button type="button" className="tm-btn" onClick={() => prevHot && selectCrowd(prevHot.id)} disabled={!prevHot}>
-                ← Previous crowd
-              </button>
-              <button type="button" className="tm-btn" onClick={() => setCursor(Math.round(now / Q) * Q)}>
-                Now
-              </button>
-              <button type="button" className="tm-btn tm-btn-primary" onClick={() => nextHot && selectCrowd(nextHot.id)} disabled={!nextHot}>
-                Next crowd →
-              </button>
-            </div>
-            <div className="tm-grp">
-              {dayJumps.map((d) => (
-                <button
-                  key={d.t}
-                  type="button"
-                  className="tm-chip-btn"
-                  onClick={() => {
-                    if (d.t > now + 24 * H) setZoom(72);
-                    setCursor(d.t);
-                  }}
-                >
-                  {d.label}
-                </button>
-              ))}
-              <span className="tm-seg" role="group" aria-label="Timeline zoom">
-                <button type="button" aria-pressed={zoom === 24} onClick={() => setZoom(24)}>
-                  24 h
-                </button>
-                <button type="button" aria-pressed={zoom === 72} onClick={() => setZoom(72)}>
-                  72 h
-                </button>
-              </span>
-            </div>
-          </div>
           <div ref={scrollRef} className="tm-scroll">
             <div
               ref={trackRef}
@@ -437,7 +370,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
                 <i>now</i>
               </span>
               <span className={`tm-cursor${cursorPct > 80 ? " flip" : ""}`} style={{ left: `${cursorPct}%` }} aria-hidden="true">
-                <i>{cursorLabel}</i>
+                <i>{cursorLabel} · {cursorPeople > 0 ? `${cursorPeople.toLocaleString("en-US")} people around` : "quiet"}</i>
               </span>
             </div>
           </div>
@@ -448,24 +381,13 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
             </span>
             <span>
               <i style={{ background: "#d9d2c5" }} />
-              other crowds
+              other events
             </span>
-            <span>Drag across the timeline or use the arrow keys. The map shows who is around you at that moment.</span>
           </p>
         </section>
 
         <aside className="tm-list">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="eyebrow">{onlyWorth ? "Crowds worth a campaign" : "All crowds"}, by time</p>
-            <div className="flex gap-1.5">
-              <button type="button" className="chip" aria-pressed={onlyWorth} style={onlyWorth ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : undefined} onClick={() => setOnlyWorth(true)}>
-                Worth a campaign
-              </button>
-              <button type="button" className="chip" aria-pressed={!onlyWorth} style={!onlyWorth ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : undefined} onClick={() => setOnlyWorth(false)}>
-                All
-              </button>
-            </div>
-          </div>
+          <p className="eyebrow">{onlyWorth ? "Crowds worth a campaign" : "Every event nearby"}</p>
           {groups.size === 0 && <p className="text-sm" style={{ color: "var(--muted)" }}>No crowd worth a campaign in the next {hours} hours. Switch to All to see smaller events.</p>}
           {[...groups.entries()].map(([day, list]) => (
             <div key={day} className="tm-daygroup">
@@ -473,7 +395,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
               {list.map((it) => {
                 const isSel = selected === it.id;
                 return (
-                  <div key={it.id} className={`${it.interesting ? "card" : "card-flat"} p-4${isSel ? " tm-item sel" : ""}`} style={it.interesting ? { borderColor: "var(--accent)" } : undefined}>
+                  <div key={it.id} className={`${it.interesting ? "card" : "card-flat"} p-4${isSel ? " tm-card-sel" : ""}`} style={it.interesting ? { borderColor: "var(--accent)" } : undefined}>
                     <div className="flex items-start justify-between gap-4">
                       <button type="button" className="tm-item min-w-0" onClick={() => selectCrowd(it.id)} aria-pressed={isSel}>
                         <p className="tnum text-sm font-semibold" style={{ color: "var(--ink)" }}>
@@ -503,6 +425,9 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
               })}
             </div>
           ))}
+          <button type="button" className="tm-more" onClick={() => setOnlyWorth((v) => !v)}>
+            {onlyWorth ? "Show every event nearby" : "Show only crowds worth a campaign"}
+          </button>
         </aside>
       </div>
     </div>

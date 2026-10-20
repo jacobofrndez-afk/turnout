@@ -79,7 +79,7 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
       if (cancelled || !mapEl.current) return;
       let firstVisit = true;
       try {
-        firstVisit = sessionStorage.getItem("turnout-radar-flown") !== "1";
+        firstVisit = sessionStorage.getItem("turnout-radar-flown") !== "1" && new URLSearchParams(location.search).get("flight") !== "0";
         sessionStorage.setItem("turnout-radar-flown", "1");
       } catch {
         firstVisit = false;
@@ -93,11 +93,9 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
         attributionControl: { compact: true },
         dragRotate: false,
         pitchWithRotate: false,
-        cooperativeGestures: false,
+        cooperativeGestures: true,
       });
       m.touchPitch?.disable?.();
-      m.scrollZoom.disable();
-      m.addControl(new ml.NavigationControl({ showCompass: false }), "top-left");
       m.on("load", () => {
         if (cancelled) return;
         addLayers(m);

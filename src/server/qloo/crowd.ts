@@ -42,7 +42,7 @@ export type EventRow = {
 // Members of a wave, or a ready-made Qloo signal for TV, street and calendar moments (stored in meta_json).
 export type MomentMeta = {
   kind?: string;
-  members?: { id: string; name: string; venue: string; capacity: number; startsAt: string; segment?: string }[];
+  members?: { id: string; name: string; venue: string; capacity: number; startsAt: string; segment?: string; genre?: string }[];
   signal?: { entities?: SignalPart[]; tags?: SignalPart[] };
   windowLabel?: string;
   windowWhy?: string;
@@ -116,6 +116,8 @@ export async function buildCrowdProfile(merchant: Merchant, event: EventRow, pic
 
   // 2. Fixed recipe: taste tags (place-scoped), demographics, bars near the merchant, brands.
   profile.tags = await tasteTags(id, { parentTypes: ["place"], take: 30 }, { onCall: onCall("entity_tags", "place-scoped taste tags") });
+  // Films, series and some artists carry no place tags: fall back to their general taste tags.
+  if (profile.tags.length < 5) profile.tags = await tasteTags(id, { take: 30 }, { onCall: onCall("entity_tags", "general taste tags (no place tags)") });
   profile.demographics = await demographics(id, { onCall: onCall("audience_demographics") }).catch(() => undefined);
   profile.places = await recommend("place", { ...signalOf(id), location: { lat: merchant.lat, lon: merchant.lon, radiusM: merchant.radius_m }, filterTags: [BAR_OR_RESTAURANT[0]], take: 12, explain: true }, { onCall: onCall("recommend", `bars within ${merchant.radius_m} m`) });
   profile.brands = await recommend("brand", { ...signalOf(id), take: 12 }, { onCall: onCall("recommend", "brands this crowd over-indexes on") });
@@ -142,8 +144,21 @@ export async function buildCrowdProfile(merchant: Merchant, event: EventRow, pic
 const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 const signalOf = (s: Signal) => (typeof s === "string" ? { entities: [s] } : { entities: s.entities, tags: s.tags });
 
-// Segment of a wave to a Qloo taste tag, used when none of its shows is known to Qloo.
-const SEGMENT_TAG_QUERY: Record<string, string> = { "Arts & Theatre": "musical", Music: "live music", Comedy: "stand-up comedy", Sports: "sports", Family: "family" };
+// Segment of a wave to a Qloo taste tag: added to theatre and comedy waves, and used alone when no show is known to Qloo.
+const SEGMENT_TAG_QUERY: Record<string, string> = { "Arts & Theatre": "musical theatre", Music: "live music", Comedy: "stand-up comedy", Sports: "sports", Family: "family" };
+
+// How a wave member is looked up in Qloo. Broadway shows live in Qloo through their film adaptations
+// (Wicked, Hamilton, Chicago...), so a theatre show only counts when a well-known film or series has its exact name.
+function memberLookup(m: { segment?: string; genre?: string; venue: string }): { types: string[]; minPopularity: number } | undefined {
+  const segment = m.segment;
+  // Ticketmaster sometimes files a play under a band of the same name: a theatre with no real genre means a show.
+  const playInATheatre = /theat/i.test(m.venue) && (!m.genre || /other|undefined/i.test(m.genre));
+  if (playInATheatre || /theatre|arts/i.test(segment ?? "")) return { types: ["movie", "tv_show"], minPopularity: 0.8 };
+  if (/music/i.test(segment ?? "")) return { types: ["artist"], minPopularity: 0 };
+  if (/comedy/i.test(segment ?? "")) return { types: ["person"], minPopularity: 0 };
+  if (/sports/i.test(segment ?? "")) return { types: ["brand"], minPopularity: 0 };
+  return undefined;
+}
 
 async function momentSignal(event: EventRow, profile: CrowdProfile, onCall: (w: string, note?: string) => (c: QlooCall) => void): Promise<void> {
   const meta = momentMeta(event);
@@ -161,18 +176,27 @@ async function momentSignal(event: EventRow, profile: CrowdProfile, onCall: (w: 
     seen.add(k);
     return true;
   });
-  for (const m of members.slice(0, 6)) {
-    if (profile.signal.entities.length >= 3) break;
-    const hint = pickHeadliner({ id: m.id, name: m.name, startsAt: m.startsAt, venue: { name: m.venue, lat: 0, lon: 0 }, attractions: [{ name: m.name, segment: m.segment }], segment: m.segment }).qlooType;
-    const results = await searchEntities(m.name, hint ? [hint] : undefined, { onCall: onCall("describe", `wave member "${m.name}"`) });
-    const hit = results.find((r) => norm(r.name) === norm(m.name) && !/place|locality|destination/.test(r.subtype ?? ""));
-    if (hit) profile.signal.entities.push({ id: hit.entity_id, name: hit.name, type: hit.subtype?.replace("urn:entity:", "") ?? "", note: `${m.venue}, ~${m.capacity.toLocaleString("en-US")} people` });
+  let looked = 0;
+  for (const m of members) {
+    if (profile.signal.entities.length >= 3 || looked >= 8) break;
+    const how = memberLookup(m);
+    if (!how) continue;
+    looked++;
+    // Strip Ticketmaster suffixes such as "(NY)", "(New York, NY)" or "- Broadway" before the exact-name match.
+    const name = m.name.replace(/\s*\([^)]*\)\s*$/, "").replace(/\s+-\s+(broadway|on broadway|the musical)$/i, "").trim();
+    const results = await searchEntities(name, how.types, { onCall: onCall("describe", `wave member "${name}"`) });
+    const hit = results.find((r) => norm(r.name) === norm(name) && (r.popularity ?? 0) >= how.minPopularity);
+    if (hit) profile.signal.entities.push({ id: hit.entity_id, name: hit.name, type: hit.subtype?.replace("urn:entity:", "") ?? "", note: `${m.venue}, ~${m.capacity.toLocaleString("en-US")} people${/movie|tv_show/.test(hit.subtype ?? "") ? ", read through its screen adaptation" : ""}` });
     profile.candidates.push({ id: hit?.entity_id ?? "", name: m.name, type: hit?.subtype ?? "not in Qloo", description: m.venue });
   }
-  if (profile.signal.entities.length === 0) {
-    const q = SEGMENT_TAG_QUERY[event.segment ?? ""] ?? "nightlife";
+  // The wave's dominant kind of show, by people: theatre and comedy waves also carry their genre tag.
+  const bySeg = new Map<string, number>();
+  for (const m of members) bySeg.set(m.segment ?? "", (bySeg.get(m.segment ?? "") ?? 0) + m.capacity);
+  const dominant = [...bySeg.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? event.segment ?? "";
+  if (profile.signal.entities.length === 0 || /theatre|arts|comedy/i.test(dominant)) {
+    const q = SEGMENT_TAG_QUERY[dominant] ?? "nightlife";
     const tag = (await findTags(q, 3, { onCall: onCall("find_tags", `fallback taste tag "${q}"`) }))[0];
-    if (tag) profile.signal.tags.push({ id: tagId(tag), name: tag.name, type: "tag", note: "no show in this wave is known to Qloo by name" });
+    if (tag) profile.signal.tags.push({ id: tagId(tag), name: tag.name, type: "tag", note: profile.signal.entities.length ? `the wave is mostly ${dominant.toLowerCase()}` : "no show in this wave is known to Qloo by name" });
   }
 }
 

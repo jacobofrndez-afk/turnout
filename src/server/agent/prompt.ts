@@ -83,7 +83,7 @@ export function buildUserPrompt(merchant: Merchant, event: EventRow, profile: Cr
     lines.push(`Age affinity: under 25 ${s(a["24_and_younger"])}, 25-29 ${s(a["25_to_29"])}, 30-34 ${s(a["30_to_34"])}, 35-44 ${s(a["35_to_44"])}, 45-54 ${s(a["45_to_54"])}, 55+ ${s(a["55_and_older"])}.`);
     lines.push(`Gender affinity: female ${s(profile.demographics.gender.female)}, male ${s(profile.demographics.gender.male)}. Summary: ${demo?.gender}.`);
   } else lines.push("Demographics: not available for this entity.");
-  lines.push(`Place taste tags (strongest first): ${profile.tags.slice(0, 24).map((t) => `${t.name} [${tagId(t).split(":").slice(2, 4).join(":")}]`).join(", ")}.`);
+  lines.push(`Taste tags (strongest first): ${profile.tags.slice(0, 24).map((t) => `${t.name} [${tagId(t).split(":").slice(2, 4).join(":")}]`).join(", ")}.`);
   lines.push(`Brands this crowd over-indexes on: ${profile.brands.slice(0, 10).map((b) => b.name).join(", ") || "none returned"}.`);
   lines.push(`Bars within ${merchant.radius_m} m this crowd likes (affinity): ${profile.places.slice(0, 8).map((p) => `${p.name} ${(p.query?.affinity ?? 0).toFixed(2)}`).join("; ") || "none returned"}.`, "");
   lines.push(`# Merchant offers and Qloo fit`);

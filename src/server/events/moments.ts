@@ -78,7 +78,7 @@ export function detectWaves(
         segment: members[0]?.event.segment,
         venue: { name: `${members.length} venues around you`, lat, lon },
         attractions: members.slice(0, 6).map((m) => m.event.attractions[0] ?? { name: m.event.name, segment: m.event.segment }),
-        meta: { kind, count: members.length, members: members.slice(0, 40).map((m) => ({ id: m.event.id, name: m.event.attractions[0]?.name ?? m.event.name, venue: m.event.venue.name, capacity: m.capacity, startsAt: m.event.startsAt, segment: m.event.attractions[0]?.segment ?? m.event.segment })) },
+        meta: { kind, count: members.length, members: members.slice(0, 40).map((m) => ({ id: m.event.id, name: m.event.attractions[0]?.name ?? m.event.name, venue: m.event.venue.name, capacity: m.capacity, startsAt: m.event.startsAt, segment: m.event.attractions[0]?.segment ?? m.event.segment, genre: m.event.genre })) },
       });
     }
   }

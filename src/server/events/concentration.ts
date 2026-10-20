@@ -18,6 +18,8 @@ export const VENUE_TIERS: VenueTier[] = [
   { match: /radio city/i, capacity: 6000 },
   { match: /hammerstein/i, capacity: 3500 },
   { match: /terminal 5|kings theatre|united palace/i, capacity: 3000 },
+  // Broadway houses (Ticketmaster names them "X Theatre" or "X Theatre - NY"), about 1,000 to 1,900 seats.
+  { match: /minskoff|gershwin|new amsterdam|richard rodgers|lyric theatre|majestic theat|imperial theat|winter garden|al hirschfeld|august wilson|nederlander|walter kerr|jacobs theat|booth theat|hudson theat|ambassador theat|st\.? james theat|broadhurst|shubert theat|music box theat|lunt.fontanne|marquis theat|palace theat|neil simon|eugene o.?neill|longacre|belasco|barrymore|golden theat|schoenfeld|cort theat|lyceum theat|samuel j\.? friedman|stephen sondheim|todd haimes|studio 54|hayes theat|circle in the square|james earl jones/i, capacity: 1200 },
   { match: /beacon|carnegie|lincoln center|david geffen/i, capacity: 2800 },
   { match: /palladium times square|brooklyn steel|town hall|apollo|webster hall/i, capacity: 1600 },
   { match: /irving plaza|gramercy|sony hall|racket|bowery ballroom|music hall of williamsburg|le poisson/i, capacity: 1000 },

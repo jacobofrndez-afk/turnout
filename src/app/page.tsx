@@ -85,7 +85,7 @@ export default async function Home() {
         <h2 className="display mt-2 max-w-3xl text-3xl md:text-4xl">The crowd decides where to go in ten minutes. You find out the next morning.</h2>
         <div className="mt-8 grid gap-6 md:grid-cols-3">
           {[
-            ["20,000", "people leave Madison Square Garden at once, 180 nights a year. Barclays, Bercy, the Garden, every arena does the same."],
+            ["20,000", "seats empty at once at Madison Square Garden, which hosts more than 300 events a year. Barclays, Bercy, every arena does the same."],
             ["10 min", "between the last song and the first drink. The place that already spoke to them wins. Everyone else gets the overflow."],
             ["0", "tools an independent bar has to know who is coming. Geofencing, event data and taste data exist, but only agencies and chains buy them."],
           ].map(([n, d]) => (

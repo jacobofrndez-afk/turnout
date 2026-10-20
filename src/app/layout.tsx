@@ -17,14 +17,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${display.variable} ${sans.variable}`}>
       <body className="min-h-screen antialiased">
         <header className="sticky top-0 z-20" style={{ background: "rgba(247,244,238,0.85)", backdropFilter: "blur(10px)", borderBottom: "1px solid var(--line)" }}>
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
-            <Link href="/" aria-label="Turnout home">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-3">
+            <Link href="/" aria-label="Turnout home" className="shrink-0">
               <Wordmark size={20} tagline />
             </Link>
-            <nav className="flex items-center gap-1 text-sm">
-              <Link href="/radar" className="rounded-full px-3 py-1.5 hover:bg-white" style={{ color: "var(--ink)" }}>Radar</Link>
-              <Link href="/start" className="rounded-full px-3 py-1.5 hover:bg-white" style={{ color: "var(--ink)" }}>Set up your place</Link>
-              <a href="https://github.com/qloo/qloo-hackathon-kit" target="_blank" rel="noreferrer" className="ml-2 rounded-full px-3 py-1.5 text-xs" style={{ border: "1px solid var(--line-strong)", color: "var(--muted)" }}>
+            <nav className="flex min-w-0 items-center gap-1 text-sm">
+              <Link href="/radar" className="whitespace-nowrap rounded-full px-3 py-1.5 hover:bg-white" style={{ color: "var(--ink)" }}>Radar</Link>
+              <Link href="/start" className="whitespace-nowrap rounded-full px-3 py-1.5 hover:bg-white" style={{ color: "var(--ink)" }}>
+                <span className="hidden sm:inline">Set up your place</span>
+                <span className="sm:hidden">Set up</span>
+              </Link>
+              <a href="https://github.com/qloo/qloo-hackathon-kit" target="_blank" rel="noreferrer" className="ml-2 hidden whitespace-nowrap rounded-full px-3 py-1.5 text-xs md:inline-block" style={{ border: "1px solid var(--line-strong)", color: "var(--muted)" }}>
                 Powered by Qloo
               </a>
             </nav>

@@ -1,0 +1,186 @@
+window.I18N_EN = {
+  ui: {
+    docTitle: "Merchant journey",
+    headline: "From first click to a published campaign",
+    intro: "Ten steps, one bar. Each step shows the product screen, what starts it, the external services it calls, what those calls decide, and how far along it is. The bar is Penn & Pour, two blocks from Madison Square Garden, with five offers. The night is Harry Styles at the Garden.",
+    views: { journey: "Journey", work: "Workstreams", calls: "Call budget" },
+    phases: { arrive: "Getting started", night: "Event night", week: "Every week", loop: "Closing the loop" },
+    stepOf: "Step {n} of {total}",
+    prev: "Back",
+    next: "Next",
+    hint: "Click the highlighted button, or use the arrow keys.",
+    realShot: "Real screen, captured from the running app. Scroll inside it.",
+    fullscreen: "Full screen",
+    exitFullscreen: "Exit full screen",
+    discovery: {
+      title: "How the merchant finds out about a crowd",
+      today: "Today, pull: the merchant has to open the radar to see it.",
+      target: "Target, push: Turnout alerts the merchant with the campaign already drafted. The radar becomes the place to look further, not the way in."
+    },
+    screensNote: "",
+    hood: "Under the hood",
+    trigger: "What starts it",
+    sees: "What the merchant sees",
+    calls: "External calls",
+    decides: "What it decides",
+    code: "Where in the code",
+    nextUp: "Next up",
+    noCalls: "No external calls.",
+    status: { done: "Built", wip: "In progress", todo: "To build" },
+    trig: { pull: "Pull", push: "Push" },
+    legend: { pull: "the merchant starts it", push: "a schedule or a crowd threshold starts it", qloo: "a call to Qloo" },
+    svc: { storefront: "Storefront", screen: "Screen" },
+    now: [
+      { k: "Today", v: "Pull only", d: "Nothing happens until the merchant clicks." },
+      { k: "Target for the judges", v: "Push for big crowds", d: "When a big crowd is coming, the campaign is drafted before the merchant opens the app. One tap to approve." },
+      { k: "Qloo calls per crowd", v: "5 + 1 per offer", d: "10 calls for Penn & Pour, cached for 7 days." }
+    ],
+    work: {
+      title: "Workstreams",
+      intro: "Who owns what, and which journey steps depend on it. Updated as work moves.",
+      cols: ["Workstream", "Owner", "Status", "Steps"],
+      rows: [
+        { item: "Connect the Twilio and Snapchat Ads accounts", who: "Jacobo", status: "wip", steps: ["8"] },
+        { item: "Put the server live on Railway with the Anthropic key, before October 24", who: "Jacobo", status: "todo", steps: ["7", "8"] },
+        { item: "Swing logo, S1 weight and color palette", who: "Design", status: "wip", label: "Waiting for Jacobo's pick", steps: ["1"] },
+        { item: "Landing page that leads with what a bar gains", who: "Marketing", status: "done", steps: ["1"] },
+        { item: "Push: the scheduler and the merchant alert", who: "Backend", status: "todo", steps: ["5", "9"] },
+        { item: "Save each crowd profile once instead of rebuilding it", who: "Backend", status: "todo", steps: ["6", "7"] },
+        { item: "A code per campaign to count who came", who: "Not assigned yet", status: "todo", steps: ["10"] }
+      ]
+    },
+    budget: {
+      title: "Calls per moment",
+      intro: "How many external calls each moment makes, for a bar with five offers.",
+      cols: ["Moment", "Qloo", "Ticketmaster", "Open-Meteo", "Claude"],
+      rows: [
+        ["Sign-up (once)", "10", "0", "0", "0"],
+        ["Radar, per bar per hour", "0", "1", "1", "0"],
+        ["One crowd and its campaign", "10", "0", "1", "1"],
+        ["Neighbourhood pulse, each week", "8", "0", "1", "1"]
+      ],
+      note: "A second bar near the same venue reuses the crowd calls, which stay cached for 7 days. Only the calls for its own offers are new.",
+      unusedTitle: "Qloo endpoints we tested and left out",
+      unused: [
+        ["GET /entities", "Looks up an entity by its Qloo, Spotify, Resy or Michelin ID. /search already covers what we need."],
+        ["urn:heatmap", "Heat map by area. Too coarse for a 1.5 km radius. Could help pick outdoor screens later."],
+        ["GET /v2/trending", "Weekly trends. Flat for every entity we tested."],
+        ["GET /v2/analysis/compare", "Returns two tag lists with no measured difference. Two demographics calls tell us more."],
+        ["GET /v2/audiences", "Named audience segments. Useful to a brand, but a bar starts from tonight's headliner, not a segment."],
+        ["qloo mcp", "The nine workflows from the hackathon kit. Good for testing, but they cannot search around a point within a radius."]
+      ]
+    },
+    footer: "Source: docs/journey in the Turnout repository. Republished at this link as work moves. Qloo describes what groups tend to like, never one person. No personal data is sent to Qloo."
+  },
+  steps: {
+    s1: {
+      title: "Discover Turnout",
+      who: "the merchant lands on the home page",
+      sees: "The promise, plus a live card showing the next big crowd near a Midtown bar.",
+      decides: "Nothing yet. The card proves Turnout sees a real crowd this week.",
+      calls: [{ what: "upcoming events near Penn & Pour, for the live card", count: "1 · cached 1 h" }]
+    },
+    s2: {
+      title: "Sign up in two minutes",
+      who: "the merchant fills in a short form",
+      sees: "Name, type of place, address, offers in plain words (one per line), tone of voice, and the channels the bar already has.",
+      decides: "Where the radar is centered, and the 1.5 km radius it watches.",
+      calls: [{ what: "turns the address into map coordinates and a time zone", count: "1" }]
+    },
+    s3: {
+      title: "Confirm what Turnout understood",
+      who: "the merchant keeps the right tags",
+      sees: "Each offer turned into Qloo tags: “Happy hour cocktails 5 to 7” becomes Cocktail Bar and Happy hour. The merchant unchecks anything wrong.",
+      decides: "The Qloo tag IDs behind each offer. Turnout reuses them for every crowd and every week, and never asks again.",
+      calls: [{ what: "finds the Qloo tag for one phrase per call", count: "1 to 3 per offer · 10 here" }]
+    },
+    s4: {
+      title: "The radar spots the crowd",
+      who: "the merchant opens the radar",
+      sees: "A timeline of the next three days showing how many people will be around the bar, with every event on it, and a map. Drag the timeline to see who is around at any moment, drag the circle to widen the radius. Wednesday: Harry Styles at the Garden, about 20,000 people, 0.3 km away.",
+      decides: "Which crowds are worth a campaign: a score of 45 or more and at least 1,000 people. Qloo is not called here: it knows tastes, not who is playing tonight.",
+      next: "Run the same scan every hour for every bar, with no click needed. That is step 5.",
+      calls: [
+        { what: "events within 4.5 km, minus venue tours and add-on tickets", count: "1 · cached 1 h" },
+        { what: "hourly weather forecast at the bar", count: "1 · cached 1 h" }
+      ]
+    },
+    s5: {
+      title: "Get alerted with the campaign ready",
+      who: "the hourly scan finds a crowd above the threshold",
+      sees: "A WhatsApp message: Harry Styles plays the Garden on Wednesday, about 20,000 people 300 m away, and the campaign is ready. One button to review, one to approve.",
+      decides: "When the merchant hears about the crowd. The earlier they know, the longer the campaign can run.",
+      codeNote: "Needs a scheduler on the server, not built yet. Steps 4, 6 and 7 already work; the scheduler only has to run them.",
+      next: "Build the scheduler and the WhatsApp alert.",
+      calls: [
+        { what: "the step 4 event scan, every hour, for every bar", count: "1 per bar per hour" },
+        { what: "steps 6 and 7 run before the merchant opens the app", count: "same as steps 6 and 7" },
+        { what: "the alert to the merchant", count: "1" }
+      ]
+    },
+    s6: {
+      title: "Who is coming, and which offer fits",
+      who: "the merchant opens a crowd from the radar",
+      sees: "Who the crowd is, what they like, the nearby bars they already go to, and the merchant's offers ranked for them. For Harry Styles: women 25 to 29, rooftop cocktail bars, Gucci and Dior.",
+      decides: "Who the crowd is and how each offer ranks for it. If the headliner's name is ambiguous, the merchant picks the match, never the AI.",
+      next: "The profile is rebuilt on every page load. The cache makes that free, but it should be saved once per crowd.",
+      calls: [
+        { what: "matches the headliner's name to a Qloo ID", count: "1" },
+        { what: "age and gender groups overrepresented in the crowd", count: "1" },
+        { what: "the crowd's taste tags, for places only", count: "1" },
+        { what: "bars within 1.5 km the crowd already likes", count: "1" },
+        { what: "brands this crowd likes more than average", count: "1" },
+        { what: "nearby places with each offer's tags, scored for this crowd", count: "1 per offer · 5 here" }
+      ]
+    },
+    s7: {
+      title: "The agent writes the campaign",
+      who: "the merchant clicks “Draft the campaign”",
+      sees: "The chosen offer and why, backed by Qloo data. Two time windows with the weather, copy for five channels, and what the data does not show.",
+      decides: "The offer and the copy: for Harry Styles, the cocktail happy hour beats the game-night pitcher deal, even though the pitcher had the higher raw score. Weather changes the offer only when it matters: rain after a Rangers game swaps the pitcher for a hot burger.",
+      next: "Add the Anthropic key to the live server so the agent runs on its own for the judges. Locally, it runs in operator mode.",
+      calls: [
+        { what: "rereads the crowd profile from step 6", count: "0 new · cached" },
+        { what: "weather before doors and after the show", count: "1 · cached 1 h" },
+        { what: "picks the offer and writes the copy, as structured output", count: "1" }
+      ]
+    },
+    s8: {
+      title: "Approve, and Turnout publishes",
+      who: "the merchant clicks “Approve and publish”",
+      sees: "One line per channel the bar has, each with a status: sent, created and paused, ready, or simulated with exactly what would be sent.",
+      decides: "Who hears about the offer: strangers near the venue through the ad, people searching Google for a bar, regulars on WhatsApp, and passers-by at the window.",
+      next: "Connect the Twilio and Snapchat Ads accounts.",
+      calls: [
+        { what: "ad around the venue, created paused, targeted with Qloo interests", count: "live once connected" },
+        { what: "message to regulars who opted in, via Twilio", count: "live once connected" },
+        { what: "offer post on the bar's Google listing", count: "simulated" },
+        { what: "chalkboard text and a line for the staff", count: "ready to use" },
+        { what: "ad on an outdoor screen near the venue", count: "simulated" }
+      ]
+    },
+    s9: {
+      title: "Neighbourhood pulse: the everyday crowd",
+      who: "the merchant opens the pulse. The automatic Monday alert is not built yet",
+      sees: "Who walks past on a normal day, what they like, where they already go, the weather each evening, and the offer to feature. For Penn & Pour: Cocktail Enthusiasts and Business Professionals, and the chalkboard line “After work, before the train.”",
+      decides: "The default offer for the week. Event nights override it.",
+      calls: [
+        { what: "taste tags for the street, based on the bar's location", count: "1" },
+        { what: "brands and media the street likes more than average", count: "1" },
+        { what: "competing places the street already likes", count: "1" },
+        { what: "nearby places with each offer's tags, scored for the street", count: "1 per offer · 5 here" },
+        { what: "weather for each evening this week, 5 to 9 pm", count: "1 · cached 1 h" },
+        { what: "writes the weekly brief: chalkboard, Google post, regulars note, always-on ad", count: "1, on click" }
+      ]
+    },
+    s10: {
+      title: "Measure who came",
+      who: "staff type a code at the counter",
+      sees: "How many people each campaign brought in, and which crowds pay off most. Concept only: the figures on screen are examples.",
+      decides: "Which offers to keep, and for which crowds, the following week.",
+      codeNote: "Not built. It strengthens the impact story, but the demo does not need it.",
+      next: "Decide whether it goes into the demo.",
+      calls: []
+    }
+  }
+};

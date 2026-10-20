@@ -1,351 +1,494 @@
-<title>Turnout, parcours commerçant</title>
+<meta charset="utf-8">
+<title>Turnout merchant journey</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&display=swap">
 <style>
-/* Layout: one reading column, the journey as a numbered rail; each step = trigger, what the merchant sees, external calls, what it decides, build status. Turnout brand tokens. */
+/* Layout: app shell. Header (brand, views, language) / three panes: journey rail, live product screen in a device frame, "under the hood" panel. Turnout brand tokens; the product screens keep the product's own light look in both themes. */
 :root{
-  --paper:#f7f4ee;--panel:#fffdf9;--ink:#17150f;--text:#2a2721;--muted:#6b655b;--line:#e4ded3;
+  --paper:#f7f4ee;--panel:#fffdf9;--ink:#17150f;--text:#2a2721;--muted:#6b655b;--line:#e4ded3;--line-strong:#cfc7b8;
   --accent:#b4530a;--accent-text:#a54a07;--accent-soft:#fbe9d9;
   --push:#0f6e56;--push-soft:#e1f5ee;
   --done:#1f7a4d;--done-soft:#e3f3ea;--wip:#805300;--wip-soft:#fff3d6;--todo:#5f5a51;--todo-soft:#ece7dd;
-  --qloo:#534ab7;--qloo-soft:#eeedfe;
+  --qloo:#534ab7;--qloo-soft:#eeedfe;--stage:#ebe6dc;
   --display:"Fraunces",Georgia,"Times New Roman",serif;
   --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  /* product screen palette: fixed, the product is light */
+  --s-paper:#f7f4ee;--s-panel:#ffffff;--s-panel2:#fbf9f5;--s-ink:#17150f;--s-text:#2a2721;--s-muted:#6b655b;--s-line:#e4ded3;--s-line2:#cfc7b8;
+  --s-accent:#b4530a;--s-accent-soft:#fbe9d9;--s-ok:#1f7a4d;--s-ok-soft:#e3f3ea;--s-warn:#805300;--s-warn-soft:#fff3d6;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --paper:#15130f;--panel:#1d1b16;--ink:#f3efe7;--text:#e3ddd2;--muted:#a59e91;--line:#353128;
+  --paper:#15130f;--panel:#1d1b16;--ink:#f3efe7;--text:#e3ddd2;--muted:#a59e91;--line:#353128;--line-strong:#4a453a;
   --accent:#e08a45;--accent-text:#f0a467;--accent-soft:#3a2615;
   --push:#5dcaa5;--push-soft:#0e2f27;
   --done:#6fcf97;--done-soft:#143022;--wip:#f0c25a;--wip-soft:#3a2d0e;--todo:#b9b2a5;--todo-soft:#2a2720;
-  --qloo:#b8b2f0;--qloo-soft:#26214a;color-scheme:dark}}
+  --qloo:#b8b2f0;--qloo-soft:#26214a;--stage:#100e0b;color-scheme:dark}}
 :root[data-theme="dark"]{
-  --paper:#15130f;--panel:#1d1b16;--ink:#f3efe7;--text:#e3ddd2;--muted:#a59e91;--line:#353128;
+  --paper:#15130f;--panel:#1d1b16;--ink:#f3efe7;--text:#e3ddd2;--muted:#a59e91;--line:#353128;--line-strong:#4a453a;
   --accent:#e08a45;--accent-text:#f0a467;--accent-soft:#3a2615;
   --push:#5dcaa5;--push-soft:#0e2f27;
   --done:#6fcf97;--done-soft:#143022;--wip:#f0c25a;--wip-soft:#3a2d0e;--todo:#b9b2a5;--todo-soft:#2a2720;
-  --qloo:#b8b2f0;--qloo-soft:#26214a;color-scheme:dark}
-body{background:var(--paper);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.55;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 56px}
-.wrap{max-width:860px;margin:0 auto;display:grid;gap:40px}
-h1,h2,h3{font-family:var(--display);font-weight:500;color:var(--ink);text-wrap:balance;margin:0;letter-spacing:-.01em}
-h1{font-size:clamp(30px,5vw,42px);line-height:1.08}
-h2{font-size:22px}
-h3{font-size:19px}
+  --qloo:#b8b2f0;--qloo-soft:#26214a;--stage:#100e0b;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--text);font-family:var(--body);font-size:14.5px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);font-weight:500;color:var(--ink);margin:0;letter-spacing:-.01em;text-wrap:balance}
 p{margin:0}
-.eyebrow{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
-.lead{color:var(--text);max-width:62ch;font-size:16px}
-.muted{color:var(--muted)}
-code,.mono{font-family:var(--mono);font-size:12.5px}
-.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
-.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+code,.mono{font-family:var(--mono);font-size:12px}
+.app{max-width:1320px;margin:0 auto;display:grid;gap:18px}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--paper);border-bottom:1px solid var(--line);padding-block:12px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:baseline;gap:10px;min-width:0}
+.brand b{font-family:var(--display);font-weight:500;font-size:22px;color:var(--ink);letter-spacing:-.02em}
+.brand span{font-size:13px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:999px;padding:2px;gap:2px;background:var(--panel)}
+.seg button{border:0;background:transparent;border-radius:999px;padding:5px 12px;font-size:13px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.ctrls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+.intro{display:grid;gap:6px;max-width:80ch}
+.intro h1{font-size:clamp(24px,3.4vw,34px);line-height:1.1}
+.intro p{color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12.5px;color:var(--muted);align-items:center}
+.legend>span{display:inline-flex;gap:6px;align-items:center}
+
+/* chips */
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
 .done{background:var(--done-soft);color:var(--done)}
 .wip{background:var(--wip-soft);color:var(--wip)}
 .todo{background:var(--todo-soft);color:var(--todo)}
-.trig{font-size:12px;font-weight:600;padding:3px 10px;border-radius:6px;white-space:nowrap}
-.trig.pull{border:1px solid var(--line);color:var(--muted)}
+.trig{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:6px;white-space:nowrap}
+.trig.pull{border:1px solid var(--line-strong);color:var(--muted)}
 .trig.push{background:var(--push-soft);color:var(--push)}
-header.top{display:grid;gap:14px}
-.legend{display:flex;flex-wrap:wrap;gap:10px 18px;font-size:13px;color:var(--muted)}
-.legend>span{display:inline-flex;gap:8px;align-items:center}
-.now{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.svc{font-size:11px;font-weight:600;text-align:center;padding:2px 6px;border-radius:6px;background:var(--todo-soft);color:var(--muted);white-space:nowrap}
+.svc.q{background:var(--qloo-soft);color:var(--qloo)}
+
+/* three panes */
+.panes{display:grid;grid-template-columns:230px minmax(0,1fr) 320px;gap:18px;align-items:start}
+.rail{position:sticky;top:76px;display:grid;gap:12px}
+.rail h4{margin:6px 0 0;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.rail ol{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.rail button{width:100%;text-align:left;border:1px solid transparent;background:transparent;border-radius:10px;padding:7px 9px;display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px;align-items:start}
+.rail button:hover{background:var(--panel);border-color:var(--line)}
+.rail button[aria-current="step"]{background:var(--panel);border-color:var(--accent)}
+.rail .n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-variant-numeric:tabular-nums;border:1px solid var(--line-strong);color:var(--ink);background:var(--paper)}
+.rail .n.push{border-color:var(--push);color:var(--push)}
+.rail .t{font-size:13px;color:var(--ink);line-height:1.3}
+.rail .m{display:flex;gap:5px;margin-top:4px;flex-wrap:wrap}
+
+.stage{background:var(--stage);border-radius:18px;padding:18px;display:grid;gap:12px;min-width:0}
+.stagehead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center}
+.stagehead h2{font-size:22px}
+.stagehead .sub{font-size:12.5px;color:var(--muted)}
+.hint{font-size:12.5px;color:var(--muted)}
+.nav{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.btn{border:1px solid var(--line-strong);background:var(--panel);border-radius:999px;padding:7px 14px;font-size:13px}
+.btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+.hood{position:sticky;top:76px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:14px;min-width:0}
+.hood h3{font-size:18px}
+.hood .k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:4px}
+.hood ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.hood li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 8px;align-items:baseline;font-size:13px}
+.hood li .what{min-width:0}
+.hood li .cnt{grid-column:2;font-size:11.5px;color:var(--muted)}
+.hood li code{display:block;font-size:11px;color:var(--qloo);overflow-wrap:anywhere}
+.hood .where{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.hood .nextup{font-size:13px;border-top:1px dashed var(--line);padding-top:10px}
+.hood .nextup b{color:var(--accent-text)}
+
+/* other views */
+.view{display:grid;gap:16px;max-width:1000px}
+.now{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .now>div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:4px;min-width:0}
 .now b{font-family:var(--display);font-weight:500;font-size:20px;color:var(--ink)}
-nav.toc{display:flex;flex-wrap:wrap;gap:6px}
-nav.toc a{font-size:12.5px;color:var(--text);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--panel)}
-nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent);outline:none}
-.phase{display:grid;gap:14px}
-.phase>header{display:grid;gap:4px;border-bottom:1px solid var(--line);padding-bottom:10px}
-ol.rail{list-style:none;margin:0;padding:0;display:grid;gap:14px;position:relative}
-ol.rail::before{content:"";position:absolute;left:17px;top:8px;bottom:8px;width:1px;background:var(--line)}
-.step{display:grid;grid-template-columns:36px minmax(0,1fr);gap:14px;position:relative}
-.num{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-size:16px;color:var(--ink);background:var(--paper);border:1px solid var(--line);position:relative;z-index:1;font-variant-numeric:tabular-nums}
-.step.is-push .num{border-color:var(--push);color:var(--push)}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:grid;gap:12px;min-width:0}
-.card .head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 12px;align-items:baseline}
-.kv{display:grid;grid-template-columns:120px minmax(0,1fr);gap:6px 14px;font-size:14px}
-.kv dt{color:var(--muted);font-size:12.5px;padding-top:2px}
-.kv dd{margin:0;min-width:0}
-ul.calls{list-style:none;margin:0;padding:0;display:grid;gap:6px}
-ul.calls li{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;align-items:baseline;font-size:13.5px}
-.svc{font-size:11.5px;font-weight:600;text-align:center;padding:2px 6px;border-radius:6px;background:var(--todo-soft);color:var(--muted)}
-.svc.q{background:var(--qloo-soft);color:var(--qloo)}
-.cnt{font-size:12px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
-.where{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
-.next{font-size:13.5px;border-top:1px dashed var(--line);padding-top:10px;color:var(--text)}
-.next b{color:var(--accent-text);font-weight:600}
-table{border-collapse:collapse;width:100%;font-size:14px}
-th{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
-td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
-td.n{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.now span:last-child{color:var(--muted);font-size:13px}
 .tablebox{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px}
-.tablebox table tr:last-child td{border-bottom:0}
-.unused{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
-.unused>div{border:1px dashed var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:4px;min-width:0}
-footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
-a{color:var(--accent-text)}
-@media (max-width:560px){
-  .kv{grid-template-columns:1fr}
-  .kv dt{padding-top:6px}
-  ul.calls li{grid-template-columns:84px minmax(0,1fr)}
-  ul.calls li .cnt{grid-column:2}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.n{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.unused{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.unused>div{border:1px dashed var(--line-strong);border-radius:12px;padding:12px 14px;display:grid;gap:4px;min-width:0;font-size:13px;color:var(--muted)}
+.unused code{color:var(--ink)}
+footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+
+/* ---------- product screens (fixed light look) ---------- */
+.frame{background:var(--s-paper);border:1px solid #d8d1c4;border-radius:14px;overflow:hidden;color:var(--s-text);font-size:12.5px;line-height:1.45}
+.frame .bar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#efeae1;border-bottom:1px solid #ddd6c8}
+.frame .dots{display:flex;gap:5px}
+.frame .dots i{width:9px;height:9px;border-radius:50%;background:#d3cbbc;display:block}
+.frame .url{flex:1;min-width:0;background:#fff;border-radius:6px;padding:3px 10px;font-family:var(--mono);font-size:11px;color:#6b655b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scr{padding:16px 18px 20px;display:grid;gap:12px;min-height:420px}
+.s-top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--s-line);padding-bottom:10px}
+.s-logo{font-family:var(--display);font-size:16px;color:var(--s-ink)}
+.s-logo small{display:block;font-family:var(--body);font-size:8.5px;letter-spacing:.14em;color:var(--s-muted);text-transform:uppercase}
+.s-links{display:flex;gap:12px;font-size:11.5px;color:var(--s-ink);align-items:center}
+.s-links .q{border:1px solid var(--s-line2);border-radius:999px;padding:2px 8px;color:var(--s-muted);font-size:10.5px}
+.s-eyebrow{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--s-muted);font-weight:600}
+.s-h1{font-family:var(--display);font-weight:500;color:var(--s-ink);font-size:28px;line-height:1.08;letter-spacing:-.02em}
+.s-h1 em{color:var(--s-accent)}
+.s-h2{font-family:var(--display);font-weight:500;color:var(--s-ink);font-size:20px;line-height:1.15}
+.s-sub{color:var(--s-muted);font-size:11.5px}
+.s-card{background:var(--s-panel);border:1px solid var(--s-line);border-radius:10px;padding:10px 12px;display:grid;gap:6px;min-width:0}
+.s-card.hl{border-color:var(--s-accent)}
+.s-flat{background:var(--s-panel2);border:1px solid var(--s-line);border-radius:10px;padding:8px 10px;min-width:0}
+.s-grid{display:grid;gap:8px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.s-btn{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 14px;font-weight:600;font-size:12px;border:1px solid transparent;background:var(--s-ink);color:#fff}
+.s-btn.accent{background:var(--s-accent)}
+.s-btn.ghost{background:transparent;color:var(--s-ink);border-color:var(--s-line2)}
+.s-link{color:var(--s-accent);font-weight:600;font-size:12px;background:none;border:0;padding:0}
+.s-chip{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 8px;font-size:10.5px;background:var(--s-panel2);border:1px solid var(--s-line);color:var(--s-text);white-space:nowrap}
+.s-chip.ok{background:var(--s-ok-soft);color:var(--s-ok);border-color:transparent}
+.s-chip.warn{background:var(--s-warn-soft);color:var(--s-warn);border-color:transparent}
+.s-chip.acc{background:var(--s-accent-soft);color:var(--s-accent);border-color:transparent}
+.s-chips{display:flex;flex-wrap:wrap;gap:4px}
+.s-field{border:1px solid var(--s-line2);border-radius:8px;padding:6px 9px;background:#fff;color:var(--s-ink);font-size:12px;min-width:0}
+.s-lbl{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--s-muted);font-weight:600;margin-bottom:3px}
+.s-row{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.s-num{font-variant-numeric:tabular-nums;font-weight:600;color:var(--s-accent)}
+.s-ring{--p:0;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--s-accent) calc(var(--p)*1%),var(--s-line) 0);flex:none}
+.s-ring span{width:32px;height:32px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--s-ink)}
+.s-ev{display:flex;justify-content:space-between;gap:10px}
+.s-bars{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;align-items:end;height:58px}
+.s-bars div{border-radius:3px 3px 0 0}
+.s-ages{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;text-align:center;font-size:10px;color:var(--s-muted)}
+.s-ages b{display:block;color:var(--s-ink);font-weight:600}
+.s-tbl{width:100%;border-collapse:collapse;font-size:11.5px}
+.s-tbl td{border-top:1px solid var(--s-line);padding:5px 4px}
+.s-chalk{background:#2b2d2a;color:#f3efe7;border-radius:8px;padding:10px 12px;font-family:var(--display);font-size:14px;line-height:1.3;white-space:pre-line}
+.tag-target{justify-self:start;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--s-warn);background:var(--s-warn-soft);border-radius:6px;padding:2px 8px}
+.phone{width:min(300px,100%);margin:0 auto;border:9px solid #1d1b16;border-radius:30px;background:#e9e3d8;overflow:hidden;font-size:12px;color:#17150f}
+.phone .ph-top{background:#0f6e56;color:#fff;padding:10px 12px;display:flex;gap:10px;align-items:center}
+.phone .av{width:28px;height:28px;border-radius:50%;background:#f7f4ee;color:#0f6e56;display:grid;place-items:center;font-family:var(--display);font-size:14px;font-weight:500}
+.phone .ph-body{padding:14px 10px 18px;display:grid;gap:8px;min-height:300px;align-content:start}
+.bubble{background:#fff;border-radius:4px 12px 12px 12px;padding:9px 11px;max-width:92%;box-shadow:0 1px 0 rgba(0,0,0,.06);line-height:1.45}
+.bubble .time{display:block;text-align:right;font-size:10px;color:#8a847a;margin-top:4px}
+.ph-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ph-actions button{border:0;border-radius:8px;background:#fff;color:#0f6e56;font-weight:600;padding:8px;font-size:12px}
+.map{width:100%;height:auto;display:block;border-radius:10px;background:#efeae1}
+[data-next].hot{box-shadow:0 0 0 3px rgba(180,83,10,.28);position:relative}
+@media (prefers-reduced-motion: no-preference){
+  [data-next].hot{animation:hot 1.6s ease-in-out infinite}
+  @keyframes hot{0%,100%{box-shadow:0 0 0 2px rgba(180,83,10,.25)}50%{box-shadow:0 0 0 6px rgba(180,83,10,.12)}}
 }
+
+
+/* real screenshots */
+.scr.shotwrap{padding:0;min-height:0;display:block}
+.shot{max-height:min(72vh,700px);overflow:auto;background:#f7f4ee}
+.shot img{display:block;width:100%;height:auto}
+.shotbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border-top:1px solid #e4ded3;background:#fbf9f5}
+.shotnote{font-size:11.5px;color:#6b655b}
+.app.present .shot{max-height:calc(100vh - 230px)}
+/* presentation mode */
+.app.present .intro,.app.present .rail,.app.present .disc{display:none}
+.app.present .panes{grid-template-columns:minmax(0,1fr) 300px}
+.app.present + footer,.app.present footer{display:none}
+.disc{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:baseline;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:13.5px}
+.disc b{font-family:var(--display);font-weight:500;font-size:16px;color:var(--ink);grid-column:1/-1}
+/* radar screen: brand-guide map + timeline */
+.s-tl{position:relative;height:96px;border:1px solid var(--s-line);border-radius:10px;background:#fff;overflow:hidden}
+.s-tl .day{position:absolute;top:0;bottom:0;border-left:1px solid var(--s-line2)}
+.s-tl .day.alt{background:#fbf9f5}
+.s-tl .day b{position:absolute;top:5px;left:6px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--s-muted);font-weight:600;white-space:nowrap}
+.s-tl .tick{position:absolute;bottom:3px;transform:translateX(-50%);font-size:9px;color:#a39c8f;font-variant-numeric:tabular-nums}
+.s-tl .bar{position:absolute;height:20px;border-radius:6px;border:1px solid #d9d2c5;background:#efebe3;color:#4a463e;font-size:10px;display:flex;align-items:center;padding:0 6px;white-space:nowrap;overflow:hidden}
+.s-tl .bar.hot{background:#fbe9d9;border-color:#e0955a;color:#7f3a06;font-weight:600}
+.s-tl .bar.sel{outline:2px solid #17150f;outline-offset:1px}
+.s-tl .bar i{position:absolute;top:3px;bottom:3px;border-radius:3px;background:rgba(180,83,10,.22)}
+.s-tl .bar.cold i{background:rgba(23,21,15,.08)}
+.s-tl .bar span{position:relative}
+.s-tl .now{position:absolute;top:0;bottom:0;border-left:1.5px dashed #6b655b}
+.s-tl .now em{position:absolute;top:18px;left:3px;font-style:normal;font-size:8.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6b655b}
+.s-tl .cur{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#17150f}
+.s-tl .cur em{position:absolute;top:3px;left:5px;font-style:normal;font-size:9.5px;font-weight:600;color:#fff;background:#17150f;border-radius:5px;padding:0 5px;white-space:nowrap}
+.s-mapbox{position:relative;border:1px solid var(--s-line);border-radius:14px;overflow:hidden;background:#efeae1}
+.s-mapbox img{display:block;width:100%;height:auto}
+.s-mapbox .rad{position:absolute;left:50%;top:50%;width:74.02%;aspect-ratio:1;transform:translate(-50%,-50%);border:1.5px dashed #cfc7b8;border-radius:50%;pointer-events:none}
+.s-mapbox .pt{position:absolute;width:0;height:0}
+.s-mapbox .me{position:absolute;left:-8px;top:-8px;width:16px;height:16px;border-radius:50%;background:#17150f;box-shadow:0 0 0 2px #f7f4ee,0 0 0 3px #cfc7b8}
+.s-mapbox .hot{position:absolute;left:-7px;top:-7px;width:14px;height:14px;border-radius:50%;background:#b4530a;box-shadow:0 0 0 2px #fff,0 0 0 3.5px #17150f}
+.s-mapbox .cold{position:absolute;left:-5px;top:-5px;width:10px;height:10px;border-radius:50%;background:#b8af9f;box-shadow:0 0 0 1.5px #fff}
+.s-mapbox .idle{opacity:.38}
+.s-mapbox .chip{position:absolute;left:11px;top:-11px;white-space:nowrap;background:#fff;border:1px solid #e4ded3;border-radius:7px;padding:1px 6px;font-size:10px;font-weight:600;color:#17150f;line-height:1.3}
+.s-mapbox .chip small{display:block;font-weight:400;font-size:9px;color:#6b655b}
+.s-mapbox .chip.sel{border-color:#17150f}
+.s-mapbox .chip.muted{color:#6b655b;font-weight:500}
+.s-mapbox .attr{position:absolute;right:4px;bottom:3px;font-size:8.5px;color:#6b655b;background:rgba(255,255,255,.8);padding:0 4px;border-radius:3px}
+.s-mapbox .fs{position:absolute;top:6px;right:6px;font-size:9.5px;font-weight:600;background:#fff;border:1px solid #cfc7b8;border-radius:999px;padding:2px 8px;color:#17150f}
+
+/* responsive */
+@media (max-width:1180px){
+  .panes{grid-template-columns:minmax(0,1fr) 300px}
+  .rail{position:static;grid-column:1/-1}
+  .rail .groups{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+  .rail h4{display:none}
+  .rail ol{display:flex;gap:6px}
+  .rail button{width:auto;white-space:nowrap;grid-template-columns:24px auto;border-color:var(--line);background:var(--panel)}
+  .rail .m{display:none}
+}
+@media (max-width:820px){
+  .panes{grid-template-columns:minmax(0,1fr)}
+  .hood{position:static}
+  .g3{grid-template-columns:minmax(0,1fr)}
+  .scr{padding:12px;min-height:0}
+}
+@media (max-width:520px){ .g2{grid-template-columns:minmax(0,1fr)} .s-h1{font-size:23px} }
 </style>
 
-<div class="wrap">
-
-<header class="top">
-  <p class="eyebrow">Turnout · parcours commerçant · version de travail du 19 octobre 2026</p>
-  <h1>Du premier clic à la campagne publiée</h1>
-  <p class="lead">Chaque étape montre qui la déclenche, ce que voit le commerçant, les appels externes avec leur nombre, ce qu'ils décident, et où en est la construction. Exemple suivi tout du long : Penn &amp; Pour, un bar à deux rues du Madison Square Garden, avec 5 offres.</p>
-  <div class="legend">
-    <span><span class="trig pull">pull</span> le commerçant agit</span>
-    <span><span class="trig push">push</span> l'horloge ou un seuil agit</span>
-    <span><span class="pill done">fait</span></span>
-    <span><span class="pill wip">en cours</span></span>
-    <span><span class="pill todo">à faire</span></span>
-    <span><span class="svc q" style="padding:2px 8px">Qloo</span> appel à Qloo</span>
-  </div>
-</header>
-
-<section class="now" aria-label="État général">
-  <div><span class="eyebrow">Aujourd'hui</span><b>Tout en pull</b><span class="muted">Rien ne part tant que le commerçant ne clique pas.</span></div>
-  <div><span class="eyebrow">Cible pour le jury</span><b>Push sur les foules</b><span class="muted">La campagne est prête avant qu'il ouvre l'app. Il valide d'un geste.</span></div>
-  <div><span class="eyebrow">Coût Qloo d'une foule</span><b>5 + 1 par offre</b><span class="muted">10 appels pour Penn &amp; Pour, gardés 7 jours en cache.</span></div>
-</section>
-
-<nav class="toc" aria-label="Étapes">
-  <a href="#s1">1 Découvrir</a><a href="#s2">2 S'inscrire</a><a href="#s3">3 Confirmer les offres</a><a href="#s4">4 Radar</a><a href="#s5">5 Être prévenu</a><a href="#s6">6 Qui vient</a><a href="#s7">7 Campagne</a><a href="#s8">8 Publier</a><a href="#s9">9 Pouls du quartier</a><a href="#s10">10 Mesurer</a><a href="#chantiers">Chantiers</a>
-</nav>
-
-<section class="phase" aria-labelledby="p1">
-  <header><p class="eyebrow">Une seule fois</p><h2 id="p1">Arriver</h2></header>
-  <ol class="rail">
-
-    <li class="step" id="s1"><span class="num">1</span>
-      <article class="card">
-        <div class="head"><h3>Découvrir Turnout</h3><div class="row"><span class="trig pull">pull · il arrive sur la page d'accueil</span><span class="pill done">fait</span></div></div>
-        <dl class="kv">
-          <dt>Il voit</dt><dd>La promesse, et une carte en direct : la prochaine grosse foule près d'un bar de Midtown.</dd>
-          <dt>Appels</dt><dd><ul class="calls">
-            <li><span class="svc">Ticketmaster</span><span>événements autour de Penn &amp; Pour, pour la carte en direct</span><span class="cnt">1 · cache 1 h</span></li>
-          </ul></dd>
-          <dt>Ça décide</dt><dd>Rien. C'est la preuve que l'outil voit une vraie foule, ce soir.</dd>
-          <dt>Où</dt><dd class="where"><code>/</code> · <code>src/app/page.tsx</code> · tenu par la session marketing</dd>
-        </dl>
-      </article>
-    </li>
-
-    <li class="step" id="s2"><span class="num">2</span>
-      <article class="card">
-        <div class="head"><h3>S'inscrire en deux minutes</h3><div class="row"><span class="trig pull">pull · il remplit le formulaire</span><span class="pill done">fait</span></div></div>
-        <dl class="kv">
-          <dt>Il saisit</dt><dd>Nom, type de lieu, adresse, ses offres en mots simples une par ligne, son ton, ses canaux.</dd>
-          <dt>Appels</dt><dd><ul class="calls">
-            <li><span class="svc">OpenStreetMap</span><span>l'adresse devient un point GPS et un fuseau horaire</span><span class="cnt">1</span></li>
-          </ul></dd>
-          <dt>Ça décide</dt><dd>Le centre du radar et le rayon surveillé, 1,5 km.</dd>
-          <dt>Où</dt><dd class="where"><code>/start</code> · <code>src/server/merchants/onboarding.ts</code></dd>
-        </dl>
-      </article>
-    </li>
-
-    <li class="step" id="s3"><span class="num">3</span>
-      <article class="card">
-        <div class="head"><h3>Confirmer ce que Turnout a compris</h3><div class="row"><span class="trig pull">pull · page suivante, il coche</span><span class="pill done">fait</span></div></div>
-        <dl class="kv">
-          <dt>Il voit</dt><dd>Chaque offre traduite en tags Qloo. « Happy hour cocktails 5 à 7 » devient Cocktail Bar + Happy hour. Il décoche ce qui ne va pas.</dd>
-          <dt>Appels</dt><dd><ul class="calls">
-            <li><span class="svc q">Qloo</span><span><code>GET /v2/tags</code> · un concept par appel</span><span class="cnt">1 à 3 par offre · 10 ici</span></li>
-          </ul></dd>
-          <dt>Ça décide</dt><dd>Les identifiants Qloo de ses offres. Ils servent ensuite à chaque foule et chaque semaine, sans redemander.</dd>
-          <dt>Où</dt><dd class="where"><code>/start/confirm</code> · <code>src/server/qloo/tags.ts</code></dd>
-        </dl>
-      </article>
-    </li>
-  </ol>
-</section>
-
-<section class="phase" aria-labelledby="p2">
-  <header><p class="eyebrow">À chaque foule</p><h2 id="p2">Un soir d'événement</h2></header>
-  <ol class="rail">
-
-    <li class="step" id="s4"><span class="num">4</span>
-      <article class="card">
-        <div class="head"><h3>Le radar repère la foule</h3><div class="row"><span class="trig pull">pull · il ouvre le radar</span><span class="pill done">fait</span></div></div>
-        <dl class="kv">
-          <dt>Il voit</dt><dd>La carte et la liste des événements des 72 prochaines heures, un score de concentration, la météo à sa porte. Ce soir : Rangers contre Anaheim au Garden, environ 20 000 personnes, 0,3 km.</dd>
-          <dt>Appels</dt><dd><ul class="calls">
-            <li><span class="svc">Ticketmaster</span><span>événements dans 4,5 km, sans tours ni billets annexes</span><span class="cnt">1 · cache 1 h</span></li>
-            <li><span class="svc">Open-Meteo</span><span>prévision horaire au point du bar</span><span class="cnt">1 · cache 1 h</span></li>
-          </ul></dd>
-          <dt>Ça décide</dt><dd>Quelles foules valent une campagne : score de 45 et plus, 1 000 personnes et plus. Pas de Qloo ici, Qloo ne sait pas qui joue ce soir.</dd>
-          <dt>Où</dt><dd class="where"><code>/radar</code> · <code>src/server/events/radar.ts</code> · repli sur les événements déjà en base si Ticketmaster tombe</dd>
-        </dl>
-        <p class="next"><b>Prochain pas</b> · le même scan lancé par l'horloge toutes les heures pour chaque bar. C'est l'étape 5.</p>
-      </article>
-    </li>
-
-    <li class="step is-push" id="s5"><span class="num">5</span>
-      <article class="card">
-        <div class="head"><h3>Être prévenu, campagne déjà prête</h3><div class="row"><span class="trig push">push · horloge, puis seuil franchi</span><span class="pill todo">à faire</span></div></div>
-        <dl class="kv">
-          <dt>Il reçoit</dt><dd>« Rangers ce soir, 20 000 personnes à 300 m. Ta campagne est prête. » Un lien, un bouton valider.</dd>
-          <dt>Appels</dt><dd><ul class="calls">
-            <li><span class="svc">Ticketmaster</span><span>scan horaire, chaque bar</span><span class="cnt">1 par bar par heure</span></li>
-            <li><span class="svc">Qloo · Claude</span><span>les étapes 6 et 7 tournent avant qu'il ouvre l'app</span><span class="cnt">mêmes appels</span></li>
-            <li><span class="svc">WhatsApp</span><span>la notification au commerçant</span><span class="cnt">1</span></li>
-          </ul></dd>
-          <dt>Ça décide</dt><dd>Le moment où il entend parler de la foule. Plus tôt il sait, plus la campagne a de temps pour tourner.</dd>
-          <dt>Où</dt><dd class="where">planificateur côté serveur à créer · la logique des étapes 4, 6 et 7 existe déjà</dd>
-        </dl>
-      </article>
-    </li>
-
-    <li class="step" id="s6"><span class="num">6</span>
-      <article class="card">
-        <div class="head"><h3>Qui vient, et quelle offre leur parle</h3><div class="row"><span class="trig pull">pull · clic sur la foule</span><span class="pill done">fait</span></div></div>
-        <dl class="kv">
-          <dt>Il voit</dt><dd>Qui compose la foule, ce qu'elle aime, les bars voisins qu'elle fréquente déjà, et ses offres classées pour elle. Pour Harry Styles : femmes 25-29 ans, rooftops à cocktails, Gucci et Dior.</dd>
-          <dt>Appels</dt><dd><ul class="calls">
-            <li><span class="svc q">Qloo</span><span><code>GET /search</code> · nom de la tête d'affiche vers identifiant</span><span class="cnt">1</span></li>
-            <li><span class="svc q">Qloo</span><span><code>urn:demographics</code> · âge et genre sur-représentés</span><span class="cnt">1</span></li>
-            <li><span class="svc q">Qloo</span><span><code>urn:tag</code> limité aux lieux · le vocabulaire du goût</span><span class="cnt">1</span></li>
-            <li><span class="svc q">Qloo</span><span><code>urn:entity:place</code> · bars à 1,5 km qu'elle aime déjà</span><span class="cnt">1</span></li>
-            <li><span class="svc q">Qloo</span><span><code>urn:entity:brand</code> · marques sur-représentées</span><span class="cnt">1</span></li>
-            <li><span class="svc q">Qloo</span><span><code>urn:entity:place</code> filtré par les tags de chaque offre</span><span class="cnt">1 par offre · 5 ici</span></li>
-          </ul></dd>
-          <dt>Ça décide</dt><dd>Qui est la foule, et le classement de ses offres pour elle. Nom ambigu : il choisit lui-même la bonne entité, l'IA ne devine jamais un identifiant.</dd>
-          <dt>Où</dt><dd class="where"><code>/campaigns/new</code> · <code>src/server/qloo/crowd.ts</code> · chaque appel listé dans le tiroir provenance</dd>
-        </dl>
-        <p class="next"><b>Amélioration</b> · le profil est recalculé à chaque rechargement de la page. Gratuit grâce au cache, mais à mémoriser une fois par foule.</p>
-      </article>
-    </li>
-
-    <li class="step" id="s7"><span class="num">7</span>
-      <article class="card">
-        <div class="head"><h3>L'agent écrit la campagne</h3><div class="row"><span class="trig pull">pull · clic « Draft the campaign »</span><span class="pill wip">en cours</span></div></div>
-        <dl class="kv">
-          <dt>Il voit</dt><dd>L'offre choisie avec le pourquoi en données Qloo, deux créneaux avec la météo, les textes de cinq canaux, et ce que les données n'établissent pas.</dd>
-          <dt>Appels</dt><dd><ul class="calls">
-            <li><span class="svc q">Qloo</span><span>le profil de l'étape 6, relu</span><span class="cnt">0 réel · cache</span></li>
-            <li><span class="svc">Open-Meteo</span><span>météo avant les portes et à la sortie</span><span class="cnt">1 · cache 1 h</span></li>
-            <li><span class="svc">Claude</span><span>choisit l'offre, écrit les textes, sortie structurée</span><span class="cnt">1</span></li>
-          </ul></dd>
-          <dt>Ça décide</dt><dd>L'offre et les mots. Pour Harry Styles, le happy hour cocktails bat le pichet du sports bar qui avait le meilleur score brut. La météo change l'offre seulement si elle pèse : pluie à la sortie des Rangers, burger chaud plutôt que pichet.</dd>
-          <dt>Où</dt><dd class="where"><code>POST /api/campaigns</code> · <code>src/server/agent/run.ts</code> · en local l'agent tourne en mode opérateur</dd>
-        </dl>
-        <p class="next"><b>Reste</b> · la clé Anthropic sur le serveur en ligne pour que l'agent tourne seul devant le jury.</p>
-      </article>
-    </li>
-
-    <li class="step" id="s8"><span class="num">8</span>
-      <article class="card">
-        <div class="head"><h3>Il valide, Turnout publie</h3><div class="row"><span class="trig pull">pull · clic « Approve and publish »</span><span class="pill wip">en cours</span></div></div>
-        <dl class="kv">
-          <dt>Il voit</dt><dd>Un envoi par canal coché, avec son état : envoyé, créé en pause, prêt, ou simulé avec la charge exacte.</dd>
-          <dt>Appels</dt><dd><ul class="calls">
-            <li><span class="svc">Snapchat</span><span>campagne géofencée autour de la salle, créée en pause, intérêts tirés de Qloo</span><span class="cnt">réel dès le compte</span></li>
-            <li><span class="svc">WhatsApp</span><span>message aux habitués consentants, via Twilio</span><span class="cnt">réel dès le compte</span></li>
-            <li><span class="svc">Google</span><span>post d'offre sur la fiche Google du bar</span><span class="cnt">simulé</span></li>
-            <li><span class="svc">Vitrine</span><span>ardoise et phrase pour le comptoir</span><span class="cnt">prêt à l'emploi</span></li>
-            <li><span class="svc">Écran</span><span>affichage extérieur près de la salle</span><span class="cnt">simulé</span></li>
-          </ul></dd>
-          <dt>Ça décide</dt><dd>Qui est touché : des inconnus autour de la salle avec la pub, ceux qui cherchent un bar sur Google, les habitués sur WhatsApp, les passants devant la vitrine.</dd>
-          <dt>Où</dt><dd class="where"><code>POST /api/campaigns/:id/approve</code> · <code>src/server/channels/</code></dd>
-        </dl>
-        <p class="next"><b>Reste</b> · comptes Twilio et Snapchat Ads à brancher.</p>
-      </article>
-    </li>
-  </ol>
-</section>
-
-<section class="phase" aria-labelledby="p3">
-  <header><p class="eyebrow">Chaque semaine, sans événement</p><h2 id="p3">Le flux de tous les jours</h2></header>
-  <ol class="rail">
-    <li class="step" id="s9"><span class="num">9</span>
-      <article class="card">
-        <div class="head"><h3>Le pouls du quartier</h3><div class="row"><span class="trig pull">pull · il ouvre la page</span><span class="pill done">fait</span><span class="trig push">push le lundi · à faire</span></div></div>
-        <dl class="kv">
-          <dt>Il voit</dt><dd>Qui passe devant chez lui un jour normal, ce qu'ils aiment, où ils vont déjà, les soirées de la semaine côté météo, et l'offre à mettre en avant. Penn &amp; Pour : Cocktail Enthusiasts, Business Professionals, ardoise « After work, before the train ».</dd>
-          <dt>Appels</dt><dd><ul class="calls">
-            <li><span class="svc q">Qloo</span><span><code>urn:tag</code> avec <code>signal.location</code> = le point du bar</span><span class="cnt">1</span></li>
-            <li><span class="svc q">Qloo</span><span><code>urn:entity:brand</code> avec le même signal</span><span class="cnt">1</span></li>
-            <li><span class="svc q">Qloo</span><span><code>urn:entity:place</code> · les concurrents que la rue préfère</span><span class="cnt">1</span></li>
-            <li><span class="svc q">Qloo</span><span><code>urn:entity:place</code> filtré par les tags de chaque offre</span><span class="cnt">1 par offre · 5 ici</span></li>
-            <li><span class="svc">Open-Meteo</span><span>les soirées de 17 h à 21 h de la semaine</span><span class="cnt">1 · cache 1 h</span></li>
-            <li><span class="svc">Claude</span><span>le brief : ardoise, post Google, note aux habitués, pub permanente</span><span class="cnt">1 au clic</span></li>
-          </ul></dd>
-          <dt>Ça décide</dt><dd>L'offre de fond de la semaine. Les soirs d'événement la remplacent.</dd>
-          <dt>Où</dt><dd class="where"><code>/pulse</code> · <code>src/server/qloo/neighborhood.ts</code> · <code>src/server/agent/pulse.ts</code></dd>
-        </dl>
-      </article>
-    </li>
-  </ol>
-</section>
-
-<section class="phase" aria-labelledby="p4">
-  <header><p class="eyebrow">Fermer la boucle</p><h2 id="p4">Savoir si ça a marché</h2></header>
-  <ol class="rail">
-    <li class="step" id="s10"><span class="num">10</span>
-      <article class="card">
-        <div class="head"><h3>Mesurer les entrées</h3><div class="row"><span class="trig pull">pull · le serveur saisit un code au comptoir</span><span class="pill todo">à faire</span></div></div>
-        <dl class="kv">
-          <dt>Il voit</dt><dd>Combien de personnes sont venues grâce à chaque campagne, et quelles foules rapportent le plus.</dd>
-          <dt>Appels</dt><dd>Aucun appel externe. Un code court par campagne, imprimé dans chaque texte, saisi au comptoir.</dd>
-          <dt>Ça décide</dt><dd>Quelles offres garder pour quel type de foule, la semaine suivante.</dd>
-          <dt>Où</dt><dd class="where">à décider : utile pour le pitch d'impact, pas indispensable pour la démo</dd>
-        </dl>
-      </article>
-    </li>
-  </ol>
-</section>
-
-<section class="phase" id="chantiers" aria-labelledby="p5">
-  <header><p class="eyebrow">Mis à jour à chaque avancée</p><h2 id="p5">Chantiers</h2></header>
-  <div class="tablebox"><table>
-    <thead><tr><th>Chantier</th><th>Qui</th><th>État</th><th>Étapes</th></tr></thead>
-    <tbody>
-      <tr><td>Comptes Twilio et Snapchat Ads</td><td>Jacobo</td><td><span class="pill wip">en cours</span></td><td class="n">8</td></tr>
-      <tr><td>Serveur en ligne sur Railway et clé Anthropic, avant le 24 octobre</td><td>Jacobo</td><td><span class="pill todo">à faire</span></td><td class="n">7, 8</td></tr>
-      <tr><td>Logo Swing, finesse S1, et palette</td><td>Design</td><td><span class="pill wip">en attente de ton choix</span></td><td class="n">tout</td></tr>
-      <tr><td>Page d'accueil orientée valeur</td><td>Marketing</td><td><span class="pill done">fait</span></td><td class="n">1</td></tr>
-      <tr><td>Planificateur push et notification au commerçant</td><td>Backend</td><td><span class="pill todo">à faire</span></td><td class="n">5, 9</td></tr>
-      <tr><td>Mémoriser le profil de foule au lieu de le recalculer</td><td>Backend</td><td><span class="pill todo">à faire</span></td><td class="n">6, 7</td></tr>
-      <tr><td>Code de mesure par campagne</td><td>À décider</td><td><span class="pill todo">à faire</span></td><td class="n">10</td></tr>
-    </tbody>
-  </table></div>
-</section>
-
-<section class="phase" aria-labelledby="p6">
-  <header><p class="eyebrow">Pour 5 offres</p><h2 id="p6">Ce que coûte chaque moment</h2></header>
-  <div class="tablebox"><table>
-    <thead><tr><th>Moment</th><th>Qloo</th><th>Ticketmaster</th><th>Open-Meteo</th><th>Claude</th></tr></thead>
-    <tbody>
-      <tr><td>Inscription, une fois</td><td class="n">10</td><td class="n">0</td><td class="n">0</td><td class="n">0</td></tr>
-      <tr><td>Radar, par heure et par bar</td><td class="n">0</td><td class="n">1</td><td class="n">1</td><td class="n">0</td></tr>
-      <tr><td>Une foule qualifiée et sa campagne</td><td class="n">10</td><td class="n">0</td><td class="n">1</td><td class="n">1</td></tr>
-      <tr><td>Pouls de la semaine</td><td class="n">8</td><td class="n">0</td><td class="n">1</td><td class="n">1</td></tr>
-    </tbody>
-  </table></div>
-  <p class="muted" style="font-size:13.5px">Un deuxième bar près de la même salle réutilise les appels Qloo sur la foule, gardés 7 jours. Seuls ses appels liés à ses propres offres sont nouveaux.</p>
-</section>
-
-<section class="phase" aria-labelledby="p7">
-  <header><p class="eyebrow">Testés, pas branchés</p><h2 id="p7">Endpoints Qloo hors parcours</h2></header>
-  <div class="unused">
-    <div><code>GET /entities</code><span class="muted">Fiche par identifiant Qloo, Spotify, Resy ou Michelin. <code>/search</code> suffit.</span></div>
-    <div><code>urn:heatmap</code><span class="muted">Carte de chaleur. Trop large pour un rayon de 1,5 km. Piste pour choisir les écrans.</span></div>
-    <div><code>GET /v2/trending</code><span class="muted">Tendances hebdomadaires. Plates sur nos tests.</span></div>
-    <div><code>GET /v2/analysis/compare</code><span class="muted">Deux listes de tags sans écart chiffré. Deux appels démographie disent plus.</span></div>
-    <div><code>GET /v2/audiences</code><span class="muted">Segments nommés. Utiles pour une marque, pas pour un bar qui part d'un artiste.</span></div>
-    <div><code>qloo mcp</code><span class="muted">Les 9 workflows du kit. Utilisés pour le test, sans rayon autour d'un point.</span></div>
-  </div>
-</section>
-
-<footer>Source de cette page : <code>docs/journey/index.html</code> dans le dépôt Turnout. Republiée au même lien à chaque avancée. Qloo décrit les goûts de groupes, jamais d'une personne, et aucune donnée personnelle ne lui est envoyée.</footer>
-
+<div class="app">
+  <header class="top">
+    <div class="brand"><b>Turnout</b><span id="docTitle">Merchant journey</span></div>
+    <div class="ctrls">
+      <div class="seg" role="group" aria-label="View" id="views"></div>
+      <button type="button" class="btn" id="fsbtn">Full screen</button>
+      <div class="seg" role="group" aria-label="Language" id="langs">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="fr" aria-pressed="false">FR</button>
+      </div>
+    </div>
+  </header>
+  <main id="main"><p style="padding:24px 0;color:var(--muted)">Loading the journey…</p></main>
+  <footer id="foot"></footer>
 </div>
+
+<script src="i18n.en.js"></script>
+<script src="i18n.fr.js"></script>
+<script>
+const META=[
+ {id:"s1",phase:"arrive",trig:"pull",status:"done",url:"turnout.app",code:"src/app/page.tsx",shot:"s1",cta:"Set up your place →",screen:"landing",calls:[{svc:"Ticketmaster"}]},
+ {id:"s2",phase:"arrive",trig:"pull",status:"done",url:"turnout.app/start",code:"src/server/merchants/onboarding.ts",shot:"s2",cta:"Locate my place and read my offers →",screen:"start",calls:[{svc:"OpenStreetMap"}]},
+ {id:"s3",phase:"arrive",trig:"pull",status:"done",url:"turnout.app/start/confirm",code:"src/server/qloo/tags.ts",shot:"s3",cta:"Confirm and open my radar →",screen:"confirm",calls:[{svc:"Qloo",api:"GET /v2/tags"}]},
+ {id:"s4",phase:"night",trig:"pull",status:"done",url:"turnout.app/radar",code:"src/server/events/radar.ts",shot:"s4",cta:"Qualify this crowd with Qloo →",screen:"radar",calls:[{svc:"Ticketmaster"},{svc:"Open-Meteo"}]},
+ {id:"s5",phase:"night",trig:"push",status:"todo",url:null,code:null,screen:"notify",calls:[{svc:"Ticketmaster"},{svc:"Qloo",api:"steps 6 + 7"},{svc:"WhatsApp"}]},
+ {id:"s6",phase:"night",trig:"pull",status:"done",url:"turnout.app/campaigns/new",code:"src/server/qloo/crowd.ts",shot:"s6",cta:"Draft the campaign →",screen:"crowd",calls:[{svc:"Qloo",api:"GET /search"},{svc:"Qloo",api:"GET /v2/insights · urn:demographics"},{svc:"Qloo",api:"GET /v2/insights · urn:tag"},{svc:"Qloo",api:"GET /v2/insights · urn:entity:place"},{svc:"Qloo",api:"GET /v2/insights · urn:entity:brand"},{svc:"Qloo",api:"urn:entity:place + filter.tags"}]},
+ {id:"s7",phase:"night",trig:"pull",status:"wip",url:"turnout.app/campaigns/camp_7d4b6d90b536",code:"src/server/agent/run.ts",shot:"s7",cta:"Approve and publish →",screen:"campaign",calls:[{svc:"Qloo",api:"cache"},{svc:"Open-Meteo"},{svc:"Claude"}]},
+ {id:"s8",phase:"night",trig:"pull",status:"wip",url:"turnout.app/campaigns/camp_7d4b6d90b536",code:"src/server/channels/",shot:"s8",cta:"Next week: the weekly pulse →",screen:"published",calls:[{svc:"Snapchat"},{svc:"WhatsApp"},{svc:"Google"},{svc:"storefront"},{svc:"screen"}]},
+ {id:"s9",phase:"week",trig:"pull",status:"done",url:"turnout.app/pulse",code:"src/server/qloo/neighborhood.ts",shot:"s9",cta:"Results →",screen:"pulse",calls:[{svc:"Qloo",api:"urn:tag · signal.location"},{svc:"Qloo",api:"urn:entity:brand · signal.location"},{svc:"Qloo",api:"urn:entity:place · signal.location"},{svc:"Qloo",api:"urn:entity:place + filter.tags"},{svc:"Open-Meteo"},{svc:"Claude"}]},
+ {id:"s10",phase:"loop",trig:"pull",status:"todo",url:"turnout.app/results",code:null,screen:"measure",calls:[]}
+];
+const PHASES=["arrive","night","week","loop"];
+const DICT={en:window.I18N_EN||{},fr:window.I18N_FR||{}};
+let lang="en",cur=0,view="journey";
+try{const s=localStorage.getItem("turnout-journey-lang");if(s==="fr"||s==="en")lang=s}catch(e){}
+if(location.hash==="#fr")lang="fr";if(location.hash==="#en")lang="en";
+const m=location.hash.match(/^#s(\d+)$/);if(m){const i=+m[1]-1;if(i>=0&&i<META.length)cur=i}
+const D=()=>DICT[lang]&&DICT[lang].ui?DICT[lang]:DICT.en;
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const svcName=s=>(D().ui.svc&&D().ui.svc[s])||s;
+
+/* ---------- product screens (English, as in the product) ---------- */
+const nav=`<div class="s-top"><div class="s-logo">Turnout<small>crowd to campaign</small></div><div class="s-links"><span>Radar</span><span>Set up your place</span><span class="q">Powered by Qloo</span></div></div>`;
+const SCREENS={
+landing:()=>`${nav}
+<div class="s-grid g2" style="align-items:center;gap:16px">
+ <div style="display:grid;gap:10px">
+  <p class="s-eyebrow">20,000 people, 0.3 km from a bar in Midtown, Wednesday 8:00 PM</p>
+  <p class="s-h1">Turn the crowd outside into <em>customers inside</em>.</p>
+  <p>Every concert, game and show within walking distance sends a crowd past your door, and they choose a place in the ten minutes before and after. Turnout knows who they are, what they love, and says the one thing that makes them pick you.</p>
+  <p class="s-sub">You approve. It publishes. Two minutes to set up.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="s-btn accent hot" data-next>Set up your place</button><button class="s-btn ghost">Try Penn &amp; Pour · New York</button></div>
+ </div>
+ <div class="s-card">
+  <p class="s-eyebrow">Next crowd near Penn &amp; Pour</p>
+  <p class="s-h2">Harry Styles · Madison Square Garden</p>
+  <div class="s-grid g3" style="text-align:left">
+   <div><p class="s-lbl">Crowd</p><p class="s-h2" style="font-size:17px">20,000</p></div>
+   <div><p class="s-lbl">Over-index</p><p class="s-h2" style="font-size:17px">F 25-29</p></div>
+   <div><p class="s-lbl">Picked offer</p><p class="s-h2" style="font-size:17px">Cocktails</p></div>
+  </div>
+  <p class="s-sub">Agent rationale, with Qloo provenance attached.</p>
+ </div>
+</div>`,
+start:()=>`${nav}
+<div><p class="s-eyebrow">Step 1 of 2 · two minutes, no account</p><p class="s-h2">Tell Turnout about your place</p></div>
+<div class="s-card" style="gap:10px">
+ <div class="s-grid" style="grid-template-columns:minmax(0,1fr) 110px"><div><p class="s-lbl">Name of your place</p><div class="s-field">Penn &amp; Pour</div></div><div><p class="s-lbl">Type</p><div class="s-field">Bar</div></div></div>
+ <div><p class="s-lbl">Address</p><div class="s-field">W 31st St &amp; 8th Ave, New York, NY</div></div>
+ <div><p class="s-lbl">What you sell, one offer per line</p><div class="s-field" style="white-space:pre-line">Happy hour cocktails 5 to 7 pm, $16 for two
+Craft beer flight, four local IPAs, $18
+Smash burger and fries until 1 am, $14
+Natural wine by the glass, $13
+Every Knicks and Rangers game on the big screen, $22 pitcher</div></div>
+ <div><p class="s-lbl">Your tone of voice</p><div class="s-field">Warm, quick-witted, New York direct. No exclamation marks.</div></div>
+ <div><p class="s-lbl">Channels you have</p><div class="s-chips"><span class="s-chip ok">Ad budget</span><span class="s-chip ok">Google Business Profile</span><span class="s-chip ok">WhatsApp list</span><span class="s-chip ok">Chalkboard</span><span class="s-chip">Digital screen</span></div></div>
+ <div style="display:flex;justify-content:flex-end"><button class="s-btn accent hot" data-next>Locate my place and read my offers →</button></div>
+</div>`,
+confirm:()=>`${nav}
+<div><p class="s-eyebrow">Step 2 of 2 · confirm what Turnout understood</p><p class="s-h2">Did I read your offers right?</p><p class="s-sub">Penn &amp; Pour, W 31st St &amp; 8th Ave (America/New_York). Keep the tags that mean what you mean.</p></div>
+${[["Pre-show happy hour","$16 for two",[["cocktail bar",["Cocktail Bar · genre:place","Cocktail bar · category:place"]],["happy hour",["Happy hour · offerings:place"]]]],
+   ["After-show late plate","$14",[["burgers",["Burgers · genre:place","Burgers · cuisine:qloo"]],["late night food",["Late-night food · offerings:place","Late Night Food · good_for:qloo"]]]],
+   ["Game night big screen","$22 pitcher",[["sports bar",["Sports Bar · genre:place"]],["beer",["Beer · genre:place"]]]]
+  ].map(([t,p,cs])=>`<div class="s-card"><div class="s-row"><b style="font-family:var(--display);font-weight:500;font-size:14px;color:var(--s-ink)">${t}</b><span class="s-sub">${p}</span></div>${cs.map(([c,tags])=>`<div><p class="s-lbl">I read “${c}”</p><div class="s-chips">${tags.map((x,i)=>`<span class="s-chip${i===0?" acc":""}">${i===0?"✓ ":""}${x}</span>`).join("")}</div></div>`).join("")}</div>`).join("")}
+<p class="s-sub">+ 2 more offers</p>
+<div style="display:flex;justify-content:flex-end"><button class="s-btn accent hot" data-next>Confirm and open my radar →</button></div>`,
+radar:()=>`${nav}
+<div class="s-row" style="align-items:end;flex-wrap:wrap"><div><p class="s-eyebrow">Radar · next 72 h</p><p class="s-h2">Penn &amp; Pour</p><p class="s-sub">W 31st St &amp; 8th Ave · 342 events within reach · <span style="color:var(--s-accent)">2 worth a campaign</span></p></div><div class="s-chips"><span class="s-chip" style="background:#17150f;color:#fff">Penn &amp; Pour</span><span class="s-chip">Le Quai 12</span><span class="s-chip">Neighbourhood pulse →</span></div></div>
+<div class="s-row" style="flex-wrap:wrap;gap:6px"><p style="font-size:12px"><b style="color:var(--s-ink)">Wednesday 18:30</b> · <b style="color:var(--s-ink)">Harry Styles</b> ~20,000 arriving, <b style="color:var(--s-ink)">Sienna Spiro</b> ~3,500 arriving</p><span style="display:flex;gap:5px"><span class="s-btn ghost" style="padding:4px 10px;font-size:10.5px">← Previous crowd</span><span class="s-btn ghost" style="padding:4px 10px;font-size:10.5px">Now</span><span class="s-btn" style="padding:4px 10px;font-size:10.5px">Next crowd →</span></span></div>
+<div class="s-tl" aria-label="Timeline of the next 72 hours">
+ <span class="day" style="left:0;width:20%"><b>Today</b></span><span class="day alt" style="left:20%;width:40%"><b>Wednesday 21 Oct</b></span><span class="day" style="left:60%;width:40%"><b>Thursday 22 Oct</b></span>
+ ${[["10","18:00"],["20","00:00"],["30","06:00"],["40","12:00"],["50","18:00"],["60","00:00"],["70","06:00"],["80","12:00"],["90","18:00"]].map(([l,t])=>`<span class="tick" style="left:${l}%">${t}</span>`).join("")}
+ <span class="now" style="left:6.67%"><em>now</em></span>
+ <span class="bar hot" style="left:7.5%;width:10.83%;top:28px"><i style="left:38.5%;width:38.5%"></i><span>Knicks · 20k</span></span>
+ <span class="bar hot sel" style="left:49.17%;width:11.25%;top:28px"><i style="left:37%;width:41%"></i><span>Harry Styles · 20k</span></span>
+ <span class="bar cold" style="left:49.17%;width:11.25%;top:52px"><i style="left:37%;width:41%"></i><span>Sienna Spiro · 3.5k</span></span>
+ <span class="cur" style="left:50.83%"><em>Wed 18:30</em></span>
+</div>
+<div class="s-grid g2" style="align-items:start">
+ <div class="s-mapbox"><img src="map-penn-pour.jpg" alt="Map of Midtown Manhattan around Penn and Pour" width="1120" height="860">
+  <span class="rad"></span>
+  <span class="pt" style="left:70.67%;top:22.1%"><span class="cold idle"></span></span>
+  <span class="pt" style="left:73.35%;top:26.42%"><span class="cold idle"></span></span>
+  <span class="pt" style="left:61.45%;top:14.59%"><span class="cold idle"></span></span>
+  <span class="pt" style="left:52.89%;top:38.33%"><span class="cold"></span><span class="chip muted">Sienna Spiro<small>Hammerstein · 20:00</small></span></span>
+  <span class="pt" style="left:50%;top:50%"><span class="me"></span><span class="chip" style="left:-90px;top:10px">Penn &amp; Pour</span></span>
+  <span class="pt" style="left:58.53%;top:48.89%"><span class="hot"></span><span class="chip sel">Harry Styles<small>Madison Square Garden · 20:00 · ~20,000</small></span></span>
+  <span class="fs">Full screen</span><span class="attr">© OpenStreetMap contributors</span>
+ </div>
+ <div class="s-grid">
+  <p class="s-lbl" style="margin:0">Today</p>
+  <div class="s-card hl"><div class="s-ev"><div style="min-width:0"><p style="font-size:11px;font-weight:600;color:var(--s-ink)">19:00 <span class="s-sub" style="font-weight:400">· crowd from 16:30 to 23:00</span></p><b style="font-family:var(--display);font-weight:500;font-size:14px;color:var(--s-ink)">New York Knicks</b><p class="s-sub">Madison Square Garden · 0.3 km · ~20,000 people</p></div><div class="s-ring" style="--p:76"><span>76</span></div></div></div>
+  <p class="s-lbl" style="margin:0">Wednesday 21 Oct</p>
+  <div class="s-card hl" style="outline:2px solid #17150f;outline-offset:1px"><div class="s-ev"><div style="min-width:0"><p style="font-size:11px;font-weight:600;color:var(--s-ink)">20:00 <span class="s-sub" style="font-weight:400">· crowd from 17:30 to 00:15</span></p><b style="font-family:var(--display);font-weight:500;font-size:14px;color:var(--s-ink)">Harry Styles</b><p class="s-sub">Madison Square Garden · 0.3 km · ~20,000 people</p><p style="color:var(--s-ok);font-weight:600;font-size:11px">Weather at your door: Dry, cool, 58°F</p><button class="s-link hot" data-next style="margin-top:4px">Qualify this crowd with Qloo →</button></div><div class="s-ring" style="--p:72"><span>72</span></div></div></div>
+ </div>
+</div>`,
+notify:()=>`<span class="tag-target">Target state · to build</span>
+<div class="phone"><div class="ph-top"><span class="av">T</span><div><b>Turnout</b><div style="font-size:10.5px;opacity:.85">WhatsApp · for Penn &amp; Pour</div></div></div>
+<div class="ph-body">
+ <div class="bubble">Harry Styles plays Madison Square Garden on Wednesday at 8 PM. About 20,000 people, 300 m from Penn &amp; Pour.<br><br>Your campaign is ready: cocktail happy hour 5 to 7, a geofenced ad, a Google post and a note to your regulars.<span class="time">Mon 09:02</span></div>
+ <div class="ph-actions"><button class="hot" data-next>Review</button><button>Approve</button></div>
+</div></div>`,
+crowd:()=>`${nav}
+<div><p class="s-eyebrow">The crowd, through Qloo</p><p class="s-h2">Harry Styles</p><p class="s-sub">Harry Styles: Together, Together · Madison Square Garden · Wednesday 21 Oct, 20:00 · for Penn &amp; Pour</p></div>
+<div class="s-grid g3">
+ <div class="s-card"><p class="s-lbl">Resolved entity</p><b style="color:var(--s-ink)">Harry Styles</b><p class="s-sub">artist · popularity 99.7% · matched automatically</p></div>
+ <div class="s-card"><p class="s-lbl">Who over-indexes</p><b style="color:var(--s-ink)">25-29 (+0.75), 30-34 (+0.46)</b><p class="s-sub">skews female (+0.72) · under-indexes 35-44 (−0.72)</p></div>
+ <div class="s-card"><p class="s-lbl">Brands this crowd likes</p><p>Gucci · Calvin Klein · Louis Vuitton · Versace · Christian Dior · Fendi</p></div>
+</div>
+<div class="s-card"><p class="s-lbl">Age affinity · positive means over-index</p>
+ <div class="s-bars">${[0.42,0.75,0.46,-0.72,-0.32,-0.34].map(v=>`<div style="height:${Math.max(6,Math.abs(v)*100)}%;background:${v>=0?"#b4530a":"#cfc7b8"}"></div>`).join("")}</div>
+ <div class="s-ages">${[["<25","+0.42"],["25-29","+0.75"],["30-34","+0.46"],["35-44","−0.72"],["45-54","−0.32"],["55+","−0.34"]].map(([a,v])=>`<div><b>${a}</b>${v}</div>`).join("")}</div>
+</div>
+<div class="s-grid g2">
+ <div class="s-card"><p class="s-lbl">Taste tags · places</p><div class="s-chips">${["Moderately expensive","Bar","Brunch","European","American","Trendy","Romantic","Relaxed"].map(x=>`<span class="s-chip">${x}</span>`).join("")}</div></div>
+ <div class="s-card"><p class="s-lbl">Bars within 1500 m this crowd already likes</p>${[["Igloo Bar NYC","0.90"],["230 Fifth Rooftop Bar","0.89"],["Social Drink & Food","0.88"],["Spyglass Rooftop Bar","0.86"]].map(([n,v])=>`<div class="s-row"><span>${esc(n)}</span><span class="s-num">${v}</span></div>`).join("")}</div>
+</div>
+<div class="s-card"><p class="s-lbl">Your offers against this crowd</p><table class="s-tbl">${[["★ Game night big screen","Sports Bar, Beer","0.89"],["Pre-show happy hour","Cocktail Bar, Happy hour","0.88"],["After-show late plate","Burgers, Late-night food","0.87"],["Craft beer flight","Craft beer, Local Brewery","0.85"],["Natural wine by the glass","Natural Wine, Wine Bar","0.83"]].map(r=>`<tr><td style="color:var(--s-ink);font-weight:600">${r[0]}</td><td class="s-sub">${r[1]}</td><td class="s-num" style="text-align:right">${r[2]}</td></tr>`).join("")}</table></div>
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="s-btn accent hot" data-next>Draft the campaign →</button><span class="s-sub">Qloo calls: 10 live, 0 cached · Provenance ▸</span></div>`,
+campaign:()=>`${nav}
+<div class="s-row" style="align-items:end;flex-wrap:wrap"><div><p class="s-eyebrow">Campaign · draft ready</p><p class="s-h2">Harry Styles: Together, Together</p><p class="s-sub">Madison Square Garden · Wednesday 21 Oct, 20:00 · for Penn &amp; Pour</p></div><button class="s-btn hot" data-next>Approve and publish →</button></div>
+<div class="s-grid g2" style="align-items:start">
+ <div class="s-card hl"><p class="s-lbl">Chosen offer</p><p class="s-h2" style="font-size:17px">Pre-show happy hour</p><p class="s-sub">Two cocktails for the price of one, 5 to 7 pm · $16 for two</p><p class="s-lbl" style="margin-top:6px">Why, according to Qloo</p><p>A female-skewed crowd of 25 to 34 year olds, the core cocktail-bar audience. The nearby bars they like are cocktail-led rooftops: Igloo Bar (0.90), 230 Fifth (0.89), Spyglass (0.86). Gucci, Dior and Prada point to a style-conscious group. The sports-bar offer had the best raw score (0.89), but nothing says this crowd wants the Knicks on a screen on a Harry Styles night.</p><p class="s-sub">Confidence 78%</p></div>
+ <div class="s-grid">
+  <div class="s-card"><p class="s-lbl">Windows · America/New_York</p><div><b style="color:var(--s-ink)">Before doors</b> 17:00 to 19:30 <span class="s-chip ok">Dry, cool, 58°F</span></div><div><b style="color:var(--s-ink)">After the show</b> 22:45 to 00:15 <span class="s-chip ok">Dry, cool, 54°F</span></div></div>
+  <div class="s-card"><p class="s-lbl">Geofenced ad · snapchat · 600 m · $60/day</p><b style="font-family:var(--display);font-weight:500;font-size:14px;color:var(--s-ink)">Two cocktails before Harry</b><p>Penn &amp; Pour, two blocks from MSG. Two cocktails for $16 until 7 pm, then we keep the kitchen open until 1 am.</p><p class="s-sub">Interests: Cocktail bars · Pop music · Luxury fashion · Rooftop bars</p></div>
+ </div>
+</div>
+<div class="s-grid g2">
+ <div class="s-card"><p class="s-lbl">WhatsApp to regulars</p><p>Hi, it's Penn &amp; Pour. Harry Styles plays the Garden tonight, so 8th Avenue will be busy from 5. Come early: two cocktails for $16 until 7 pm.</p></div>
+ <div class="s-card"><p class="s-lbl">Storefront</p><div class="s-chalk">HARRY STYLES TONIGHT
+2 cocktails $16 until 7 pm. Kitchen till 1 am.</div></div>
+</div>`,
+published:()=>`${nav}
+<div class="s-row" style="align-items:end;flex-wrap:wrap"><div><p class="s-eyebrow">Campaign · published</p><p class="s-h2">Harry Styles: Together, Together</p></div><span class="s-chip ok">Published · 5 channels</span></div>
+<div class="s-grid g2" style="align-items:start">
+ <div class="s-card" style="border-color:var(--s-ok)"><p class="s-lbl">Published</p>
+  ${[["Geofenced ad","created, paused","ok","Snapchat campaign and ad squad, 600 m around the venue"],["WhatsApp to regulars","sent","ok","to the demo number, via Twilio"],["Google Business post","simulated","warn","exact localPosts payload"],["Storefront","ready","warn","chalkboard text and staff line"],["Digital screen","simulated","warn","nearest screens to the venue"]].map(([n,s,c,d])=>`<div class="s-flat"><div class="s-row"><b style="color:var(--s-ink)">${n}</b><span class="s-chip ${c}">${s}</span></div><p class="s-sub">${d}</p></div>`).join("")}
+  <span class="tag-target">Target state once the accounts are connected</span>
+ </div>
+ <div class="phone" style="width:min(240px,100%)"><div class="ph-top"><span class="av">P</span><div><b>Penn &amp; Pour</b><div style="font-size:10.5px;opacity:.85">a regular's phone</div></div></div><div class="ph-body" style="min-height:200px"><div class="bubble">Hi, it's Penn &amp; Pour. Harry Styles plays the Garden tonight, so 8th Avenue will be busy from 5. Come early: two cocktails for $16 until 7 pm.<span class="time">17:00</span></div></div></div>
+</div>
+<div><button class="s-link hot" data-next>Next week: neighbourhood pulse →</button></div>`,
+pulse:()=>`${nav}
+<div><p class="s-eyebrow">Neighbourhood pulse · the everyday flow</p><p class="s-h2">The street outside Penn &amp; Pour</p><p class="s-sub">Chelsea, New York · Qloo taste of a 1.5 km radius around your door</p></div>
+<div class="s-flat"><p class="s-lbl">Evenings this week at your door · 17:00 to 21:00 · Open-Meteo</p><div class="s-chips">${[["Mon","56°F"],["Tue","59°F"],["Wed","59°F"],["Thu","61°F"],["Fri","57°F"],["Sat","56°F"],["Sun","62°F"]].map(([d,t])=>`<span class="s-chip ok">${d} · dry, cool, ${t}</span>`).join("")}</div></div>
+<div class="s-grid g3">
+ <div class="s-card"><p class="s-lbl">Who walks past</p><div class="s-chips">${["Cocktail Enthusiasts","Business Professionals","Celebratory Diners","Couples","Tourists","Locals"].map(x=>`<span class="s-chip">${x}</span>`).join("")}</div></div>
+ <div class="s-card"><p class="s-lbl">What they like in a place</p><div class="s-chips">${["Intimate","Social","Lively","Trendy","Brunch","Lounge"].map(x=>`<span class="s-chip">${x}</span>`).join("")}</div></div>
+ <div class="s-card"><p class="s-lbl">Brands and media</p><p>New York Magazine · MoMA · The New Yorker · GQ</p></div>
+</div>
+<div class="s-grid g2" style="align-items:start">
+ <div class="s-card hl"><p class="s-lbl">This week</p><p class="s-h2" style="font-size:17px">Pre-show happy hour</p><p class="s-sub">Weekday after-work crowd between the office and the train at Penn Station.</p><div class="s-chalk">After work, before the train.
+2 cocktails for $16, 5 to 7 pm.</div></div>
+ <div class="s-card"><p class="s-lbl">Where they already go, within reach</p>${[["Eataly Flatiron","0.99"],["PHD Rooftop Lounge","0.98"],["Coppelia","0.93"],["Empire Diner","0.92"]].map(([n,v])=>`<div class="s-row"><span>${n}</span><span class="s-num">${v}</span></div>`).join("")}<p class="s-sub">Always-on ad · 500 m · $12/day, weekdays 5 to 7 pm</p></div>
+</div>
+<div><button class="s-link hot" data-next>Results →</button></div>`,
+measure:()=>`${nav}
+<span class="tag-target">Concept · example figures, not real data</span>
+<div><p class="s-eyebrow">Results · last 4 weeks</p><p class="s-h2">What each campaign brought in</p><p class="s-sub">Staff type the campaign code at the counter. One code per campaign, printed in every message.</p></div>
+<div class="s-card"><table class="s-tbl"><tr><td class="s-lbl">Crowd</td><td class="s-lbl">Offer</td><td class="s-lbl">Code</td><td class="s-lbl" style="text-align:right">Entries</td></tr>
+${[["Harry Styles","Pre-show happy hour","HARRY16","example"],["New York Knicks","Game night big screen","KNICKS22","example"],["Weekday flow","Pre-show happy hour","AFTERWORK","example"]].map(r=>`<tr><td style="color:var(--s-ink);font-weight:600">${r[0]}</td><td>${r[1]}</td><td style="font-family:var(--mono)">${r[2]}</td><td style="text-align:right" class="s-sub">${r[3]}</td></tr>`).join("")}</table></div>
+<div><button class="s-link hot" data-next>Back to the start ↺</button></div>`
+};
+
+/* ---------- rendering ---------- */
+function setLang(l){lang=l;try{localStorage.setItem("turnout-journey-lang",l)}catch(e){}document.documentElement.lang=l;render()}
+function render(){
+ const d=D(),u=d.ui;
+ document.getElementById("docTitle").textContent=u.docTitle;
+ document.querySelectorAll("#langs button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.lang===lang)));
+ document.getElementById("views").innerHTML=["journey","work","calls"].map(v=>`<button type="button" data-view="${v}" aria-pressed="${v===view}">${esc(u.views[v])}</button>`).join("");
+ document.getElementById("foot").textContent=u.footer;
+ const fsb=document.getElementById("fsbtn");fsb.textContent=document.querySelector(".app").classList.contains("present")?(u.exitFullscreen||"Exit full screen"):(u.fullscreen||"Full screen");
+ const main=document.getElementById("main");
+ if(view==="journey")main.innerHTML=journey(d);else if(view==="work")main.innerHTML=work(d);else main.innerHTML=calls(d);
+ if(view==="journey"){main.querySelectorAll("[data-next]").forEach(b=>b.addEventListener("click",()=>go((cur+1)%META.length)));}
+ main.querySelectorAll("[data-step]").forEach(b=>b.addEventListener("click",()=>go(+b.dataset.step)));
+}
+function go(i){cur=i;try{history.replaceState(null,"","#s"+(i+1))}catch(e){}render();const st=document.getElementById("stage");if(st&&st.getBoundingClientRect().top<0)st.scrollIntoView({behavior:"smooth",block:"start"})}
+function statusPill(s,u){return `<span class="pill ${s}">${esc(u.status[s])}</span>`}
+function trigChip(t,u){return `<span class="trig ${t}">${esc(u.trig[t])}</span>`}
+function journey(d){
+ const u=d.ui,mt=META[cur],st=d.steps[mt.id]||{};
+ const rail=`<nav class="rail" aria-label="${esc(u.views.journey)}"><div class="groups">${PHASES.map(p=>`<div><h4>${esc(u.phases[p])}</h4><ol>${META.map((x,i)=>x.phase!==p?"":`<li><button type="button" data-step="${i}" ${i===cur?'aria-current="step"':""}><span class="n ${x.trig}">${i+1}</span><span><span class="t">${esc((d.steps[x.id]||{}).title)}</span><span class="m">${trigChip(x.trig,u)}${statusPill(x.status,u)}</span></span></button></li>`).join("")}</ol></div>`).join("")}</div></nav>`;
+ const inner=mt.shot?`<div class="shot"><img src="shots/${mt.shot}.jpg" alt="${esc(st.title)}, product screen" loading="eager"></div><div class="shotbar"><span class="shotnote">${esc(u.realShot||"")}</span><button class="s-btn accent hot" data-next>${esc(mt.cta)}</button></div>`:SCREENS[mt.screen]();
+ const frame=mt.url?`<div class="frame"><div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">${esc(mt.url)}</span></div><div class="scr${mt.shot?" shotwrap":""}">${inner}</div></div>`:`<div style="display:grid;gap:10px;justify-items:center">${SCREENS[mt.screen]()}</div>`;
+ const stage=`<section class="stage" id="stage" aria-live="polite"><div class="stagehead"><div><p class="sub">${esc(u.stepOf.replace("{n}",cur+1).replace("{total}",META.length))} · ${esc(u.phases[mt.phase])}</p><h2>${esc(st.title)}</h2></div><div style="display:flex;gap:6px;flex-wrap:wrap">${trigChip(mt.trig,u)}${statusPill(mt.status,u)}</div></div>${frame}<div class="nav"><button type="button" class="btn" data-step="${(cur+META.length-1)%META.length}">← ${esc(u.prev)}</button><span class="hint">${esc(u.hint)}</span><button type="button" class="btn primary" data-step="${(cur+1)%META.length}">${esc(u.next)} →</button></div>${u.screensNote?`<p class="hint">${esc(u.screensNote)}</p>`:""}</section>`;
+ const callsList=mt.calls.length?`<ul>${mt.calls.map((c,i)=>{const t=(st.calls||[])[i]||{};return `<li><span class="svc${c.svc==="Qloo"?" q":""}">${esc(svcName(c.svc))}</span><span class="what">${esc(t.what)}${c.api&&c.svc==="Qloo"&&!/steps|cache/.test(c.api)?`<code>${esc(c.api)}</code>`:""}</span><span class="cnt">${esc(t.count)}</span></li>`}).join("")}</ul>`:`<p>${esc(u.noCalls)}</p>`;
+ const hood=`<aside class="hood" aria-label="${esc(u.hood)}"><h3>${esc(u.hood)}</h3>
+  <div><p class="k">${esc(u.trigger)}</p><p>${trigChip(mt.trig,u)} ${esc(st.who)}</p></div>
+  <div><p class="k">${esc(u.sees)}</p><p>${esc(st.sees)}</p></div>
+  <div><p class="k">${esc(u.calls)}</p>${callsList}</div>
+  <div><p class="k">${esc(u.decides)}</p><p>${esc(st.decides)}</p></div>
+  <div><p class="k">${esc(u.code)}</p><p class="where">${mt.code?`<code>${esc(mt.code)}</code>`:esc(st.codeNote||"")}</p></div>
+  ${st.next?`<p class="nextup"><b>${esc(u.nextUp)}</b> · ${esc(st.next)}</p>`:""}
+ </aside>`;
+ const head=`<section class="intro"><h1>${esc(u.headline)}</h1><p>${esc(u.intro)}</p><div class="legend"><span>${trigChip("pull",u)} ${esc(u.legend.pull)}</span><span>${trigChip("push",u)} ${esc(u.legend.push)}</span>${["done","wip","todo"].map(s=>`<span>${statusPill(s,u)}</span>`).join("")}<span><span class="svc q">Qloo</span> ${esc(u.legend.qloo)}</span></div></section>`;
+ const disc=u.discovery?`<section class="disc"><b>${esc(u.discovery.title)}</b>${trigChip("pull",u)}<span>${esc(u.discovery.today)}</span>${trigChip("push",u)}<span>${esc(u.discovery.target)}</span></section>`:"";
+ return `<div style="display:grid;gap:18px;padding-top:18px">${head}${disc}<div class="panes">${rail}${stage}${hood}</div></div>`;
+}
+function work(d){
+ const u=d.ui,w=u.work;
+ return `<section class="view" style="padding-top:18px"><div class="intro"><h1>${esc(w.title)}</h1><p>${esc(w.intro)}</p></div>
+ <div class="now">${u.now.map(n=>`<div><span class="pill todo" style="justify-self:start">${esc(n.k)}</span><b>${esc(n.v)}</b><span>${esc(n.d)}</span></div>`).join("")}</div>
+ <div class="tablebox"><table><thead><tr>${w.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${w.rows.map(r=>`<tr><td>${esc(r.item)}</td><td>${esc(r.who)}</td><td><span class="pill ${r.status}">${esc(r.label||u.status[r.status])}</span></td><td>${r.steps.map(s=>`<button type="button" class="btn" style="padding:2px 9px;font-size:12px" data-gostep="${s}">${s}</button>`).join(" ")}</td></tr>`).join("")}</tbody></table></div></section>`;
+}
+function calls(d){
+ const u=d.ui,b=u.budget;
+ return `<section class="view" style="padding-top:18px"><div class="intro"><h1>${esc(b.title)}</h1><p>${esc(b.intro)}</p></div>
+ <div class="tablebox"><table><thead><tr>${b.cols.map((c,i)=>`<th${i?' style="text-align:right"':""}>${esc(c)}</th>`).join("")}</tr></thead><tbody>${b.rows.map(r=>`<tr><td>${esc(r[0])}</td>${r.slice(1).map(x=>`<td class="n">${esc(x)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
+ <p style="color:var(--muted)">${esc(b.note)}</p>
+ <h2 style="font-size:20px">${esc(b.unusedTitle)}</h2>
+ <div class="unused">${b.unused.map(x=>`<div><code>${esc(x[0])}</code><span>${esc(x[1])}</span></div>`).join("")}</div></section>`;
+}
+document.getElementById("langs").addEventListener("click",e=>{const b=e.target.closest("button[data-lang]");if(b)setLang(b.dataset.lang)});
+document.getElementById("views").addEventListener("click",e=>{const b=e.target.closest("button[data-view]");if(b){view=b.dataset.view;render()}});
+document.getElementById("main").addEventListener("click",e=>{const b=e.target.closest("[data-gostep]");if(b){view="journey";const n=+b.dataset.gostep;cur=isNaN(n)?0:n-1;render()}});
+document.addEventListener("keydown",e=>{if(view!=="journey"||e.target.closest("input,textarea,select"))return;if(e.key==="ArrowRight")go((cur+1)%META.length);if(e.key==="ArrowLeft")go((cur+META.length-1)%META.length)});
+async function toggleFs(){const app=document.querySelector(".app");const on=!app.classList.contains("present");app.classList.toggle("present",on);view="journey";try{if(on&&!document.fullscreenElement&&document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();if(!on&&document.fullscreenElement)await document.exitFullscreen()}catch(e){}render()}
+document.getElementById("fsbtn").addEventListener("click",toggleFs);
+document.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement&&document.querySelector(".app").classList.contains("present")){document.querySelector(".app").classList.remove("present");render()}});
+window.addEventListener("hashchange",()=>{const h=location.hash;if(h==="#fr"||h==="#en"){setLang(h.slice(1));return}const mm=h.match(/^#s(\d+)$/);if(mm){const i=+mm[1]-1;if(i>=0&&i<META.length&&i!==cur){view="journey";cur=i;render()}}});
+document.documentElement.lang=lang;
+render();
+</script>

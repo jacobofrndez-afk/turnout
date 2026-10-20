@@ -3,6 +3,7 @@ import { getMerchant, listMerchants, radarFor, type RadarItem } from "@/server/e
 import RadarView, { type ViewItem } from "./RadarView";
 import MerchantSwitch from "./MerchantSwitch";
 import { weatherWindow, type WeatherSummary } from "@/server/weather/openmeteo";
+import { presenceWindow } from "@/server/events/concentration";
 
 export const dynamic = "force-dynamic";
 
@@ -32,29 +33,40 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
   // Weather at the merchant around each crowd worth a campaign (one forecast call per place, cached 1 h).
   const weather = new Map<string, WeatherSummary>();
   for (const it of top.filter((i) => i.interesting)) {
-    const start = new Date(it.event.startsAt).getTime();
+    const w = presenceWindow(it.event);
     try {
-      const w = await weatherWindow(merchant.lat, merchant.lon, new Date(start - 150 * 60_000).toISOString(), new Date(start + 255 * 60_000).toISOString(), merchant.timezone);
-      if (w) weather.set(it.event.id, w);
+      const ws = await weatherWindow(merchant.lat, merchant.lon, new Date(w.arrive).toISOString(), new Date(w.leave).toISOString(), merchant.timezone);
+      if (ws) weather.set(it.event.id, ws);
     } catch {
       // no weather, no chip
     }
   }
-  const view: ViewItem[] = top.map((it) => ({
-    id: it.event.id,
-    headliner: it.headliner.name,
-    venue: it.event.venue.name,
-    lat: it.event.venue.lat,
-    lon: it.event.venue.lon,
-    startsAt: it.event.startsAt,
-    segment: it.event.segment,
-    genre: it.event.genre,
-    capacity: it.capacity,
-    score: it.score,
-    interesting: it.interesting,
-    distanceKm: it.distanceKm,
-    weather: weather.get(it.event.id) ? { label: weather.get(it.event.id)!.label, kind: weather.get(it.event.id)!.kind } : undefined,
-  }));
+  const view: ViewItem[] = top.map((it) => {
+    const origin = it.event.origin ?? "ticketmaster";
+    const members = (it.event.meta?.members as { id: string; name: string }[] | undefined) ?? [];
+    const names = [...new Set(members.map((m) => m.name))];
+    return {
+      id: it.event.id,
+      kind: origin === "ticketmaster" ? "venue" : origin,
+      headliner: it.headliner.name,
+      short: origin === "wave" ? `${Number(it.event.meta?.count ?? members.length)} shows ${it.event.meta?.kind === "arrival" ? "starting" : "letting out"}` : it.headliner.name,
+      blurb: names.length ? `${names.slice(0, 3).join(", ")}${Number(it.event.meta?.count ?? names.length) > 3 ? ` and ${Number(it.event.meta?.count ?? names.length) - 3} more` : ""}` : undefined,
+      members: members.map((m) => m.id),
+      venue: it.event.venue.name,
+      lat: it.event.venue.lat,
+      lon: it.event.venue.lon,
+      startsAt: it.event.startsAt,
+      w: presenceWindow(it.event),
+      segment: it.event.segment,
+      genre: it.event.genre,
+      capacity: it.capacity,
+      guests: it.potentialGuests,
+      score: it.score,
+      interesting: it.interesting,
+      distanceKm: it.distanceKm,
+      weather: weather.get(it.event.id) ? { label: weather.get(it.event.id)!.label, kind: weather.get(it.event.id)!.kind } : undefined,
+    };
+  });
 
   return (
     <main className="mx-auto max-w-[1200px] px-5 py-10">
@@ -63,7 +75,7 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
           <p className="eyebrow">Radar · next 3 days</p>
           <h1 className="mt-1 text-4xl">{merchant.name}</h1>
           <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
-            {merchant.address} · watching {merchant.radius_m >= 1000 ? `${(merchant.radius_m / 1000).toLocaleString("en-US")} km` : `${merchant.radius_m} m`} around you
+            {merchant.address} · {merchant.seats ?? 60} seats · watching {merchant.radius_m >= 1000 ? `${(merchant.radius_m / 1000).toLocaleString("en-US")} km` : `${merchant.radius_m} m`} around you
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -82,7 +94,7 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
 
       <div className="mt-8">
         <RadarView
-          merchant={{ id: merchant.id, name: merchant.name, lat: merchant.lat, lon: merchant.lon, radiusM: merchant.radius_m, timezone: merchant.timezone }}
+          merchant={{ id: merchant.id, name: merchant.name, lat: merchant.lat, lon: merchant.lon, radiusM: merchant.radius_m, timezone: merchant.timezone, seats: merchant.seats ?? 60 }}
           items={view}
           nowIso={new Date().toISOString()}
           hours={hours}

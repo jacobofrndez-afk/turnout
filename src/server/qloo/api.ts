@@ -78,21 +78,40 @@ export async function searchEntities(query: string, types?: string[], opts: Opts
   return (body.results ?? []).map((e) => ({ ...e, subtype: e.subtype ?? e.types?.find((t) => t.startsWith("urn:entity:")) }));
 }
 
-export async function tasteTags(entityId: string, o: { parentTypes?: string[]; tagTypes?: string[]; take?: number } = {}, opts: Opts = {}): Promise<QlooTag[]> {
-  const params: Record<string, string> = { "filter.type": "urn:tag", "signal.interests.entities": entityId, take: String(o.take ?? 20) };
+// What Qloo is asked about: one entity (a headliner), several (a wave of shows), or taste tags (a moment with no single star).
+export type Signal = string | { entities?: string[]; tags?: string[] };
+
+function signalParams(s: Signal): Record<string, string> {
+  if (typeof s === "string") return { "signal.interests.entities": s };
+  const out: Record<string, string> = {};
+  if (s.entities?.length) out["signal.interests.entities"] = s.entities.join(",");
+  if (s.tags?.length) out["signal.interests.tags"] = s.tags.join(",");
+  return out;
+}
+
+export async function tasteTags(signal: Signal, o: { parentTypes?: string[]; tagTypes?: string[]; take?: number } = {}, opts: Opts = {}): Promise<QlooTag[]> {
+  const params: Record<string, string> = { "filter.type": "urn:tag", ...signalParams(signal), take: String(o.take ?? 20) };
   if (o.parentTypes?.length) params["filter.parents.types"] = o.parentTypes.map((t) => `urn:entity:${t}`).join(",");
   if (o.tagTypes?.length) params["filter.tag.types"] = o.tagTypes.join(",");
   const body = await qlooGet<{ results?: { tags?: QlooTag[] } }>("/v2/insights", params, opts);
   return body.results?.tags ?? [];
 }
 
-export async function demographics(entityId: string, opts: Opts = {}): Promise<Demographics | undefined> {
+export async function demographics(signal: Signal, opts: Opts = {}): Promise<Demographics | undefined> {
   const body = await qlooGet<{ results?: { demographics?: { entity_id: string; query: Demographics }[] } }>(
     "/v2/insights",
-    { "filter.type": "urn:demographics", "signal.interests.entities": entityId },
+    { "filter.type": "urn:demographics", ...signalParams(signal) },
     opts,
   );
-  return body.results?.demographics?.[0]?.query;
+  // Several entities return one row each: average them into one crowd.
+  const rows = (body.results?.demographics ?? []).map((d) => d.query).filter(Boolean);
+  if (rows.length <= 1) return rows[0];
+  const avg = (pick: (d: Demographics) => Record<string, number>) => {
+    const out: Record<string, number> = {};
+    for (const k of Object.keys(pick(rows[0]))) out[k] = rows.reduce((a, d) => a + (pick(d)[k] ?? 0), 0) / rows.length;
+    return out;
+  };
+  return { age: avg((d) => d.age), gender: avg((d) => d.gender) } as Demographics;
 }
 
 export async function recommend(

@@ -1,6 +1,6 @@
 // Prompt construction. The system prompt is frozen (cacheable); everything volatile goes in the user turn.
 import type { Merchant } from "@/server/events/radar";
-import type { CrowdProfile, EventRow, OfferRow } from "@/server/qloo/crowd";
+import { momentMeta, type CrowdProfile, type EventRow, type OfferRow } from "@/server/qloo/crowd";
 import { describeDemographics } from "@/server/qloo/crowd";
 import { tagId } from "@/server/qloo/api";
 
@@ -26,28 +26,38 @@ Rules:
 - Weather does not change who the crowd is; it changes what to offer and how to say it. Rain, storm, snow or cold favour shelter, warm food and indoor comfort; heat favours cold drinks and outdoor seating; a pleasant dry evening favours terraces and lingering. Say so in the rationale when it tips the choice, and use it in the copy only when it helps. Never invent weather that is not given.
 - No exclamation marks. No emojis. No hashtags.`;
 
-export function timeWindows(event: EventRow, merchant: Merchant): { label: string; start_local: string; end_local: string; why: string }[] {
-  const start = new Date(event.starts_at);
-  const fmt = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: merchant.timezone });
-  const at = (offsetMin: number) => fmt.format(new Date(start.getTime() + offsetMin * 60_000));
+// Campaign windows. A show has two (before doors, after the show); a moment has the window it was detected with.
+export function campaignWindows(event: EventRow): { label: string; start: number; end: number; why: string }[] {
+  const start = new Date(event.starts_at).getTime();
+  const origin = event.origin ?? "ticketmaster";
+  if (origin !== "ticketmaster" && event.window_start && event.window_end) {
+    const meta = momentMeta(event);
+    const ws = Date.parse(event.window_start);
+    const we = Date.parse(event.window_end);
+    if (origin === "wave") {
+      return meta.kind === "arrival"
+        ? [{ label: "Before curtain", start: ws, end: we, why: "Several shows nearby start at the same time; their audiences eat and drink around you first." }]
+        : [{ label: "As the shows let out", start: ws, end: we, why: "Several shows nearby end together; thousands of people spill onto the street looking for a drink or a late bite." }];
+    }
+    return [{ label: meta.windowLabel ?? "While the crowd is around", start: ws, end: we, why: meta.windowWhy ?? "The crowd is around you during this window." }];
+  }
   const isSport = (event.segment ?? "").toLowerCase() === "sports";
   const durationMin = isSport ? 150 : 165;
+  const at = (m: number) => start + m * 60_000;
   return [
-    { label: "Before doors", start_local: at(-150), end_local: at(-30), why: "People arrive early, eat and drink near the venue before doors open." },
-    { label: "After the show", start_local: at(durationMin), end_local: at(durationMin + 90), why: "The crowd leaves at once and looks for a place within walking distance." },
+    { label: "Before doors", start: at(-150), end: at(-30), why: "People arrive early, eat and drink near the venue before doors open." },
+    { label: "After the show", start: at(durationMin), end: at(durationMin + 90), why: "The crowd leaves at once and looks for a place within walking distance." },
   ];
 }
 
-// The same two windows as ISO instants, for the weather lookup.
+export function timeWindows(event: EventRow, merchant: Merchant): { label: string; start_local: string; end_local: string; why: string }[] {
+  const fmt = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: merchant.timezone });
+  return campaignWindows(event).map((w) => ({ label: w.label, start_local: fmt.format(new Date(w.start)), end_local: fmt.format(new Date(w.end)), why: w.why }));
+}
+
+// The same windows as ISO instants, for the weather lookup.
 export function windowsIso(event: EventRow): { label: string; startIso: string; endIso: string }[] {
-  const start = new Date(event.starts_at).getTime();
-  const isSport = (event.segment ?? "").toLowerCase() === "sports";
-  const durationMin = isSport ? 150 : 165;
-  const iso = (offsetMin: number) => new Date(start + offsetMin * 60_000).toISOString();
-  return [
-    { label: "Before doors", startIso: iso(-150), endIso: iso(-30) },
-    { label: "After the show", startIso: iso(durationMin), endIso: iso(durationMin + 90) },
-  ];
+  return campaignWindows(event).map((w) => ({ label: w.label, startIso: new Date(w.start).toISOString(), endIso: new Date(w.end).toISOString() }));
 }
 
 export type WindowWeather = { label: string; summary: string };
@@ -57,8 +67,17 @@ export function buildUserPrompt(merchant: Merchant, event: EventRow, profile: Cr
   const fmt = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: merchant.timezone });
   const lines: string[] = [];
   lines.push(`# Merchant`, `${merchant.name}, a ${merchant.kind} at ${merchant.address ?? merchant.city}. City: ${merchant.city}. Timezone: ${merchant.timezone}.`, `Voice: ${merchant.voice ?? "friendly and direct"}`, "");
-  lines.push(`# Event`, `${event.name} at ${event.venue_name}, ${fmt.format(new Date(event.starts_at))} local. Segment: ${event.segment ?? "?"}${event.genre ? ` / ${event.genre}` : ""}.`, `Headliner resolved in Qloo: ${profile.entity?.name ?? profile.headlinerName} (${profile.entity?.subtype?.replace("urn:entity:", "") ?? "unknown"}), popularity ${((profile.entity?.popularity ?? 0) * 100).toFixed(1)}%.`, "");
-  lines.push(`# Qloo: who likes ${profile.entity?.name ?? profile.headlinerName}`);
+  const origin = event.origin ?? "ticketmaster";
+  if (origin === "ticketmaster") {
+    lines.push(`# Event`, `${event.name} at ${event.venue_name}, ${fmt.format(new Date(event.starts_at))} local. Segment: ${event.segment ?? "?"}${event.genre ? ` / ${event.genre}` : ""}.`, `Headliner resolved in Qloo: ${profile.entity?.name ?? profile.headlinerName} (${profile.entity?.subtype?.replace("urn:entity:", "") ?? "unknown"}), popularity ${((profile.entity?.popularity ?? 0) * 100).toFixed(1)}%.`, "");
+  } else {
+    const meta = momentMeta(event);
+    lines.push(`# Moment (${origin})`, `${event.name}, around ${fmt.format(new Date(event.starts_at))} local.${event.crowd_est ? ` About ${event.crowd_est.toLocaleString("en-US")} people around.` : ""}${meta.why ? ` ${meta.why}` : ""}`);
+    if (meta.members?.length) lines.push(`Made of: ${meta.members.slice(0, 8).map((m) => `${m.name} (${m.venue})`).join("; ")}.`);
+    lines.push(`Qloo signal for this crowd: ${[...profile.signal.entities.map((e) => `${e.name} (${e.type})`), ...profile.signal.tags.map((t) => `tag ${t.name}`)].join(", ")}. This is not one fan base: speak to the whole moment, not to one show.`, "");
+  }
+  const who = profile.signal.entities.length > 1 || profile.signal.tags.length ? "this crowd" : (profile.entity?.name ?? profile.headlinerName);
+  lines.push(`# Qloo: who likes ${who}`);
   if (profile.demographics) {
     const a = profile.demographics.age;
     lines.push(`Age affinity: under 25 ${s(a["24_and_younger"])}, 25-29 ${s(a["25_to_29"])}, 30-34 ${s(a["30_to_34"])}, 35-44 ${s(a["35_to_44"])}, 45-54 ${s(a["45_to_54"])}, 55+ ${s(a["55_and_older"])}.`);

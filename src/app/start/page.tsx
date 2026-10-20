@@ -13,7 +13,7 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
       {error && <p className="mt-5 rounded-xl p-3 text-sm" style={{ background: "var(--danger-soft)", color: "var(--danger)" }}>{error}</p>}
 
       <form action="/api/merchants" method="post" className="card mt-8 space-y-6 p-7">
-        <div className="grid gap-4 sm:grid-cols-[1fr_170px]">
+        <div className="grid gap-4 sm:grid-cols-[1fr_150px_110px]">
           <div>
             <label className="eyebrow">Name of your place</label>
             <input name="name" required maxLength={80} placeholder="e.g. Flatbush Tap" className="field mt-2" />
@@ -27,7 +27,12 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
               <option value="shop">Shop</option>
             </select>
           </div>
+          <div>
+            <label className="eyebrow">Seats</label>
+            <input name="seats" type="number" min={10} max={2000} step={5} defaultValue={60} required className="field mt-2" />
+          </div>
         </div>
+        <p className="-mt-3 text-xs" style={{ color: "var(--muted)" }}>Your room size sets what counts as a crowd for you: ten extra guests matter to a 40-seat bar, not to a beer hall.</p>
         <div>
           <label className="eyebrow">Address</label>
           <input name="address" required placeholder="e.g. 620 Atlantic Ave, Brooklyn, NY" className="field mt-2" />

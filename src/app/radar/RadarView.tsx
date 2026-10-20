@@ -5,9 +5,17 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import RadarMap, { fmtKm, walkMin, type MapPoint } from "./RadarMap";
 import "./radar.css";
 
+// A moment worth knowing about: one show at a venue, several shows starting or ending together (wave),
+// a game on TV, a street or city event.
 export type ViewItem = {
   id: string;
+  kind: string; // venue | wave | tv | street | calendar
   headliner: string;
+  short: string; // label on the timeline
+  blurb?: string; // what the moment is made of
+  members: string[]; // event ids of a wave's shows
+  w: { arrive: number; start: number; end: number; leave: number }; // when the crowd is around (ms)
+  guests: number; // rough number of extra guests it could bring
   venue: string;
   lat: number;
   lon: number;
@@ -22,7 +30,7 @@ export type ViewItem = {
 };
 
 type Props = {
-  merchant: { id: string; name: string; lat: number; lon: number; radiusM: number; timezone: string };
+  merchant: { id: string; name: string; lat: number; lon: number; radiusM: number; timezone: string; seats: number };
   items: ViewItem[];
   nowIso: string;
   hours: number;
@@ -30,13 +38,8 @@ type Props = {
 
 const H = 3_600_000;
 const Q = 15 * 60_000;
-// Presence window: the crowd gathers about 2.5 h before the start and is gone 1.5 h after the end.
-function windowOf(it: ViewItem) {
-  const start = Date.parse(it.startsAt);
-  const showMin = (it.segment ?? "").toLowerCase() === "sports" ? 150 : 165;
-  return { arrive: start - 150 * 60_000, start, end: start + showMin * 60_000, leave: start + (showMin + 90) * 60_000 };
-}
-type Crowd = ViewItem & { w: ReturnType<typeof windowOf> };
+type Crowd = ViewItem;
+const KIND_LABEL: Record<string, string> = { venue: "", wave: "Several shows at once", tv: "On TV nearby", street: "In the street", calendar: "City moment" };
 
 export default function RadarView({ merchant, items, nowIso, hours }: Props) {
   const router = useRouter();
@@ -66,7 +69,6 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
   const all: Crowd[] = useMemo(
     () =>
       items
-        .map((i) => ({ ...i, w: windowOf(i) }))
         .filter((i) => i.w.leave > now - 3 * H && i.w.arrive < now + 72 * H)
         .sort((a, b) => a.w.start - b.w.start),
     [items, now],
@@ -89,7 +91,10 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
 
   useEffect(() => setRadius(merchant.radiusM), [merchant.radiusM]);
 
-  const active = all.filter((c) => c.w.arrive <= cursor && cursor <= c.w.leave).sort((a, b) => b.capacity - a.capacity);
+  // Shows that belong to a wave worth a campaign count as hot; the selected wave lights up its shows on the map.
+  const hotMembers = useMemo(() => new Set(all.filter((c) => c.interesting && c.kind === "wave").flatMap((c) => c.members)), [all]);
+  const selWave = all.find((c) => c.id === selected && c.kind === "wave");
+  const isHot = (c: Crowd) => c.interesting || hotMembers.has(c.id);
   const hotList = all.filter((c) => c.interesting);
   const nextHot = hotList.find((c) => c.w.start - H > cursor + 5 * 60_000);
   const prevHot = [...hotList].reverse().find((c) => c.w.start - H < cursor - 5 * 60_000);
@@ -101,6 +106,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
     const other = new Array(n).fill(0);
     const rKm = radius / 1000;
     for (const c of inView) {
+      if (c.kind === "wave") continue; // its shows are already counted one by one
       const weight = c.distanceKm <= rKm ? 1 : Math.max(0, 1 - (c.distanceKm - rKm) / (2 * rKm));
       if (weight <= 0) continue;
       for (let i = 0; i < n; i++) {
@@ -108,12 +114,12 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
         if (t < c.w.arrive || t > c.w.leave) continue;
         // people build up while arriving, stay during the show, thin out while leaving
         const f = t < c.w.start ? (t - c.w.arrive) / (c.w.start - c.w.arrive) : t <= c.w.end ? 1 : 1 - (t - c.w.end) / (c.w.leave - c.w.end);
-        (c.interesting ? hot : other)[i] += c.capacity * weight * Math.max(0, Math.min(1, f));
+        (isHot(c) ? hot : other)[i] += c.capacity * weight * Math.max(0, Math.min(1, f));
       }
     }
     const max = Math.max(1, ...hot.map((h, i) => h + other[i]));
     return { n, hot, other, max };
-  }, [inView, t0, span, radius]);
+  }, [inView, t0, span, radius, hotMembers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const curvePaths = useMemo(() => {
     const { n, hot, other, max } = curve;
@@ -135,11 +141,11 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
   const markers = useMemo(() => {
     const laneEnds = [-1, -1, -1];
     return inView.map((c) => {
-      const big = c.interesting || c.capacity >= 2500;
+      const big = c.interesting || (c.kind === "venue" && c.capacity >= 2500);
       let lane = -1;
       if (big) {
         const x = pct(c.w.start);
-        const need = ((c.headliner.length * 6.5 + 26) / (span / H) / (zoom === 24 ? 52 : 24)) * 100;
+        const need = ((c.short.length * 6.5 + 26) / (span / H) / (zoom === 24 ? 52 : 24)) * 100;
         lane = laneEnds.findIndex((e) => e <= x);
         if (lane !== -1) laneEnds[lane] = x + need;
       }
@@ -195,7 +201,8 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
     const c = all.find((x) => x.id === id);
     if (!c) return;
     if (c.w.start > now + 24 * H && zoom === 24) setZoom(72);
-    setCursor(Math.round((c.w.start - H) / Q) * Q);
+    // A show: an hour before it starts, when people arrive. A moment: its peak.
+    setCursor(Math.round((c.kind === "venue" ? c.w.start - H : c.w.start) / Q) * Q);
   }
   function onTrackKey(e: KeyboardEvent<HTMLDivElement>) {
     const step = e.shiftKey ? H : Q;
@@ -248,15 +255,17 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
   }
 
   // One marker per venue: the selected crowd, else the one present at the cursor, else the best scored.
+  // Waves have no venue of their own: selecting one lights up its shows, and the peek card describes the wave.
   const points: MapPoint[] = useMemo(() => {
     const byVenue = new Map<string, Crowd[]>();
-    for (const c of all.filter((i) => i.interesting || i.capacity >= 400)) {
+    for (const c of all.filter((i) => i.kind === "venue" && (isHot(i) || i.capacity >= 400))) {
       const k = `${c.venue}|${c.lat.toFixed(4)},${c.lon.toFixed(4)}`;
       byVenue.set(k, [...(byVenue.get(k) ?? []), c]);
     }
-    return [...byVenue.entries()].map(([k, cs]) => {
+    const inSel = (c: Crowd) => c.id === selected || (selWave?.members.includes(c.id) ?? false);
+    const pts = [...byVenue.entries()].map(([k, cs]) => {
       const isActive = (c: Crowd) => c.w.arrive <= cursor && cursor <= c.w.leave;
-      const rep = cs.find((c) => c.id === selected) ?? cs.find(isActive) ?? [...cs].sort((a, b) => b.score - a.score)[0];
+      const rep = cs.find(inSel) ?? cs.find(isActive) ?? [...cs].sort((a, b) => b.score - a.score)[0];
       return {
         key: k,
         eventId: rep.id,
@@ -268,12 +277,30 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
         href: `/campaigns/new?merchant=${merchant.id}&event=${rep.id}`,
         lat: rep.lat,
         lon: rep.lon,
-        hot: cs.some((c) => c.interesting),
+        hot: cs.some(isHot),
         active: cs.some(isActive),
-        selected: cs.some((c) => c.id === selected),
+        selected: cs.some(inSel),
       };
     });
-  }, [all, cursor, selected, fmtTime, merchant.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (selWave) {
+      // The peek card sits on the wave's biggest show and speaks for the whole wave.
+      const anchor = pts.filter((p) => p.selected).sort((a, b) => b.capacity - a.capacity)[0];
+      if (anchor) {
+        Object.assign(anchor, {
+          eventId: selWave.id,
+          label: selWave.headliner,
+          time: `${dayLabel(selWave.w.start)} ${fmtTime.format(new Date(selWave.w.start))}`,
+          venue: selWave.blurb ?? selWave.venue,
+          capacity: selWave.capacity,
+          href: `/campaigns/new?merchant=${merchant.id}&event=${selWave.id}`,
+          hot: selWave.interesting,
+        });
+        pts.splice(pts.indexOf(anchor), 1);
+        pts.unshift(anchor);
+      }
+    }
+    return pts;
+  }, [all, cursor, selected, fmtTime, merchant.id, hotMembers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const listItems = (onlyWorth ? all.filter((i) => i.interesting) : all).filter((i) => i.w.leave > now);
   const groups = new Map<string, Crowd[]>();
@@ -289,10 +316,10 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
       <p className="tm-summary">
         {hotList.filter((c) => c.w.leave > now).length > 0 ? (
           <>
-            <b>{hotList.filter((c) => c.w.leave > now).length} crowds worth a campaign</b> in the next 3 days. Drag the line on the timeline to see who is around you, or click a crowd.
+            <b>{hotList.filter((c) => c.w.leave > now).length} moments worth a campaign</b> in the next 3 days, sized for your {merchant.seats} seats. Drag the line on the timeline to see who is around you, or click a moment.
           </>
         ) : (
-          <>No big crowd near you in the next 3 days. The timeline still shows the smaller events.</>
+          <>Nothing big enough for your {merchant.seats} seats in the next 3 days. The timeline still shows the smaller events.</>
         )}
       </p>
 
@@ -347,8 +374,8 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
                 ))}
               </div>
               <svg className="tm-curve" viewBox={`0 0 ${Math.max(1, curvePaths.n - 1)} 100`} preserveAspectRatio="none" aria-hidden="true">
-                <path d={curvePaths.other} fill="#d9d2c5" fillOpacity="0.75" />
-                <path d={curvePaths.hot} fill="#e0955a" fillOpacity="0.6" />
+                <path d={curvePaths.other} style={{ fill: "var(--line-strong)" }} fillOpacity="0.75" />
+                <path d={curvePaths.hot} style={{ fill: "var(--accent)" }} fillOpacity="0.45" />
               </svg>
               <span className="tm-curve-lbl" aria-hidden="true">
                 people around you · peak {curve.max >= 1000 ? `${Math.round(curve.max / 1000)}k` : Math.round(curve.max)}
@@ -357,13 +384,13 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
                 <button
                   key={c.id}
                   type="button"
-                  className={`tm-ev${c.interesting ? " hot" : ""}${selected === c.id ? " sel" : ""}${lane >= 0 ? " lbl" : ""}`}
+                  className={`tm-ev${isHot(c) ? " hot" : ""}${c.kind !== "venue" ? " moment" : ""}${selected === c.id || (selWave?.members.includes(c.id) ?? false) ? " sel" : ""}${lane >= 0 ? " lbl" : ""}`}
                   style={{ left: `${pct(c.w.start)}%`, top: lane >= 0 ? 118 + lane * 24 : 196, ["--s" as string]: `${size}px` }}
-                  title={`${c.headliner} · ${c.venue} · ${fmtTime.format(new Date(c.w.start))} · ~${c.capacity.toLocaleString("en-US")} people · ${c.distanceKm.toFixed(1)} km`}
+                  title={`${c.headliner} · ${c.kind === "venue" ? c.venue : (c.blurb ?? c.venue)} · ${fmtTime.format(new Date(c.w.start))} · ~${c.capacity.toLocaleString("en-US")} people · could bring ~${c.guests} guests`}
                   onClick={() => selectCrowd(c.id)}
                 >
                   <i aria-hidden="true" />
-                  {lane >= 0 && <span>{c.headliner}</span>}
+                  {lane >= 0 && <span>{c.short}</span>}
                 </button>
               ))}
               <span className="tm-now" style={{ left: `${pct(now)}%` }} aria-hidden="true">
@@ -376,11 +403,11 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
           </div>
           <p className="tm-legend">
             <span>
-              <i style={{ background: "#e0955a" }} />
+              <i style={{ background: "var(--accent)", opacity: 0.6 }} />
               crowds worth a campaign
             </span>
             <span>
-              <i style={{ background: "#d9d2c5" }} />
+              <i style={{ background: "var(--line-strong)" }} />
               other events
             </span>
           </p>
@@ -401,17 +428,23 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
                         <p className="tnum text-sm font-semibold" style={{ color: "var(--ink)" }}>
                           {fmtTime.format(new Date(it.w.start))} <span style={{ color: "var(--muted)", fontWeight: 400 }}>· crowd from {fmtTime.format(new Date(it.w.arrive))} to {fmtTime.format(new Date(it.w.leave))}</span>
                         </p>
+                        {KIND_LABEL[it.kind] && <p className="text-xs font-semibold" style={{ color: "var(--accent)" }}>{KIND_LABEL[it.kind]}</p>}
                         <p className="truncate font-display text-lg">{it.headliner}</p>
                         <p className="truncate text-sm" style={{ color: "var(--muted)" }}>
-                          {it.venue} · {it.distanceKm.toFixed(1)} km · ~{it.capacity.toLocaleString("en-US")} people
+                          {it.kind === "venue" ? `${it.venue} · ${it.distanceKm.toFixed(1)} km` : (it.blurb ?? it.venue)} · ~{it.capacity.toLocaleString("en-US")} people
                         </p>
+                        {it.interesting && (
+                          <p className="text-sm" style={{ color: "var(--text)" }}>
+                            Could bring about {it.guests} guests{it.guests >= merchant.seats ? `, enough to fill your ${merchant.seats} seats` : `, ${Math.round((it.guests / merchant.seats) * 100)}% of your ${merchant.seats} seats`}
+                          </p>
+                        )}
                         {it.weather && (
                           <p className="mt-1 text-xs font-semibold" style={{ color: ["rain", "storm", "snow", "cold"].includes(it.weather.kind) ? "var(--warn)" : "var(--ok)" }}>
                             Weather at your door: {it.weather.label}
                           </p>
                         )}
                       </button>
-                      <div className="score-ring shrink-0" style={{ ["--p" as string]: it.score }} title="Concentration score">
+                      <div className="score-ring shrink-0" style={{ ["--p" as string]: it.score }} title={`Could fill about ${it.score}% of your room`}>
                         <span>{it.score}</span>
                       </div>
                     </div>

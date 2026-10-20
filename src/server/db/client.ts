@@ -14,8 +14,23 @@ export function getDb(): Db {
   const db = new Database(path);
   const schema = readFileSync(resolve(process.cwd(), "src/server/db/schema.sql"), "utf8");
   db.exec(schema);
+  migrate(db);
   globalForDb.__crowdDb = db;
   return db;
+}
+
+// Additive migrations for columns added after the first release of the schema.
+function migrate(db: Db): void {
+  const add = (table: string, column: string, ddl: string) => {
+    const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+    if (!cols.some((c) => c.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
+  };
+  add("merchants", "seats", "seats INTEGER NOT NULL DEFAULT 60");
+  add("events", "origin", "origin TEXT NOT NULL DEFAULT 'ticketmaster'");
+  add("events", "window_start", "window_start TEXT");
+  add("events", "window_end", "window_end TEXT");
+  add("events", "crowd_est", "crowd_est INTEGER");
+  add("events", "meta_json", "meta_json TEXT");
 }
 
 export function cacheKey(source: string, input: unknown): string {

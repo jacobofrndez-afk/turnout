@@ -17,6 +17,12 @@ export type TmEvent = {
   venue: { id?: string; name: string; lat: number; lon: number; city?: string; country?: string };
   attractions: Attraction[];
   distanceKm?: number;
+  // Moments that are not a single Ticketmaster event (waves of small shows, games on TV, street events).
+  origin?: "ticketmaster" | "wave" | "tv" | "street" | "calendar";
+  windowStart?: string; // ISO; when the crowd is around (defaults to arrival before start, exit after end)
+  windowEnd?: string;
+  crowdEst?: number; // people around, when not derived from the venue
+  meta?: Record<string, unknown>;
 };
 
 type RawEvent = {

@@ -2,6 +2,7 @@
 import { getDb } from "@/server/db/client";
 import { fetchEventsNear, type TmEvent } from "./ticketmaster";
 import { scoreConcentration, headliner, type Scored } from "./concentration";
+import { detectWaves } from "./moments";
 
 export type Merchant = {
   id: string;
@@ -14,6 +15,7 @@ export type Merchant = {
   timezone: string;
   radius_m: number;
   voice: string | null;
+  seats: number;
 };
 
 export function getMerchant(id: string): Merchant | undefined {
@@ -39,9 +41,14 @@ export async function radarFor(merchant: Merchant, hoursAhead = 72): Promise<Rad
     if (events.length === 0) throw e;
   }
   const now = new Date();
-  return events
-    .map((e) => ({ ...scoreConcentration(e, { lat: merchant.lat, lon: merchant.lon, radiusM: merchant.radius_m }, now), headliner: headliner(e) }))
-    .filter((s) => s.hoursUntil > -3)
+  const m = { lat: merchant.lat, lon: merchant.lon, radiusM: merchant.radius_m, seats: merchant.seats ?? 60 };
+  const scored = events.map((e) => scoreConcentration(e, m, now));
+  // Waves: several small shows starting or ending together near the merchant.
+  const waves = detectWaves(scored, { id: merchant.id, ...m }, now, hoursAhead);
+  persist(waves);
+  return [...scored, ...waves.map((w) => scoreConcentration(w, m, now))]
+    .map((s) => ({ ...s, headliner: headliner(s.event) }))
+    .filter((s) => s.hoursUntil > -3 || (s.event.windowEnd && Date.parse(s.event.windowEnd) > now.getTime()))
     .sort((a, b) => b.score - a.score || a.hoursUntil - b.hoursUntil);
 }
 
@@ -50,7 +57,7 @@ function storedEventsNear(merchant: Merchant, radiusKm: number, hoursAhead: numb
   const deg = radiusKm / 111;
   const rows = getDb()
     .prepare(
-      `SELECT * FROM events WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? AND starts_at BETWEEN datetime('now', '-3 hours') AND datetime('now', ?) ORDER BY starts_at`,
+      `SELECT * FROM events WHERE origin = 'ticketmaster' AND lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? AND starts_at BETWEEN datetime('now', '-3 hours') AND datetime('now', ?) ORDER BY starts_at`,
     )
     .all(merchant.lat - deg, merchant.lat + deg, merchant.lon - deg / Math.cos((merchant.lat * Math.PI) / 180), merchant.lon + deg / Math.cos((merchant.lat * Math.PI) / 180), `+${Math.round(hoursAhead)} hours`) as {
     id: string; name: string; venue_name: string; venue_id: string | null; lat: number; lon: number; starts_at: string; timezone: string | null; segment: string | null; genre: string | null; attractions_json: string; status: string | null; url: string | null; image_url: string | null;
@@ -73,9 +80,10 @@ function storedEventsNear(merchant: Merchant, radiusKm: number, hoursAhead: numb
 function persist(events: TmEvent[]): void {
   const db = getDb();
   const stmt = db.prepare(
-    `INSERT INTO events (id, name, venue_name, venue_id, lat, lon, starts_at, timezone, segment, genre, attractions_json, status, url, image_url, fetched_at)
-     VALUES (@id, @name, @venue_name, @venue_id, @lat, @lon, @starts_at, @timezone, @segment, @genre, @attractions_json, @status, @url, @image_url, datetime('now'))
-     ON CONFLICT(id) DO UPDATE SET name=excluded.name, starts_at=excluded.starts_at, status=excluded.status, attractions_json=excluded.attractions_json, fetched_at=excluded.fetched_at`,
+    `INSERT INTO events (id, name, venue_name, venue_id, lat, lon, starts_at, timezone, segment, genre, attractions_json, status, url, image_url, fetched_at, origin, window_start, window_end, crowd_est, meta_json)
+     VALUES (@id, @name, @venue_name, @venue_id, @lat, @lon, @starts_at, @timezone, @segment, @genre, @attractions_json, @status, @url, @image_url, datetime('now'), @origin, @window_start, @window_end, @crowd_est, @meta_json)
+     ON CONFLICT(id) DO UPDATE SET name=excluded.name, venue_name=excluded.venue_name, lat=excluded.lat, lon=excluded.lon, starts_at=excluded.starts_at, status=excluded.status, attractions_json=excluded.attractions_json, fetched_at=excluded.fetched_at,
+       origin=excluded.origin, window_start=excluded.window_start, window_end=excluded.window_end, crowd_est=excluded.crowd_est, meta_json=excluded.meta_json`,
   );
   const tx = db.transaction((rows: TmEvent[]) => {
     for (const e of rows) {
@@ -94,6 +102,11 @@ function persist(events: TmEvent[]): void {
         status: e.status ?? null,
         url: e.url ?? null,
         image_url: e.imageUrl ?? null,
+        origin: e.origin ?? "ticketmaster",
+        window_start: e.windowStart ?? null,
+        window_end: e.windowEnd ?? null,
+        crowd_est: e.crowdEst ?? null,
+        meta_json: e.meta ? JSON.stringify(e.meta) : null,
       });
     }
   });

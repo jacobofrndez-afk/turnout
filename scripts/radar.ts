@@ -15,6 +15,6 @@ console.log(`${merchant.name} (${merchant.city}): ${items.length} events in the 
 for (const it of items.slice(0, 25)) {
   const flag = it.interesting ? "**" : "  ";
   console.log(
-    `${flag} ${String(it.score).padStart(3)}  ${it.event.startsAt.slice(0, 16)}  ${it.event.venue.name.slice(0, 32).padEnd(32)}  ${it.headliner.name.slice(0, 34).padEnd(34)}  ${it.capacity.toString().padStart(6)} ppl  ${it.distanceKm.toFixed(1)} km  ${it.event.segment ?? ""}/${it.event.genre ?? ""}`,
+    `${flag} ${(it.event.origin ?? "tm").slice(0, 5).padEnd(5)} ${String(it.score).padStart(3)} ${String(it.potentialGuests).padStart(4)}g  ${it.event.startsAt.slice(0, 16)}  ${it.event.venue.name.slice(0, 32).padEnd(32)}  ${it.headliner.name.slice(0, 34).padEnd(34)}  ${it.capacity.toString().padStart(6)} ppl  ${it.distanceKm.toFixed(1)} km  ${it.event.segment ?? ""}/${it.event.genre ?? ""}`,
   );
 }

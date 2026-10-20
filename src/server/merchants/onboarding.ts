@@ -24,14 +24,14 @@ export function parseOfferLines(text: string): OfferInput[] {
 
 export type OnboardingResult = { merchantId: string; geocoded: { lat: number; lon: number; displayName: string } };
 
-export async function createMerchantFromForm(f: { name: string; kind: string; address: string; voice: string; channels: string[]; offersText: string }): Promise<OnboardingResult | { error: string }> {
+export async function createMerchantFromForm(f: { name: string; kind: string; address: string; voice: string; channels: string[]; offersText: string; seats?: number }): Promise<OnboardingResult | { error: string }> {
   const geo = await geocode(f.address);
   if (!geo) return { error: `Could not locate "${f.address}". Try a fuller address with city and country.` };
   const db = getDb();
   const id = newId("m");
   db.prepare(
-    `INSERT INTO merchants (id, name, kind, address, lat, lon, city, timezone, radius_m, voice, channels_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1500, ?, ?)`,
-  ).run(id, f.name.trim().slice(0, 80), f.kind, geo.displayName.split(",").slice(0, 3).join(","), geo.lat, geo.lon, geo.city || f.address.split(",").pop()?.trim() || "", geo.timezone, f.voice.trim().slice(0, 300) || null, JSON.stringify(f.channels));
+    `INSERT INTO merchants (id, name, kind, address, lat, lon, city, timezone, radius_m, seats, voice, channels_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1500, ?, ?, ?)`,
+  ).run(id, f.name.trim().slice(0, 80), f.kind, geo.displayName.split(",").slice(0, 3).join(","), geo.lat, geo.lon, geo.city || f.address.split(",").pop()?.trim() || "", geo.timezone, Math.round(Math.min(2000, Math.max(10, f.seats || 60))), f.voice.trim().slice(0, 300) || null, JSON.stringify(f.channels));
   const ins = db.prepare(`INSERT INTO offers (id, merchant_id, title, description, price, tag_urns_json, tag_names_json, active) VALUES (?, ?, ?, ?, ?, '[]', '[]', 1)`);
   for (const o of parseOfferLines(f.offersText)) ins.run(newId("o"), id, o.title, o.description, o.price);
   const demoNames = ["Alex", "Sam", "Jordan", "Camille", "Robin", "Noa"];

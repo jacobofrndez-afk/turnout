@@ -15,6 +15,7 @@ export async function POST(req: Request) {
     voice: String(form.get("voice") ?? ""),
     channels: form.getAll("channels").map(String),
     offersText: String(form.get("offers") ?? ""),
+    seats: Number(form.get("seats") ?? 60) || 60,
   });
   if ("error" in result) return NextResponse.redirect(new URL(`/start?error=${encodeURIComponent(result.error)}`, req.url), 303);
   return NextResponse.redirect(new URL(`/start/confirm?merchant=${result.merchantId}`, req.url), 303);

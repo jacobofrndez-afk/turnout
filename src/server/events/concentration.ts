@@ -71,40 +71,57 @@ export function haversineKm(lat1: number, lon1: number, lat2: number, lon2: numb
 
 export type Scored = {
   event: TmEvent;
-  capacity: number;
+  capacity: number; // people around (venue capacity, wave total, fans watching nearby...)
   distanceKm: number;
   hoursUntil: number;
-  score: number; // 0-100
+  potentialGuests: number; // rough estimate of extra guests this moment could bring
+  fill: number; // potentialGuests / seats
+  score: number; // 0-100: share of the merchant's room this moment could fill, adjusted for timing
   interesting: boolean;
   reasons: string[];
 };
 
-// Score = crowd size (log scale) x walkability x timing.
-export function scoreConcentration(e: TmEvent, merchant: { lat: number; lon: number; radiusM: number }, now = new Date()): Scored {
-  const capacity = estimateCapacity(e);
+// When the crowd is around: explicit window for moments, else arrival 2.5 h before and exit 1.5 h after the show.
+export function presenceWindow(e: TmEvent): { arrive: number; start: number; end: number; leave: number } {
+  const start = Date.parse(e.startsAt);
+  const showMin = (e.segment ?? "").toLowerCase() === "sports" ? 150 : 165;
+  const arrive = e.windowStart ? Date.parse(e.windowStart) : start - 150 * 60_000;
+  const leave = e.windowEnd ? Date.parse(e.windowEnd) : start + (showMin + 90) * 60_000;
+  const end = e.windowEnd && e.origin !== "ticketmaster" ? Math.max(start, leave - 30 * 60_000) : start + showMin * 60_000;
+  return { arrive, start, end, leave };
+}
+
+// Share of the people around who may stop at a bar nearby. Rough, documented assumptions:
+// venue and wave crowds pass by on their way in or out; TV crowds actively look for a bar to watch;
+// street crowds wander.
+const SHARE: Record<string, number> = { ticketmaster: 0.005, wave: 0.005, tv: 0.03, street: 0.003, calendar: 0.003 };
+
+// Relevance is relative to the merchant: a 40-seat bar needs 10 extra guests, not 20,000 people.
+export function scoreConcentration(e: TmEvent, merchant: { lat: number; lon: number; radiusM: number; seats?: number }, now = new Date()): Scored {
+  const capacity = e.crowdEst ?? estimateCapacity(e);
   const distanceKm = haversineKm(merchant.lat, merchant.lon, e.venue.lat, e.venue.lon);
   const hoursUntil = (new Date(e.startsAt).getTime() - now.getTime()) / 3_600_000;
-
-  // 200 people -> ~0.2, 2 000 -> ~0.5, 20 000 -> ~0.85, 80 000 -> 1
-  const size = capacity <= 0 ? 0 : clamp(Math.log10(capacity / 100) / Math.log10(800), 0, 1);
-  // Full weight inside the merchant radius, fades to 0 at 3x the radius.
+  const seats = Math.max(10, merchant.seats ?? 60);
   const radiusKm = merchant.radiusM / 1000;
-  const walk = distanceKm <= radiusKm ? 1 : clamp(1 - (distanceKm - radiusKm) / (2 * radiusKm), 0, 1);
-  // Soon is better than far away; nothing in the past.
-  const timing = hoursUntil < -3 ? 0 : hoursUntil <= 6 ? 1 : clamp(1 - (hoursUntil - 6) / 66, 0.25, 1);
-
-  const score = Math.round(100 * size * walk * timing);
+  // Full weight inside the merchant radius, fades to 0 at 3x the radius. TV and calendar crowds are "around you" by construction.
+  const walk = e.origin === "tv" || e.origin === "calendar" ? 1 : distanceKm <= radiusKm ? 1 : clamp(1 - (distanceKm - radiusKm) / (2 * radiusKm), 0, 1);
+  const timing = hoursUntil < -3 ? 0 : hoursUntil <= 24 ? 1 : clamp(1 - (hoursUntil - 24) / 96, 0.5, 1);
+  const potentialGuests = Math.round(capacity * walk * (SHARE[e.origin ?? "ticketmaster"] ?? 0.005));
+  const fill = potentialGuests / seats;
+  const score = Math.round(100 * clamp(fill, 0, 1) * timing);
   const reasons = [
-    `${capacity.toLocaleString("en-US")} people expected at ${e.venue.name}`,
-    `${distanceKm.toFixed(1)} km from you`,
-    hoursUntil < 0 ? "already started" : hoursUntil < 24 ? `starts in ${Math.round(hoursUntil)} h` : `in ${Math.round(hoursUntil / 24)} days`,
+    `${capacity.toLocaleString("en-US")} people around`,
+    e.origin === "tv" ? "watching on TV nearby" : `${distanceKm.toFixed(1)} km from you`,
+    `could bring about ${potentialGuests} guests, ${Math.round(fill * 100)}% of your ${seats} seats`,
   ];
-  return { event: e, capacity, distanceKm, hoursUntil, score, interesting: score >= 45 && capacity >= 1000, reasons };
+  return { event: e, capacity, distanceKm, hoursUntil, potentialGuests, fill, score, interesting: fill >= 0.25 && potentialGuests >= 8 && capacity > 0, reasons };
 }
 
 const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x));
 
 export function headliner(e: TmEvent): { name: string; qlooType: "artist" | "brand" | "person" | "movie" | "tv_show" | undefined } {
+  // Moments made of several events are named after the moment, not after one of their members.
+  if (e.origin && e.origin !== "ticketmaster") return { name: e.name, qlooType: undefined };
   const a = e.attractions[0];
   const name = a?.name ?? e.name;
   const seg = (a?.segment ?? e.segment ?? "").toLowerCase();

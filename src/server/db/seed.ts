@@ -15,6 +15,7 @@ type SeedMerchant = {
   city: string;
   timezone: string;
   radius_m: number;
+  seats: number; // room size: relevance of a crowd is relative to it
   voice: string;
   offers: SeedOffer[];
 };
@@ -30,6 +31,7 @@ export const MERCHANTS: SeedMerchant[] = [
     city: "New York",
     timezone: "America/New_York",
     radius_m: 1500,
+    seats: 70,
     voice: "Warm, quick-witted, New York direct. Short sentences. No exclamation marks.",
     offers: [
       { id: "o_pp_happy", title: "Pre-show happy hour", description: "Two cocktails for the price of one, 5 to 7 pm", price: "$16 for two", concepts: ["cocktail bar", "happy hour"] },
@@ -49,6 +51,7 @@ export const MERCHANTS: SeedMerchant[] = [
     city: "Paris",
     timezone: "Europe/Paris",
     radius_m: 1500,
+    seats: 50,
     voice: "Chaleureux, un peu d'humour parisien, tutoiement. Phrases courtes.",
     offers: [
       { id: "o_q12_apero", title: "Apéro d'avant-concert", description: "Planche charcuterie-fromage et deux verres de vin", price: "24 €", concepts: ["wine bar", "charcuterie"] },
@@ -67,10 +70,10 @@ const CONTACT_NAMES = ["Alex", "Sam", "Jordan", "Camille", "Robin", "Noa"];
 export async function seed(): Promise<void> {
   const db = getDb();
   const upsertMerchant = db.prepare(
-    `INSERT INTO merchants (id, name, kind, address, lat, lon, city, timezone, radius_m, voice, channels_json)
-     VALUES (@id, @name, @kind, @address, @lat, @lon, @city, @timezone, @radius_m, @voice, @channels_json)
+    `INSERT INTO merchants (id, name, kind, address, lat, lon, city, timezone, radius_m, seats, voice, channels_json)
+     VALUES (@id, @name, @kind, @address, @lat, @lon, @city, @timezone, @radius_m, @seats, @voice, @channels_json)
      ON CONFLICT(id) DO UPDATE SET name=excluded.name, kind=excluded.kind, address=excluded.address, lat=excluded.lat, lon=excluded.lon,
-       city=excluded.city, timezone=excluded.timezone, radius_m=excluded.radius_m, voice=excluded.voice, channels_json=excluded.channels_json`,
+       city=excluded.city, timezone=excluded.timezone, radius_m=excluded.radius_m, seats=excluded.seats, voice=excluded.voice, channels_json=excluded.channels_json`,
   );
   const upsertOffer = db.prepare(
     `INSERT INTO offers (id, merchant_id, title, description, price, tag_urns_json, tag_names_json, active)

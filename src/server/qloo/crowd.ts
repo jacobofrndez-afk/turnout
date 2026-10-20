@@ -4,7 +4,7 @@ import { getDb, newId } from "@/server/db/client";
 import type { Merchant } from "@/server/events/radar";
 import { headliner as pickHeadliner } from "@/server/events/concentration";
 import type { TmEvent } from "@/server/events/ticketmaster";
-import { searchEntities, tasteTags, demographics, recommend, type QlooEntity, type QlooTag, type Demographics, type QlooCall, tagId } from "./api";
+import { searchEntities, tasteTags, demographics, recommend, findTags, type QlooEntity, type QlooTag, type Demographics, type QlooCall, type Signal, tagId } from "./api";
 
 export type Candidate = { id: string; name: string; type: string; popularity?: number; description?: string };
 export type OfferFit = { offerId: string; title: string; tagUrns: string[]; tagNames: string[]; affinity: number; matches: number; topPlaces: string[] };
@@ -25,9 +25,37 @@ export type CrowdProfile = {
   offerFits: OfferFit[];
   provenance: ProvenanceRow[];
   qlooCalls: { live: number; cached: number };
+  // What Qloo was asked about. One entity for a show; several entities or taste tags for a moment.
+  origin: string;
+  signal: { entities: SignalPart[]; tags: SignalPart[] };
 };
 
-export type EventRow = { id: string; name: string; venue_name: string; lat: number; lon: number; starts_at: string; segment: string | null; genre: string | null; attractions_json: string; timezone: string | null };
+export type SignalPart = { id: string; name: string; type: string; note?: string };
+
+export const hasSignal = (p: CrowdProfile) => p.signal.entities.length + p.signal.tags.length > 0;
+
+export type EventRow = {
+  id: string; name: string; venue_name: string; lat: number; lon: number; starts_at: string; segment: string | null; genre: string | null; attractions_json: string; timezone: string | null;
+  origin?: string | null; window_start?: string | null; window_end?: string | null; crowd_est?: number | null; meta_json?: string | null;
+};
+
+// Members of a wave, or a ready-made Qloo signal for TV, street and calendar moments (stored in meta_json).
+export type MomentMeta = {
+  kind?: string;
+  members?: { id: string; name: string; venue: string; capacity: number; startsAt: string; segment?: string }[];
+  signal?: { entities?: SignalPart[]; tags?: SignalPart[] };
+  windowLabel?: string;
+  windowWhy?: string;
+  why?: string;
+};
+
+export const momentMeta = (e: EventRow): MomentMeta => {
+  try {
+    return e.meta_json ? (JSON.parse(e.meta_json) as MomentMeta) : {};
+  } catch {
+    return {};
+  }
+};
 export type OfferRow = { id: string; title: string; description: string; price: string; tag_urns_json: string; tag_names_json: string };
 
 export function getEvent(id: string): EventRow | undefined {
@@ -48,47 +76,56 @@ export async function buildCrowdProfile(merchant: Merchant, event: EventRow, pic
     provenance.push({ seq: ++seq, kind: "qloo", workflow, input: redact(c.params), status: c.status === 200 ? "ok" : `http ${c.status}`, resultCount: c.resultCount, cacheHit: c.cacheHit, durationMs: c.durationMs, note });
   };
 
-  const tm: TmEvent = { id: event.id, name: event.name, startsAt: event.starts_at, venue: { name: event.venue_name, lat: event.lat, lon: event.lon }, attractions: JSON.parse(event.attractions_json), segment: event.segment ?? undefined, genre: event.genre ?? undefined };
+  const tm: TmEvent = { id: event.id, name: event.name, startsAt: event.starts_at, venue: { name: event.venue_name, lat: event.lat, lon: event.lon }, attractions: JSON.parse(event.attractions_json), segment: event.segment ?? undefined, genre: event.genre ?? undefined, origin: (event.origin ?? "ticketmaster") as TmEvent["origin"] };
   const head = pickHeadliner(tm);
-  const profile: CrowdProfile = { id: newId("cp"), eventId: event.id, headlinerName: head.name, headlinerType: head.qlooType, status: "unresolved", candidates: [], tags: [], places: [], brands: [], offerFits: [], provenance, qlooCalls: calls };
+  const origin = event.origin ?? "ticketmaster";
+  const profile: CrowdProfile = { id: newId("cp"), eventId: event.id, headlinerName: head.name, headlinerType: head.qlooType, status: "unresolved", candidates: [], tags: [], places: [], brands: [], offerFits: [], provenance, qlooCalls: calls, origin, signal: { entities: [], tags: [] } };
 
-  // 1. Resolve the headliner. Deterministic: exact name + expected type, else ask.
-  const types = head.qlooType ? [head.qlooType] : undefined;
-  let results = await searchEntities(head.name, types, { onCall: onCall("describe", `search "${head.name}"${types ? ` as ${types[0]}` : ""}`) });
-  if (results.length === 0 && types) results = await searchEntities(head.name, undefined, { onCall: onCall("describe", "retry without type") });
-  profile.candidates = results.slice(0, 5).map((r) => ({ id: r.entity_id, name: r.name, type: r.subtype ?? "", popularity: r.popularity, description: r.disambiguation ?? String(r.properties?.short_description ?? "") }));
+  if (origin === "ticketmaster") {
+    // 1. Resolve the headliner. Deterministic: exact name + expected type, else ask.
+    const types = head.qlooType ? [head.qlooType] : undefined;
+    let results = await searchEntities(head.name, types, { onCall: onCall("describe", `search "${head.name}"${types ? ` as ${types[0]}` : ""}`) });
+    if (results.length === 0 && types) results = await searchEntities(head.name, undefined, { onCall: onCall("describe", "retry without type") });
+    profile.candidates = results.slice(0, 5).map((r) => ({ id: r.entity_id, name: r.name, type: r.subtype ?? "", popularity: r.popularity, description: r.disambiguation ?? String(r.properties?.short_description ?? "") }));
 
-  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-  let entity: QlooEntity | undefined;
-  if (pickedEntityId) {
-    entity = results.find((r) => r.entity_id === pickedEntityId);
-    profile.status = entity ? "resolved" : "unresolved";
-  } else {
-    const exact = results.filter((r) => norm(r.name) === norm(head.name) && (!head.qlooType || r.subtype === `urn:entity:${head.qlooType}`));
-    if (exact.length >= 1 && (exact.length === 1 || (exact[0].popularity ?? 0) - (exact[1].popularity ?? 0) > 0.05)) {
-      entity = exact[0];
-      profile.status = "auto";
-    } else if (results.length > 0) {
-      profile.status = "needs_input";
+    let entity: QlooEntity | undefined;
+    if (pickedEntityId) {
+      entity = results.find((r) => r.entity_id === pickedEntityId);
+      profile.status = entity ? "resolved" : "unresolved";
+    } else {
+      const exact = results.filter((r) => norm(r.name) === norm(head.name) && (!head.qlooType || r.subtype === `urn:entity:${head.qlooType}`));
+      if (exact.length >= 1 && (exact.length === 1 || (exact[0].popularity ?? 0) - (exact[1].popularity ?? 0) > 0.05)) {
+        entity = exact[0];
+        profile.status = "auto";
+      } else if (results.length > 0) {
+        profile.status = "needs_input";
+      }
     }
+    provenance.push({ seq: ++seq, kind: "decision", workflow: "resolve_headliner", input: { headliner: head.name, type: head.qlooType ?? "any" }, status: profile.status, resultCount: results.length, cacheHit: false, durationMs: 0, note: entity ? `picked ${entity.name} (${entity.subtype})` : "no confident match" });
+    if (!entity) return profile;
+    profile.entity = entity;
+    profile.signal.entities = [{ id: entity.entity_id, name: entity.name, type: entity.subtype?.replace("urn:entity:", "") ?? "" }];
+  } else {
+    // 1'. A moment: several shows, a game on TV, a street event. Build the signal from its parts, never ask the merchant.
+    await momentSignal(event, profile, onCall);
+    provenance.push({ seq: ++seq, kind: "decision", workflow: "moment_signal", input: { moment: event.name, origin }, status: hasSignal(profile) ? "auto" : "unresolved", resultCount: profile.signal.entities.length + profile.signal.tags.length, cacheHit: false, durationMs: 0, note: [...profile.signal.entities, ...profile.signal.tags].map((x) => x.name).join(", ") || "nothing Qloo knows" });
+    if (!hasSignal(profile)) return profile;
+    profile.status = "auto";
   }
-  provenance.push({ seq: ++seq, kind: "decision", workflow: "resolve_headliner", input: { headliner: head.name, type: head.qlooType ?? "any" }, status: profile.status, resultCount: results.length, cacheHit: false, durationMs: 0, note: entity ? `picked ${entity.name} (${entity.subtype})` : "no confident match" });
-  if (!entity) return profile;
-  profile.entity = entity;
-  const id = entity.entity_id;
+  const id: Signal = { entities: profile.signal.entities.map((e) => e.id), tags: profile.signal.tags.map((t) => t.id) };
 
   // 2. Fixed recipe: taste tags (place-scoped), demographics, bars near the merchant, brands.
   profile.tags = await tasteTags(id, { parentTypes: ["place"], take: 30 }, { onCall: onCall("entity_tags", "place-scoped taste tags") });
-  profile.demographics = await demographics(id, { onCall: onCall("audience_demographics") });
-  profile.places = await recommend("place", { entities: [id], location: { lat: merchant.lat, lon: merchant.lon, radiusM: merchant.radius_m }, filterTags: [BAR_OR_RESTAURANT[0]], take: 12, explain: true }, { onCall: onCall("recommend", `bars within ${merchant.radius_m} m`) });
-  profile.brands = await recommend("brand", { entities: [id], take: 12 }, { onCall: onCall("recommend", "brands this crowd over-indexes on") });
+  profile.demographics = await demographics(id, { onCall: onCall("audience_demographics") }).catch(() => undefined);
+  profile.places = await recommend("place", { ...signalOf(id), location: { lat: merchant.lat, lon: merchant.lon, radiusM: merchant.radius_m }, filterTags: [BAR_OR_RESTAURANT[0]], take: 12, explain: true }, { onCall: onCall("recommend", `bars within ${merchant.radius_m} m`) });
+  profile.brands = await recommend("brand", { ...signalOf(id), take: 12 }, { onCall: onCall("recommend", "brands this crowd over-indexes on") });
 
   // 3. Offer fit: for each offer, how strongly does this crowd like places with the offer's tags around the merchant?
   for (const offer of getOffers(merchant.id)) {
     const urns: string[] = JSON.parse(offer.tag_urns_json);
     const names: string[] = JSON.parse(offer.tag_names_json);
     if (urns.length === 0) continue;
-    const places = await recommend("place", { entities: [id], location: { lat: merchant.lat, lon: merchant.lon, radiusM: Math.max(merchant.radius_m, 2500) }, filterTags: urns, take: 10 }, { onCall: onCall("recommend", `offer fit: ${offer.title}`) });
+    const places = await recommend("place", { ...signalOf(id), location: { lat: merchant.lat, lon: merchant.lon, radiusM: Math.max(merchant.radius_m, 2500) }, filterTags: urns, take: 10 }, { onCall: onCall("recommend", `offer fit: ${offer.title}`) });
     const aff = places.slice(0, 5).map((p) => p.query?.affinity ?? p.affinity ?? 0);
     const mean = aff.length ? aff.reduce((a, b) => a + b, 0) / aff.length : 0;
     // Also credit direct overlap between the offer's tags and the crowd's taste tags.
@@ -102,6 +139,43 @@ export async function buildCrowdProfile(merchant: Merchant, event: EventRow, pic
   return profile;
 }
 
+const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+const signalOf = (s: Signal) => (typeof s === "string" ? { entities: [s] } : { entities: s.entities, tags: s.tags });
+
+// Segment of a wave to a Qloo taste tag, used when none of its shows is known to Qloo.
+const SEGMENT_TAG_QUERY: Record<string, string> = { "Arts & Theatre": "musical", Music: "live music", Comedy: "stand-up comedy", Sports: "sports", Family: "family" };
+
+async function momentSignal(event: EventRow, profile: CrowdProfile, onCall: (w: string, note?: string) => (c: QlooCall) => void): Promise<void> {
+  const meta = momentMeta(event);
+  // TV, street and calendar moments carry a signal already resolved through Qloo when they were detected.
+  if (meta.signal) {
+    profile.signal.entities = meta.signal.entities ?? [];
+    profile.signal.tags = meta.signal.tags ?? [];
+    return;
+  }
+  // A wave: resolve its biggest shows by exact name. Unknown shows are skipped, not guessed.
+  const seen = new Set<string>();
+  const members = (meta.members ?? []).filter((m) => {
+    const k = norm(m.name);
+    if (!k || seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  for (const m of members.slice(0, 6)) {
+    if (profile.signal.entities.length >= 3) break;
+    const hint = pickHeadliner({ id: m.id, name: m.name, startsAt: m.startsAt, venue: { name: m.venue, lat: 0, lon: 0 }, attractions: [{ name: m.name, segment: m.segment }], segment: m.segment }).qlooType;
+    const results = await searchEntities(m.name, hint ? [hint] : undefined, { onCall: onCall("describe", `wave member "${m.name}"`) });
+    const hit = results.find((r) => norm(r.name) === norm(m.name) && !/place|locality|destination/.test(r.subtype ?? ""));
+    if (hit) profile.signal.entities.push({ id: hit.entity_id, name: hit.name, type: hit.subtype?.replace("urn:entity:", "") ?? "", note: `${m.venue}, ~${m.capacity.toLocaleString("en-US")} people` });
+    profile.candidates.push({ id: hit?.entity_id ?? "", name: m.name, type: hit?.subtype ?? "not in Qloo", description: m.venue });
+  }
+  if (profile.signal.entities.length === 0) {
+    const q = SEGMENT_TAG_QUERY[event.segment ?? ""] ?? "nightlife";
+    const tag = (await findTags(q, 3, { onCall: onCall("find_tags", `fallback taste tag "${q}"`) }))[0];
+    if (tag) profile.signal.tags.push({ id: tagId(tag), name: tag.name, type: "tag", note: "no show in this wave is known to Qloo by name" });
+  }
+}
+
 function redact(params: Record<string, string>): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(params)) out[k] = v.length > 80 ? v.slice(0, 77) + "..." : v;
@@ -113,7 +187,7 @@ function persist(p: CrowdProfile): void {
   db.prepare(
     `INSERT INTO crowd_profiles (id, event_id, headliner_name, headliner_type, entity_id, resolution_status, candidates_json, tags_json, demographics_json, places_json, brands_json, built_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
-  ).run(p.id, p.eventId, p.headlinerName, p.headlinerType ?? null, p.entity?.entity_id ?? null, p.status, JSON.stringify(p.candidates), JSON.stringify(p.tags.map((t) => ({ id: tagId(t), name: t.name, subtype: t.subtype, affinity: t.query?.affinity }))), JSON.stringify(p.demographics ?? null), JSON.stringify(p.places.map(slim)), JSON.stringify(p.brands.map(slim)));
+  ).run(p.id, p.eventId, p.headlinerName, p.headlinerType ?? null, p.entity?.entity_id ?? p.signal.entities[0]?.id ?? null, p.status, JSON.stringify(p.candidates), JSON.stringify(p.tags.map((t) => ({ id: tagId(t), name: t.name, subtype: t.subtype, affinity: t.query?.affinity }))), JSON.stringify(p.demographics ?? null), JSON.stringify(p.places.map(slim)), JSON.stringify(p.brands.map(slim)));
   const ins = db.prepare(`INSERT INTO provenance (crowd_profile_id, seq, kind, workflow, input_json, envelope_status, result_count, cache_hit, duration_ms, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   for (const r of p.provenance) ins.run(p.id, r.seq, r.kind, r.workflow, JSON.stringify(r.input), r.status, r.resultCount, r.cacheHit ? 1 : 0, r.durationMs, r.note ?? null);
 }

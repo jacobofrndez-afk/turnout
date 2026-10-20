@@ -106,3 +106,6 @@
 .tm-root.is-full .tm-fs { font-size: 12.5px; }
 .tm-fs:focus-visible, .tm-more:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tm-more { justify-self: start; border: 0; background: none; padding: 4px 0; font-size: 13px; color: #6b655b; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+/* Moments made of several events (waves, TV, street): a diamond instead of a venue dot. */
+.tm-ev.moment i { border-radius: 2px; transform: rotate(45deg) scale(0.85); }

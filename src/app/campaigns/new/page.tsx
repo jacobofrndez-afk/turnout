@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getMerchant } from "@/server/events/radar";
-import { buildCrowdProfile, describeDemographics, getEvent } from "@/server/qloo/crowd";
+import { buildCrowdProfile, describeDemographics, getEvent, hasSignal } from "@/server/qloo/crowd";
 import { tagId } from "@/server/qloo/api";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,22 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
       </main>
     );
   }
-  const profile = await buildCrowdProfile(merchant, event, sp.pick);
+  let profile: Awaited<ReturnType<typeof buildCrowdProfile>>;
+  try {
+    profile = await buildCrowdProfile(merchant, event, sp.pick);
+  } catch (e) {
+    // Qloo unreachable or rate limited: say so plainly instead of a blank error page.
+    return (
+      <main className="mx-auto max-w-3xl px-5 py-16">
+        <Link href={`/radar?merchant=${merchant.id}`} className="text-sm" style={{ color: "var(--muted)" }}>← Radar</Link>
+        <h1 className="mt-3 text-3xl">{event.name}</h1>
+        <p className="mt-4 rounded-xl p-3 text-sm" style={{ background: "var(--danger-soft)", color: "var(--danger)" }}>
+          Qloo could not be reached, so this crowd cannot be read yet. Nothing was sent. Try again in a minute.
+        </p>
+        <p className="mt-2 text-xs" style={{ color: "var(--muted)" }}>{String((e as Error).message).slice(0, 160)}</p>
+      </main>
+    );
+  }
   const demo = describeDemographics(profile.demographics);
   const fmt = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: merchant.timezone });
   const ageLabel = (k: string) => k.replace("24_and_younger", "<25").replace("55_and_older", "55+").replace("_to_", "-");
@@ -57,14 +72,29 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
         </section>
       )}
 
-      {profile.entity && (
+      {hasSignal(profile) && (
         <>
           <section className="mt-8 grid gap-4 md:grid-cols-3">
-            <div className="card p-5">
-              <p className="eyebrow">Resolved entity</p>
-              <p className="mt-2 font-display text-xl">{profile.entity.name}</p>
-              <p className="mt-1 text-xs" style={{ color: "var(--muted)" }}>{profile.entity.subtype?.replace("urn:entity:", "")} · popularity {((profile.entity.popularity ?? 0) * 100).toFixed(1)}% · {profile.status === "auto" ? "matched automatically" : "picked by you"}</p>
-            </div>
+            {profile.entity ? (
+              <div className="card p-5">
+                <p className="eyebrow">Resolved entity</p>
+                <p className="mt-2 font-display text-xl">{profile.entity.name}</p>
+                <p className="mt-1 text-xs" style={{ color: "var(--muted)" }}>{profile.entity.subtype?.replace("urn:entity:", "")} · popularity {((profile.entity.popularity ?? 0) * 100).toFixed(1)}% · {profile.status === "auto" ? "matched automatically" : "picked by you"}</p>
+              </div>
+            ) : (
+              <div className="card p-5">
+                <p className="eyebrow">What Qloo was asked about</p>
+                <ul className="mt-2 space-y-1.5 text-sm">
+                  {[...profile.signal.entities, ...profile.signal.tags].map((x) => (
+                    <li key={x.id}>
+                      <span className="font-semibold" style={{ color: "var(--ink)" }}>{x.name}</span>{" "}
+                      <span style={{ color: "var(--muted)" }}>· {x.type}{x.note ? ` · ${x.note}` : ""}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-xs" style={{ color: "var(--muted)" }}>One crowd made of several audiences, read by Qloo as a whole.</p>
+              </div>
+            )}
             <div className="card p-5">
               <p className="eyebrow">Who over-indexes</p>
               {demo ? (
@@ -166,7 +196,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
           </tbody>
         </table>
         <p className="mt-3 text-xs" style={{ color: "var(--muted)" }}>
-          What this does not establish: Qloo describes aggregate affinities of people who like {profile.headlinerName}. It says nothing about any individual attendee, and a high affinity is not a prediction that anyone will visit.
+          What this does not establish: Qloo describes aggregate affinities of people who like {profile.entity ? profile.headlinerName : [...profile.signal.entities, ...profile.signal.tags].map((x) => x.name).join(", ")}. It says nothing about any individual attendee, and a high affinity is not a prediction that anyone will visit.
         </p>
       </details>
     </main>

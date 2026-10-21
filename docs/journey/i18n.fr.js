@@ -115,8 +115,8 @@ window.I18N_FR = {
     s5: {
       title: "Recevoir l'alerte, campagne déjà prête",
       who: "le passage horaire trouve un moment qui vaut une campagne et dont personne n'a encore été prévenu",
-      sees: "Un message WhatsApp : le moment, sa taille à l'échelle de la salle, l'offre choisie par l'agent et un lien pour valider. Ce matin pour Penn & Pour : « Theatre crowd arriving, 16 shows at 12:00, about 19,200 people 1.2 km from you. Could bring about 96 guests, 100% of your 70 seats. Campaign ready. » Un geste pour relire, un autre pour valider.",
-      decides: "Le moment où le commerçant apprend qu'une foule arrive, et quel moment reçoit sa campagne : le plus fort parmi les nouveaux, un seul par passage, pour que l'agent ne noie jamais le commerçant.",
+      sees: "Sur le téléphone, un message WhatsApp : le moment, sa taille à l'échelle de la salle, l'offre choisie par l'agent et un lien. Dans l'app, la page Today : la campagne d'abord, prête à publier, avec la ligne d'ardoise, le message aux habitués et la pub déjà écrits ; un seul bouton pour publier ; puis la raison en dessous, en chiffres (29 spectacles à 19 h, environ 26 900 personnes à 1,1 km, environ 135 clients en plus) et en preuves Qloo. Le commerçant comprend la campagne d'un coup d'œil ; l'explication est là pour qui la veut.",
+      decides: "Le moment où le commerçant apprend qu'une foule arrive, et quel moment reçoit sa campagne : le plus fort parmi les nouveaux, un seul par passage, pour que l'agent ne noie jamais le commerçant. Le commerçant ne décide qu'une chose : publier, ou changer un mot avant.",
       codeNote: "Construit. Le serveur lance le passage toutes les heures, et la page des alertes le lance à la demande. L'envoi WhatsApp s'active dès que Twilio est connecté ; en attendant, le message est enregistré sur la page des alertes.",
       next: "Connecter le bac à sable Twilio pour que le message arrive sur le téléphone du commerçant.",
       calls: [

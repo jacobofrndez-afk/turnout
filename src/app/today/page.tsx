@@ -128,7 +128,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
               {dayOf(presenceWindow(next.event).start)} <span className="mono">{fmtTime.format(new Date(presenceWindow(next.event).arrive))}</span> to <span className="mono">{fmtTime.format(new Date(presenceWindow(next.event).leave))}</span>: {next.event.name}, about <span className="mono">{next.capacity.toLocaleString("en-US")}</span> people
               {next.event.origin === "tv" || next.event.origin === "calendar" ? " around you" : <>, <span className="mono">{next.distanceKm.toFixed(1)} km</span> from your door</>}. Turnout expects <b style={{ color: "var(--ink)" }}>about {next.potentialGuests} extra guests</b>, {Math.min(100, Math.round(next.fill * 100))}% of your {seats} seats.{weather ? ` Weather at your door: ${weather}.` : ""}
             </p>
-            <p className="mt-2" style={{ color: "var(--muted)" }}>{draft.rationale.length > 260 ? `${draft.rationale.slice(0, 257).trim()}…` : draft.rationale}</p>
+            <p className="mt-2" style={{ color: "var(--muted)" }}>{firstSentences(draft.rationale, 300)}</p>
           </div>
         </section>
       ) : next ? (
@@ -258,3 +258,16 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     </main>
   );
 }
+
+// Whole sentences only, up to about `max` characters: a cut mid-word reads as a bug.
+function firstSentences(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const parts = text.match(/[^.!?]+[.!?]+(\s|$)/g) ?? [text];
+  let out = "";
+  for (const p of parts) {
+    if ((out + p).length > max) break;
+    out += p;
+  }
+  return out.trim() || `${text.slice(0, max - 1).trim()}…`;
+}
+

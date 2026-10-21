@@ -115,8 +115,8 @@ window.I18N_EN = {
     s5: {
       title: "Get alerted with the campaign ready",
       who: "the hourly scan finds a moment worth a campaign that nobody has been told about",
-      sees: "A WhatsApp message: the moment, its size for the room, the offer the agent chose, and a link to approve. This morning for Penn & Pour: “Theatre crowd arriving, 16 shows at 12:00, about 19,200 people 1.2 km from you. Could bring about 96 guests, 100% of your 70 seats. Campaign ready.” One tap to review, one to approve.",
-      decides: "When the merchant hears about the crowd, and which moment gets the campaign: the strongest new one, one per scan, so the agent never floods the merchant.",
+      sees: "On the phone, a WhatsApp message: the moment, its size for the room, the offer the agent chose, and a link. In the app, the Today page: the campaign first, ready to publish, with the chalkboard line, the note to regulars and the ad already written; one button to publish; then the reason underneath, in numbers (29 shows at 19:00, about 26,900 people 1.1 km away, about 135 extra guests) and in Qloo evidence. The merchant understands the campaign at a glance; the explanation is there for whoever wants it.",
+      decides: "When the merchant hears about the crowd, and which moment gets the campaign: the strongest new one, one per scan, so the agent never floods the merchant. The merchant decides one thing: publish, or change a word first.",
       codeNote: "Built. The server runs the scan every hour and the alerts page runs it on demand. The WhatsApp send is live once Twilio is connected; until then the message is recorded on the alerts page.",
       next: "Connect the Twilio sandbox so the message reaches the merchant's phone.",
       calls: [

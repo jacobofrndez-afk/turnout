@@ -92,6 +92,7 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
   const map = useRef<ML>(null);
   const card = useRef<ML>(null);
   const signs = useRef<ML[]>([]);
+  const meEl = useRef<HTMLElement | null>(null);
   const declutter = useRef<() => void>(() => undefined);
   const handle = useRef<ML>(null);
   const [ready, setReady] = useState(false);
@@ -141,13 +142,19 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
         cooperativeGestures: true,
       });
       m.touchPitch?.disable?.();
-      m.on("move", () => declutter.current());
+      // Markers update their DOM position on the same "move" event, after this listener: defer a frame so the
+      // placement pass reads settled positions; run again when a move or a fly-in ends.
+      const later = () => requestAnimationFrame(() => declutter.current());
+      m.on("move", later);
+      m.on("moveend", later);
+      m.on("idle", later);
       m.on("load", () => {
         if (cancelled) return;
         addLayers(m, palette());
         drawRings(m, merchant, merchant.radiusM);
         // merchant
         const me = document.createElement("div");
+        meEl.current = me;
         me.className = "tm-me-wrap";
         me.innerHTML = `<span class="tm-me" aria-hidden="true"></span><span class="tm-chip tm-chip-me">${escapeHtml(merchant.name)}</span>`;
         new ml.Marker({ element: me, anchor: "center" }).setLngLat(target.center).addTo(m);
@@ -228,25 +235,73 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
       const el = document.createElement("div");
       el.className = `tm-peek${sel.hot ? " hot" : ""}`;
       el.innerHTML = `<p class="tm-peek-k">${escapeHtml(sel.time)}${sel.active ? ` · <span class="on">around you now on the timeline</span>` : ""}</p><p class="tm-peek-t">${escapeHtml(sel.label)}</p><p class="tm-peek-s">${escapeHtml(sel.venue)} · ~<span class="mono">${sel.capacity.toLocaleString("en-US")}</span> people · <span class="mono">${walkMin(sel.distanceKm * 1000)} min</span> walk</p>${sel.href && sel.hot ? `<a class="tm-peek-a" href="${sel.href}">Qualify this crowd with Qloo</a>` : ""}`;
-      // Keep the card inside the map: hang it below the venue when the venue sits near the top edge.
-      const y = m.project([sel.lon, sel.lat]).y;
-      const below = y < 150;
-      card.current = new ml.Marker({ element: el, anchor: below ? "top" : "bottom", offset: [0, below ? 16 : -16] }).setLngLat([sel.lon, sel.lat]).addTo(m);
+      // Anchored at the centre; the placement pass below moves it to the free side of the venue.
+      card.current = new ml.Marker({ element: el, anchor: "center", offset: [0, 0] }).setLngLat([sel.lon, sel.lat]).addTo(m);
     }
-    // Declutter: a sign that overlaps the peek board or a bigger venue's sign is hidden (biggest crowds first).
+    // Placement and declutter, re-run on every map move:
+    // 1. the peek board takes the first free side of its venue (below, above, left, right) that stays inside the map
+    //    and covers neither your place, nor the biggest crowd's marker and sign, nor the full screen button;
+    // 2. the biggest crowd's sign is always shown; any other sign that overlaps the board or a bigger sign is hidden.
     declutter.current = () => {
-      const kept: DOMRect[] = [];
-      const peek = card.current?.getElement()?.getBoundingClientRect();
-      if (peek) kept.push(peek);
-      for (const sgn of signs.current) {
+      const mapRect = mapEl.current?.getBoundingClientRect();
+      if (!mapRect) return;
+      const hits = (a: DOMRect, b: DOMRect, pad = 4) => a.left < b.right + pad && a.right > b.left - pad && a.top < b.bottom + pad && a.bottom > b.top - pad;
+      const obstacles: DOMRect[] = [];
+      for (const q of [".tm-me", ".tm-chip-me"]) {
+        const r = meEl.current?.querySelector(q)?.getBoundingClientRect();
+        if (r) obstacles.push(r);
+      }
+      const fs = wrapRef.current?.parentElement?.querySelector(".tm-fs")?.getBoundingClientRect();
+      if (fs) obstacles.push(fs);
+      const top = signs.current[0];
+      if (top) {
+        const el = top.getElement() as HTMLElement;
+        el.style.visibility = "visible";
+        obstacles.push(el.getBoundingClientRect());
+        const pt = m.project(top.getLngLat());
+        obstacles.push(new DOMRect(mapRect.left + pt.x - 12, mapRect.top + pt.y - 12, 24, 24));
+      }
+      const c = card.current;
+      if (c) {
+        const el = c.getElement() as HTMLElement;
+        const { width: w, height: h } = el.getBoundingClientRect();
+        const pt = m.project(c.getLngLat());
+        const cx = mapRect.left + pt.x;
+        const cy = mapRect.top + pt.y;
+        const gap = 18;
+        // The board never covers its own venue either.
+        obstacles.push(new DOMRect(cx - 12, cy - 12, 24, 24));
+        // Each side slides along the map edge to stay inside, then is tested against the obstacles.
+        const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+        const sides: [number, number][] = [[0, h / 2 + gap], [0, -(h / 2 + gap)], [-(w / 2 + gap), 0], [w / 2 + gap, 0]];
+        let chosen: [number, number] | undefined;
+        let fallback: [number, number] = sides[0];
+        for (const [dx, dy] of sides) {
+          const ccx = clamp(cx + dx, mapRect.left + 6 + w / 2, mapRect.right - 6 - w / 2);
+          const ccy = clamp(cy + dy, mapRect.top + 6 + h / 2, mapRect.bottom - 6 - h / 2);
+          const r = new DOMRect(ccx - w / 2, ccy - h / 2, w, h);
+          const off: [number, number] = [ccx - cx, ccy - cy];
+          if (dx === 0 && dy > 0) fallback = off;
+          if (!obstacles.some((o) => hits(o, r))) {
+            chosen = off;
+            break;
+          }
+        }
+        c.setOffset(chosen ?? fallback);
+        obstacles.push(el.getBoundingClientRect());
+      }
+      for (const sgn of signs.current.slice(1)) {
         const el = sgn.getElement() as HTMLElement;
         el.style.visibility = "visible";
         const r = el.getBoundingClientRect();
-        if (kept.some((k) => r.left < k.right + 4 && r.right > k.left - 4 && r.top < k.bottom + 4 && r.bottom > k.top - 4)) el.style.visibility = "hidden";
-        else kept.push(r);
+        if (obstacles.some((o) => hits(o, r))) el.style.visibility = "hidden";
+        else obstacles.push(r);
       }
     };
     requestAnimationFrame(() => declutter.current());
+    // The fly to the selected crowd lasts 1.1 s; place the board once more when it has landed.
+    const settle = setTimeout(() => declutter.current(), 1400);
+    return () => clearTimeout(settle);
   }, [points, ready]);
 
   // Fly to a newly selected crowd.

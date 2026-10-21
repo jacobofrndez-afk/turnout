@@ -56,15 +56,14 @@ window.I18N_FR = {
       cols: ["Moment", "Qloo", "Ticketmaster", "Open-Meteo", "Claude"],
       rows: [
         ["Inscription, une seule fois", "10", "0", "0", "0"],
-        ["Radar, par bar et par heure", "0", "1", "1", "0"],
+        ["Radar, par bar et par heure", "2 par équipe à la télé", "1", "1 par moment fort", "0"],
         ["Une foule et sa campagne", "10", "0", "1", "1"],
         ["Pouls du quartier, chaque semaine", "8", "0", "1", "1"]
       ],
-      note: "Un deuxième bar près de la même salle réutilise les appels sur la foule, gardés 7 jours en cache. Seuls les appels liés à ses propres offres s'ajoutent.",
+      note: "Un deuxième bar près de la même salle réutilise les appels sur la foule, gardés 7 jours en cache. Seuls les appels liés à ses propres offres s'ajoutent. Le radar appelle aussi ESPN (un appel par ligue et par jour) et les données ouvertes de la ville (un par repérage), gardés 3 h ; les appels Qloo sur la marque de l'équipe et la ferveur locale sont gardés 7 jours.",
       unusedTitle: "Appels Qloo testés puis écartés",
       unused: [
         ["GET /entities", "Retrouve une entité à partir de son identifiant Qloo, Spotify, Resy ou Michelin. /search couvre déjà ce dont nous avons besoin."],
-        ["urn:heatmap", "Carte de chaleur des goûts par zone. Trop grossière pour un rayon de 1,5 km. Pourrait servir plus tard à choisir les écrans extérieurs."],
         ["GET /v2/trending", "Tendances de la semaine. Courbes plates pour toutes les entités testées."],
         ["GET /v2/analysis/compare", "Renvoie deux listes de tags sans mesurer l'écart entre elles. Deux appels démographiques en disent plus."],
         ["GET /v2/audiences", "Segments d'audience prédéfinis. Utile pour une marque, mais un bar part de la tête d'affiche du soir, pas d'un segment."],

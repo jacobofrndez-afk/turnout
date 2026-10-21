@@ -56,15 +56,14 @@ window.I18N_EN = {
       cols: ["Moment", "Qloo", "Ticketmaster", "Open-Meteo", "Claude"],
       rows: [
         ["Sign-up (once)", "10", "0", "0", "0"],
-        ["Radar, per bar per hour", "0", "1", "1", "0"],
+        ["Radar, per bar per hour", "2 per team on TV", "1", "1 per hot moment", "0"],
         ["One crowd and its campaign", "10", "0", "1", "1"],
         ["Neighbourhood pulse, each week", "8", "0", "1", "1"]
       ],
-      note: "A second bar near the same venue reuses the crowd calls, which stay cached for 7 days. Only the calls for its own offers are new.",
+      note: "A second bar near the same venue reuses the crowd calls, which stay cached for 7 days. Only the calls for its own offers are new. The radar also calls ESPN (one per league per day) and the city's open data (one per scan), both cached 3 h; the team brand and fandom calls to Qloo are cached 7 days.",
       unusedTitle: "Qloo endpoints we tested and left out",
       unused: [
         ["GET /entities", "Looks up an entity by its Qloo, Spotify, Resy or Michelin ID. /search already covers what we need."],
-        ["urn:heatmap", "Heat map by area. Too coarse for a 1.5 km radius. Could help pick outdoor screens later."],
         ["GET /v2/trending", "Weekly trends. Flat for every entity we tested."],
         ["GET /v2/analysis/compare", "Returns two tag lists with no measured difference. Two demographics calls tell us more."],
         ["GET /v2/audiences", "Named audience segments. Useful to a brand, but a bar starts from tonight's headliner, not a segment."],

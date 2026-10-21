@@ -66,6 +66,8 @@ window.I18N_FR = {
       unused: [
         ["GET /entities", "Retrouve une entité à partir de son identifiant Qloo, Spotify, Resy ou Michelin. /search couvre déjà ce dont nous avons besoin."],
         ["GET /v2/trending", "Tendances de la semaine. Courbes plates pour toutes les entités testées."],
+        ["urn:entity:tv_show avec signal.location, croisé avec la grille télé (TVMaze)", "Les séries préférées de la rue diffusées ce soir, comme moment. Testé : les séries en tête sont terminées ou sont des talk-shows quotidiens, et l'API de la grille répond en erreur. Écarté."],
+        ["Tags de localité {month}_event", "Le calendrier de ville de Qloo. Les espaces de noms existent pour chaque mois, mais New York et Paris n'y portent aucun événement. Écarté ; les données ouvertes de la ville donnent les dates."],
         ["GET /v2/analysis/compare", "Renvoie deux listes de tags sans mesurer l'écart entre elles. Deux appels démographiques en disent plus."],
         ["GET /v2/audiences", "Segments d'audience prédéfinis. Utile pour une marque, mais un bar part de la tête d'affiche du soir, pas d'un segment."],
         ["qloo mcp", "Les neuf scénarios du kit du hackathon. Pratiques pour tester, mais aucun ne cherche autour d'un point dans un rayon donné."]

@@ -66,6 +66,8 @@ window.I18N_EN = {
       unused: [
         ["GET /entities", "Looks up an entity by its Qloo, Spotify, Resy or Michelin ID. /search already covers what we need."],
         ["GET /v2/trending", "Weekly trends. Flat for every entity we tested."],
+        ["urn:entity:tv_show with signal.location, crossed with the TV schedule (TVMaze)", "The street's favourite shows airing tonight as a moment. Tested: the top shows are ended series or nightly talk shows, and the schedule API answers with errors. Dropped."],
+        ["Locality tags {month}_event", "Qloo's city calendar. The namespaces exist for every month, but New York and Paris carry no event tags. Dropped; the city's open data gives the dates instead."],
         ["GET /v2/analysis/compare", "Returns two tag lists with no measured difference. Two demographics calls tell us more."],
         ["GET /v2/audiences", "Named audience segments. Useful to a brand, but a bar starts from tonight's headliner, not a segment."],
         ["qloo mcp", "The nine workflows from the hackathon kit. Good for testing, but they cannot search around a point within a radius."]

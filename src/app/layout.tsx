@@ -21,8 +21,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen antialiased">
         <header className="sticky top-0 z-20" style={{ background: "var(--paper)", borderBottom: "1px solid var(--line)" }}>
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-1.5">
-            <Link href="/" aria-label="Turnout home" className="flex h-11 shrink-0 items-start pt-2.5">
-              <Wordmark size={23} tagline />
+            <Link href="/" aria-label="Turnout home" className="flex h-12 shrink-0 items-center">
+              <Wordmark size={32} tagline />
             </Link>
             <nav className="flex min-w-0 items-center gap-1 text-sm font-medium">
               <Link href="/radar" className="inline-flex min-h-11 items-center whitespace-nowrap px-3 decoration-[1.5px] underline-offset-[6px] hover:underline" style={{ color: "var(--ink)" }}>Radar</Link>

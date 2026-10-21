@@ -61,6 +61,7 @@ export async function radarFor(merchant: Merchant, hoursAhead = 72): Promise<Rad
     moments.push(...storedMoments(err.source, merchant.id));
   }
   persist([...waves, ...moments]);
+  forgetStaleWaves(merchant.id, waves.map((w) => w.id));
   return [...scored, ...[...waves, ...moments].map((w) => scoreConcentration(w, m, now))]
     .map((s) => ({ ...s, headliner: headliner(s.event) }))
     .filter((s) => s.hoursUntil > -3 || (s.event.windowEnd && Date.parse(s.event.windowEnd) > now.getTime()))
@@ -149,3 +150,16 @@ function persist(events: TmEvent[]): void {
   });
   tx(events);
 }
+
+// Waves are recomputed on every run and their ids carry their peak time: drop the old ones for this merchant,
+// except those a campaign or an alert already points to.
+function forgetStaleWaves(merchantId: string, keep: string[]): void {
+  const db = getDb();
+  const hasAlerts = db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'alerts'").get();
+  const placeholders = keep.map(() => "?").join(",");
+  db.prepare(
+    `DELETE FROM events WHERE instr(id, ?) = 1 ${keep.length ? `AND id NOT IN (${placeholders})` : ""}
+       AND id NOT IN (SELECT event_id FROM campaigns) AND id NOT IN (SELECT event_id FROM crowd_profiles)${hasAlerts ? " AND id NOT IN (SELECT event_id FROM alerts)" : ""}`,
+  ).run(`wave_${merchantId}_`, ...keep);
+}
+

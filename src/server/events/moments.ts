@@ -45,7 +45,10 @@ export function detectWaves(
     for (const s of pool) {
       const [a, b] = phaseOf(s.event, kind);
       for (let i = Math.max(0, Math.floor((a - t0) / SLOT)); i < Math.min(n, Math.ceil((b - t0) / SLOT)); i++) {
-        people[i] += s.capacity;
+        // People build up towards the show's start and thin out after its end: the peak sits right before
+        // curtain up for an arrival, right after curtain down for an exit.
+        const f = Math.min(1, Math.max(0, (t0 + i * SLOT + SLOT / 2 - a) / (b - a)));
+        people[i] += s.capacity * (kind === "arrival" ? 0.35 + 0.65 * f : 1 - 0.65 * f);
         who[i].push(s);
       }
     }
@@ -64,8 +67,9 @@ export function detectWaves(
       const lat = members.reduce((acc, m) => acc + m.event.venue.lat * m.capacity, 0) / total;
       const lon = members.reduce((acc, m) => acc + m.event.venue.lon * m.capacity, 0) / total;
       const label = crowdLabel(members);
-      const windowStart = kind === "arrival" ? peak - 60 * 60_000 : peak - 15 * 60_000;
-      const windowEnd = kind === "arrival" ? peak + 30 * 60_000 : peak + 60 * 60_000;
+      // Arrival: the hour before curtain up, ending when the shows start. Exit: from curtain down for 75 minutes.
+      const windowStart = kind === "arrival" ? peak - 60 * 60_000 : peak;
+      const windowEnd = kind === "arrival" ? peak + 30 * 60_000 : peak + 75 * 60_000;
       const iso = new Date(peak).toISOString().slice(0, 16);
       waves.push({
         id: `wave_${merchant.id}_${kind}_${iso.replace(/[^0-9]/g, "")}`,

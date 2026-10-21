@@ -173,7 +173,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
               <input type="hidden" name="merchant" value={merchant.id} />
               <input type="hidden" name="event" value={event.id} />
               {sp.pick && <input type="hidden" name="pick" value={sp.pick} />}
-              <button className="btn btn-accent">Draft the campaign</button>
+              <button className="btn btn-accent">Write my campaign</button>
             </form>
             <p className="text-xs" style={{ color: "var(--muted)" }}>Qloo calls: {profile.qlooCalls.live} live, {profile.qlooCalls.cached} cached.</p>
           </section>

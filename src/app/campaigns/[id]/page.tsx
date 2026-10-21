@@ -35,7 +35,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
         </div>
         {campaign.status === "drafted" && (
           <form action={`/api/campaigns/${campaign.id}/approve`} method="post">
-            <button className="btn btn-accent">Approve and publish</button>
+            <button className="btn btn-accent">Publish it now</button>
           </form>
         )}
         {(campaign.status === "approved" || campaign.status === "sent") && <span className="chip" style={{ background: "var(--ok-soft)", color: "var(--ok)", borderColor: "transparent" }}>Published · {sends.length} channels</span>}

@@ -79,6 +79,9 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3 text-sm">
+          <Link href={`/today?merchant=${merchant.id}`} className="font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>
+            Today
+          </Link>
           <MerchantSwitch current={merchant.id} options={merchants.map((m) => ({ id: m.id, label: `${m.name}, ${m.city}` }))} />
           <Link href={`/alerts?merchant=${merchant.id}`} className="font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>
             Alerts

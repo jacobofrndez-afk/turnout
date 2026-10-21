@@ -20,5 +20,5 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
   }
   saveOfferTags(id, choices);
-  return NextResponse.redirect(new URL(`/radar?merchant=${id}`, req.url), 303);
+  return NextResponse.redirect(new URL(`/today?merchant=${id}`, req.url), 303);
 }

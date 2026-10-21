@@ -33,11 +33,13 @@ export function ensureAlertsTable(): void {
     message TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`);
+  // One alert per moment per merchant, whatever the number of scans running at once (dev runs two processes).
+  getDb().exec("CREATE UNIQUE INDEX IF NOT EXISTS alerts_merchant_event ON alerts(merchant_id, event_id)");
 }
 
 export function listAlerts(merchantId: string, limit = 30): AlertRow[] {
   ensureAlertsTable();
-  return getDb().prepare("SELECT * FROM alerts WHERE merchant_id = ? ORDER BY created_at DESC LIMIT ?").all(merchantId, limit) as AlertRow[];
+  return getDb().prepare("SELECT * FROM alerts WHERE merchant_id = ? AND status <> 'pending' ORDER BY created_at DESC LIMIT ?").all(merchantId, limit) as AlertRow[];
 }
 
 export const appUrl = () => (process.env.APP_URL ?? "http://localhost:3211").replace(/\/$/, "");
@@ -62,6 +64,10 @@ export async function scanMerchant(merchant: Merchant, opts: ScanOptions = {}): 
   for (const it of candidates.slice(0, maxNew)) {
     const eventRow = getEvent(it.event.id);
     if (!eventRow) continue;
+    // Claim the moment first: a second scan running at the same time finds it taken and does nothing.
+    const id = newId("alert");
+    const claimed = db.prepare("INSERT OR IGNORE INTO alerts (id, merchant_id, event_id, status, channel, message) VALUES (?, ?, ?, 'pending', 'whatsapp', '')").run(id, merchant.id, it.event.id);
+    if (claimed.changes === 0) continue;
     let campaign: CampaignRow | undefined;
     try {
       campaign = await createCampaign(merchant, eventRow);
@@ -69,7 +75,6 @@ export async function scanMerchant(merchant: Merchant, opts: ScanOptions = {}): 
       console.warn(`[scan] campaign for ${it.event.id} failed: ${String((e as Error).message).slice(0, 160)}`);
     }
     const message = composeAlert(merchant, it, campaign);
-    const id = newId("alert");
     let status: AlertRow["status"] = "simulated";
     let toRef: string | null = null;
     if (whatsappConfigured() && process.env.DEMO_WHATSAPP_TO) {
@@ -82,7 +87,7 @@ export async function scanMerchant(merchant: Merchant, opts: ScanOptions = {}): 
         toRef = String((e as Error).message).slice(0, 120);
       }
     }
-    db.prepare("INSERT INTO alerts (id, merchant_id, event_id, campaign_id, status, channel, to_ref, message) VALUES (?, ?, ?, ?, ?, 'whatsapp', ?, ?)").run(id, merchant.id, it.event.id, campaign?.id ?? null, status, toRef, message);
+    db.prepare("UPDATE alerts SET campaign_id = ?, status = ?, to_ref = ?, message = ?, created_at = datetime('now') WHERE id = ?").run(campaign?.id ?? null, status, toRef, message, id);
     out.push(db.prepare("SELECT * FROM alerts WHERE id = ?").get(id) as AlertRow);
   }
   return out;

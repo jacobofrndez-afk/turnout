@@ -52,7 +52,7 @@ export default async function ConfirmPage({ searchParams }: { searchParams: Prom
         {offers.length === 0 && <p className="text-sm" style={{ color: "var(--muted)" }}>No offers were parsed. Go back and add one per line.</p>}
         <div className="flex items-center justify-between gap-3 pt-2">
           <Link href="/start" className="text-sm" style={{ color: "var(--muted)" }}>Start over</Link>
-          <button className="btn btn-accent">Confirm and open my radar</button>
+          <button className="btn btn-accent">Confirm and see my day</button>
         </div>
       </form>
     </main>

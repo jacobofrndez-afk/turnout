@@ -451,7 +451,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
                     </div>
                     {it.interesting && (
                       <Link href={`/campaigns/new?merchant=${merchant.id}&event=${it.id}`} className={isSel ? "btn btn-accent mt-3" : "tm-link mt-3 inline-flex"}>
-                        Qualify this crowd with Qloo
+                        See who is coming, with Qloo
                       </Link>
                     )}
                   </div>

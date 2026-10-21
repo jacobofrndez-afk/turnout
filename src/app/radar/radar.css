@@ -9,6 +9,9 @@
 
 /* your place: a square in ink */
 .tm-me-wrap { position: relative; width: 0; height: 0; }
+.tm-me-wrap.maplibregl-marker { z-index: 3; } /* your place and its label stay above signs and the peek board */
+.tm-sign.maplibregl-marker { z-index: 1; }
+.tm-peek.maplibregl-marker { z-index: 2; }
 .tm-me { position: absolute; left: -7px; top: -7px; width: 14px; height: 14px; border-radius: 0; background: var(--ink); box-shadow: 0 0 0 2px var(--panel); }
 .tm-chip { position: absolute; white-space: nowrap; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 0; padding: 2px 7px; font-size: 11.5px; font-weight: 600; color: var(--ink); line-height: 1.35; box-shadow: none; }
 .tm-chip-me { left: -14px; top: 12px; transform: translateX(-100%); }

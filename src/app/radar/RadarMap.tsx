@@ -92,6 +92,7 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
   const map = useRef<ML>(null);
   const card = useRef<ML>(null);
   const signs = useRef<ML[]>([]);
+  const declutter = useRef<() => void>(() => undefined);
   const handle = useRef<ML>(null);
   const [ready, setReady] = useState(false);
   const [radius, setRadius] = useState(merchant.radiusM);
@@ -140,6 +141,7 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
         cooperativeGestures: true,
       });
       m.touchPitch?.disable?.();
+      m.on("move", () => declutter.current());
       m.on("load", () => {
         if (cancelled) return;
         addLayers(m, palette());
@@ -212,11 +214,12 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
     for (const sgn of signs.current) sgn.remove();
     signs.current = points
       .filter((p) => p.hot && !p.selected)
+      .sort((a, b) => b.capacity - a.capacity)
       .map((p) => {
         const el = document.createElement("div");
         el.className = "tm-sign";
         el.textContent = p.label;
-        return new ml.Marker({ element: el, anchor: "left", offset: [11, 0] }).setLngLat([p.lon, p.lat]).addTo(m);
+        return new ml.Marker({ element: el, anchor: "left", offset: [13, 0] }).setLngLat([p.lon, p.lat]).addTo(m);
       });
     const sel = points.find((p) => p.selected);
     card.current?.remove();
@@ -230,6 +233,20 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
       const below = y < 150;
       card.current = new ml.Marker({ element: el, anchor: below ? "top" : "bottom", offset: [0, below ? 16 : -16] }).setLngLat([sel.lon, sel.lat]).addTo(m);
     }
+    // Declutter: a sign that overlaps the peek board or a bigger venue's sign is hidden (biggest crowds first).
+    declutter.current = () => {
+      const kept: DOMRect[] = [];
+      const peek = card.current?.getElement()?.getBoundingClientRect();
+      if (peek) kept.push(peek);
+      for (const sgn of signs.current) {
+        const el = sgn.getElement() as HTMLElement;
+        el.style.visibility = "visible";
+        const r = el.getBoundingClientRect();
+        if (kept.some((k) => r.left < k.right + 4 && r.right > k.left - 4 && r.top < k.bottom + 4 && r.bottom > k.top - 4)) el.style.visibility = "hidden";
+        else kept.push(r);
+      }
+    };
+    requestAnimationFrame(() => declutter.current());
   }, [points, ready]);
 
   // Fly to a newly selected crowd.

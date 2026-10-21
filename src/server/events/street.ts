@@ -72,9 +72,21 @@ function gridPoint(street: number, avenue: number): { lat: number; lon: number }
   return { lat: REF.lat + north / 111_320, lon: REF.lon + east / (111_320 * Math.cos((REF.lat * Math.PI) / 180)) };
 }
 
-// "WEST 42 STREET between 5 AVENUE and 6 AVENUE" or "10 AVENUE between WEST 57 STREET and WEST 58 STREET".
+// A permit lists one or more segments: "WEST 42 STREET between 5 AVENUE and 6 AVENUE, 6 AVENUE between ...".
+// Each segment that sits on the numbered grid gives a point; the caller keeps the one closest to the merchant.
+export function manhattanPoints(location: string): { lat: number; lon: number }[] {
+  return location
+    .split(/,|:/)
+    .map((seg) => segmentPoint(seg))
+    .filter((p): p is { lat: number; lon: number } => !!p);
+}
+
 export function manhattanPoint(location: string): { lat: number; lon: number } | undefined {
-  const first = location.split(/,|:/)[0];
+  return manhattanPoints(location)[0];
+}
+
+// "WEST 42 STREET between 5 AVENUE and 6 AVENUE" or "10 AVENUE between WEST 57 STREET and WEST 58 STREET".
+function segmentPoint(first: string): { lat: number; lon: number } | undefined {
   const m = first.match(/^\s*(.+?)\s+between\s+(.+?)\s+and\s+(.+?)\s*$/i);
   if (!m) return undefined;
   const [, main, a, b] = m;
@@ -119,16 +131,18 @@ const FAMOUS: { match: RegExp; people: number; theme?: string }[] = [
 ];
 
 const PARIS_TAG_SIZE: [RegExp, number][] = [
-  [/f[êe]te|festival/i, 2500],
   [/d[ée]fil[ée]|parade|carnaval/i, 5000],
-  [/brocante|vide.grenier|march[ée]/i, 1500],
-  [/concert|musique/i, 600],
+  [/brocante|vide.grenier|march[ée] aux|puces/i, 1500],
+  [/f[êe]te|festival/i, 2500],
   [/sport|course|marathon/i, 1500],
+  [/concert|musique|bal\b|dj set/i, 600],
 ];
+// Only what happens in the open or for free counts as a street crowd; a paid gig in a club is a venue event.
+const PARIS_STREET = /d[ée]fil[ée]|parade|carnaval|brocante|vide.grenier|puces|f[êe]te|festival|course|marathon|bal\b|kiosque|plein air|place |parc |square |quai /i;
 
 // Kinds of events that bring no crowd worth a campaign: filming permits, construction, farmers markets
 // (an all-day trickle), sidewalk sales, workshops.
-const NYC_SKIP = /production event|theater load|construction|farmers market|sidewalk sale|health outreach|open enrollment/i;
+const NYC_SKIP = /production event|theater load|construction|farmers market|sidewalk sale|health outreach|open enrollment|launch party|gala|activation|press event|load.?in|load.?out|film/i;
 const PARIS_SKIP = /atelier|cours|stage|conf[ée]rence|exposition|visite|club seniors|permanence|lecture|projection/i;
 
 type StreetRow = { id: string; name: string; type: string; start: Date; end: Date; lat: number; lon: number; where: string; people: number; theme?: string; source: string };
@@ -140,7 +154,8 @@ async function nycRows(m: SourceMerchant, now: Date, hoursAhead: number): Promis
   const from = new Date(now.getTime() - 6 * 3_600_000);
   const to = new Date(now.getTime() + hoursAhead * 3_600_000);
   const local = (d: Date) => new Intl.DateTimeFormat("sv-SE", { timeZone: "America/New_York", dateStyle: "short", timeStyle: "medium", hourCycle: "h23" }).format(d).replace(" ", "T");
-  const where = `end_date_time >= '${local(from)}' AND start_date_time <= '${local(to)}' AND event_borough = 'Manhattan'`;
+  const types = Object.keys(NYC_TYPE_SIZE).map((t) => `'${t.replace(/'/g, "''")}'`).join(",");
+  const where = `end_date_time >= '${local(from)}' AND start_date_time <= '${local(to)}' AND event_type in (${types})`;
   const key = { where, bucket: Math.floor(now.getTime() / (3 * 3_600_000)) };
   let raw = cacheGet<NycRaw[]>("nyc-events", key);
   if (!raw) {
@@ -158,11 +173,12 @@ async function nycRows(m: SourceMerchant, now: Date, hoursAhead: number): Promis
     const end = zonedToUtc(r.end_date_time, "America/New_York");
     // Multi-day permits are installations, not crowds.
     if (end.getTime() - start.getTime() > 14 * 3_600_000) continue;
-    let p = manhattanPoint(r.event_location);
+    const pts = (r.event_borough === "Manhattan" ? manhattanPoints(r.event_location) : []).sort((a, b) => haversineKm(m.lat, m.lon, a.lat, a.lon) - haversineKm(m.lat, m.lon, b.lat, b.lon));
+    let p = pts[0];
     if (!p && lookups < 3) {
       // Off-grid (downtown, plazas): Nominatim, cached for a month, a few per run to respect its rate limit.
       lookups++;
-      const g = await geocode(`${nominatimQuery(r.event_location)}, Manhattan, New York, NY`).catch(() => undefined);
+      const g = await geocode(`${nominatimQuery(r.event_location)}, ${r.event_borough || "Manhattan"}, New York, NY`).catch(() => undefined);
       if (g) p = { lat: g.lat, lon: g.lon };
     }
     if (!p) continue;
@@ -199,7 +215,9 @@ const tidy = (s: string) =>
     .replace(/\b(\d+) (Street|Avenue)\b/g, "$1 $2");
 
 // ---------- Paris ----------
-type ParisRaw = { id: string; title: string; date_start: string; date_end: string; address_name?: string; address_street?: string; qfap_tags?: string; lat_lon?: { lat: number; lon: number } };
+type ParisRaw = { id: string; title: string; date_start: string; date_end: string; occurrences?: string; address_name?: string; address_street?: string; qfap_tags?: string; price_type?: string; lat_lon?: { lat: number; lon: number } };
+// Rows with no address sit on this point (Hôtel de Ville): a city-wide article, not a place.
+const PARIS_DEFAULT_POINT = { lat: 48.856578, lon: 2.351828 };
 
 async function parisRows(m: SourceMerchant, now: Date, hoursAhead: number): Promise<StreetRow[]> {
   const from = new Date(now.getTime() - 6 * 3_600_000).toISOString().slice(0, 19);
@@ -209,7 +227,7 @@ async function parisRows(m: SourceMerchant, now: Date, hoursAhead: number): Prom
   const key = { where: where.replace(/\d{2}:\d{2}:\d{2}/g, ""), bucket: Math.floor(now.getTime() / (3 * 3_600_000)) };
   let raw = cacheGet<ParisRaw[]>("paris-events", key);
   if (!raw) {
-    const q = new URLSearchParams({ where, limit: "100", select: "id,title,date_start,date_end,address_name,address_street,qfap_tags,lat_lon" });
+    const q = new URLSearchParams({ where, limit: "100", select: "id,title,date_start,date_end,occurrences,address_name,address_street,qfap_tags,price_type,lat_lon" });
     const res = await fetch(`https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/que-faire-a-paris-/records?${q}`, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) throw new Error(`Paris Open Data HTTP ${res.status}`);
     raw = ((await res.json()) as { results?: ParisRaw[] }).results ?? [];
@@ -218,14 +236,27 @@ async function parisRows(m: SourceMerchant, now: Date, hoursAhead: number): Prom
   const out: StreetRow[] = [];
   for (const r of raw) {
     if (!r.lat_lon || PARIS_SKIP.test(`${r.title} ${r.qfap_tags ?? ""}`)) continue;
-    const start = new Date(r.date_start);
-    const end = new Date(r.date_end);
-    if (end.getTime() - start.getTime() > 14 * 3_600_000) continue; // long runs and seasons are not moments
+    const blob = `${r.title} ${r.qfap_tags ?? ""} ${r.address_name ?? ""}`;
+    if (!(r.price_type === "gratuit" && PARIS_STREET.test(blob)) && !/d[ée]fil[ée]|parade|carnaval|brocante|vide.grenier|marathon/i.test(blob)) continue;
+    if (Math.abs(r.lat_lon.lat - PARIS_DEFAULT_POINT.lat) < 1e-4 && Math.abs(r.lat_lon.lon - PARIS_DEFAULT_POINT.lon) < 1e-4) continue;
     const size = PARIS_TAG_SIZE.find(([re]) => re.test(`${r.qfap_tags ?? ""} ${r.title}`))?.[1];
     if (!size) continue;
     const famous = FAMOUS.find((f) => f.match.test(r.title));
+    // "occurrences" carries the real slots with their offset ("2026-10-21T20:00:00+02:00_2026-10-21T23:00:00+02:00;...");
+    // date_start/date_end are a looser envelope. One moment per slot in the window.
+    const slots = (r.occurrences ?? "")
+      .split(";")
+      .map((o) => o.split("_"))
+      .filter((p) => p.length === 2)
+      .map(([a, b]) => ({ start: new Date(a), end: new Date(b) }))
+      .filter((sl) => Number.isFinite(sl.start.getTime()) && Number.isFinite(sl.end.getTime()));
+    if (slots.length === 0) slots.push({ start: new Date(r.date_start), end: new Date(r.date_end) });
+    for (const sl of slots.filter((x) => x.end.getTime() >= now.getTime() - 6 * 3_600_000 && x.start.getTime() <= now.getTime() + hoursAhead * 3_600_000).slice(0, 4)) {
+    const start = sl.start;
+    const end = sl.end;
+    if (end.getTime() - start.getTime() > 14 * 3_600_000) continue; // long runs and seasons are not moments
     out.push({
-      id: r.id,
+      id: slots.length > 1 ? `${r.id}_${start.toISOString().slice(0, 10)}` : r.id,
       name: r.title.trim(),
       type: (r.qfap_tags ?? "").split(";")[0] || "Événement",
       start,
@@ -237,6 +268,7 @@ async function parisRows(m: SourceMerchant, now: Date, hoursAhead: number): Prom
       theme: famous?.theme,
       source: "Que faire à Paris (Ville de Paris)",
     });
+    }
   }
   return out;
 }

@@ -112,6 +112,14 @@ function buildPrompt(m: Merchant, p: NeighborhoodPulse, evenings: { day: string;
     const f = p.offerFits.find((x) => x.offerId === o.id);
     L.push(`- id=${o.id} | ${o.title} | ${o.description} | ${o.price} | tags: ${JSON.parse(o.tag_names_json).join(", ")} | fit ${f ? f.affinity.toFixed(2) : "n/a"}${f?.topPlaces.length ? ` (e.g. ${f.topPlaces.join(", ")})` : ""}`);
   }
+  if (p.rhythm?.moments.length) {
+    L.push("", `# The rhythm of the street (from the ${p.rhythm.placesRead} places Qloo knows around the door, ${p.rhythm.hospitality} of them bars and restaurants)`);
+    const DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    for (const r of p.rhythm.moments) L.push(`- ${r.label} (${r.strength}): ${r.days.map((d) => DAY[d]).join(", ")} ${r.from} to ${r.to}. Evidence: ${r.evidence.join("; ")}.`);
+    if (p.rhythm.passersBy.length) L.push(`Who the place descriptions say walks past: ${p.rhythm.passersBy.map((w) => `${w.label} (${w.places} places)`).join(", ")}.`);
+    if (p.rhythm.eventHabits.length) L.push(`Event habits the street already has: ${p.rhythm.eventHabits.map((h) => `${h.place}: "${h.text}"`).join("; ")}.`);
+    L.push(`Plan the week around these moments: the board line for the strongest weekday moment, the always-on ad on its hours, the regulars note for the weekend one.`);
+  }
   L.push("", `# Evenings this week at the merchant (17:00 to 21:00 local, Open-Meteo)`);
   L.push(evenings.length ? evenings.map((e) => `${e.day}: ${e.label}`).join("; ") + "." : "Not available. Do not mention the weather.");
   L.push("", `# Task`, `Choose the offer to feature for the everyday flow this week and write the board, Google post, regulars note and always-on ad. Output must match the schema.`);

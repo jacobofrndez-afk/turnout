@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getMerchant, listMerchants } from "@/server/events/radar";
-import { buildNeighborhoodPulse } from "@/server/qloo/neighborhood";
+import { buildNeighborhoodPulse, type NeighborhoodPulse } from "@/server/qloo/neighborhood";
 import { getBrief, latestPulse } from "@/server/agent/pulse";
 import { getOffers } from "@/server/qloo/crowd";
 import { tagId } from "@/server/qloo/api";
@@ -57,6 +57,49 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
               );
             })}
           </div>
+        </section>
+      )}
+
+      {pulse.rhythm && pulse.rhythm.moments.length > 0 && (
+        <section className="mt-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="eyebrow">The rhythm of your street · when the everyday flow peaks, according to Qloo</p>
+            <p className="text-xs" style={{ color: "var(--muted)" }}>
+              Read from {pulse.rhythm.placesRead} places Qloo knows around your door, {pulse.rhythm.hospitality} of them bars and restaurants, {pulse.rhythm.withHours} with opening hours
+            </p>
+          </div>
+          <div className="mt-3 grid gap-4 md:grid-cols-3">
+            {pulse.rhythm.moments.map((r) => (
+              <div key={r.id} className="card p-5" style={r.strength === "strong" ? { borderColor: "var(--accent)" } : undefined}>
+                <p className="font-display text-xl">{r.label}</p>
+                <p className="tnum mt-1 text-sm font-semibold" style={{ color: "var(--ink)" }}>
+                  {dayRange(r.days)} · {r.from} to {r.to}
+                  <span className="ml-2 text-xs font-semibold" style={{ color: r.strength === "strong" ? "var(--accent)" : "var(--muted)" }}>{r.strength === "strong" ? "strong" : "likely"}</span>
+                </p>
+                <ul className="mt-3 space-y-1.5 text-sm" style={{ color: "var(--text)" }}>
+                  {r.evidence.map((e) => <li key={e}>{e}</li>)}
+                </ul>
+                {r.places.length > 0 && (
+                  <p className="mt-3 text-xs" style={{ color: "var(--muted)" }}>Their crowd is yours: {r.places.map((pl) => pl.name).join(", ")}</p>
+                )}
+              </div>
+            ))}
+          </div>
+          {(pulse.rhythm.passersBy.length > 0 || pulse.rhythm.eventHabits.length > 0) && (
+            <div className="card-flat mt-4 p-4 text-sm">
+              {pulse.rhythm.passersBy.length > 0 && (
+                <p>
+                  <span className="font-semibold" style={{ color: "var(--ink)" }}>Who walks past, in Qloo's own words about the places here:</span>{" "}
+                  {pulse.rhythm.passersBy.map((w) => `${w.label.toLowerCase()} (${w.places} places)`).join(", ")}.
+                </p>
+              )}
+              {pulse.rhythm.eventHabits.map((h) => (
+                <p key={h.place} className="mt-1.5" style={{ color: "var(--muted)" }}>
+                  <span className="font-semibold" style={{ color: "var(--text)" }}>{h.place}:</span> “{h.text}”
+                </p>
+              ))}
+            </div>
+          )}
         </section>
       )}
 
@@ -133,7 +176,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
             <Block title="Chalkboard" tag="every weekday"><p className="whitespace-pre-wrap font-display text-lg">{brief.chalkboard}</p></Block>
             <Block title="Google Business post" tag="this week"><p className="font-display text-lg">{brief.google_post.title}</p><p className="text-sm">{brief.google_post.body}</p></Block>
             <Block title="Note to regulars" tag="WhatsApp"><p className="text-sm leading-relaxed">{brief.whatsapp}</p></Block>
-            <Block title={`Always-on ad · ${brief.always_on_ad.radius_m} m · $${brief.always_on_ad.daily_budget_usd}/day`} tag="weekdays 17:00-19:00">
+            <Block title={`Always-on ad · ${brief.always_on_ad.radius_m} m · $${brief.always_on_ad.daily_budget_usd}/day`} tag={adSlot(pulse.rhythm)}>
               <p className="font-display text-lg">{brief.always_on_ad.headline}</p>
               <p className="text-sm">{brief.always_on_ad.body}</p>
               <p className="mt-2 text-xs" style={{ color: "var(--muted)" }}>Interests: {brief.always_on_ad.interests.join(" · ")}</p>
@@ -161,6 +204,18 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
       </details>
     </main>
   );
+}
+
+const DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+function dayRange(days: number[]): string {
+  const k = days.join(",");
+  if (k === "1,2,3,4,5") return "Mon to Fri";
+  if (k === "6,0" || k === "0,6") return "Sat and Sun";
+  return days.map((d) => DAY[d]).join(", ");
+}
+function adSlot(r: NeighborhoodPulse["rhythm"]): string {
+  const a = r?.moments.find((m) => m.id === "afterwork");
+  return a ? `${dayRange(a.days)} ${a.from}-${a.to}` : "weekdays 17:00-19:00";
 }
 
 function Block({ title, tag, children }: { title: string; tag: string; children: React.ReactNode }) {

@@ -4,6 +4,7 @@ import type { Merchant } from "@/server/events/radar";
 import { getOffers, type ProvenanceRow } from "./crowd";
 import { qlooGet, type QlooCall, type QlooEntity, type QlooTag, tagId } from "./api";
 import { neighbourhoodName } from "@/server/merchants/geocode";
+import { streetRhythm, type StreetRhythm } from "./rhythm";
 
 export type PulseOfferFit = { offerId: string; title: string; tagNames: string[]; affinity: number; matches: number; topPlaces: string[] };
 
@@ -15,6 +16,7 @@ export type NeighborhoodPulse = {
   brands: QlooEntity[];
   places: QlooEntity[];
   offerFits: PulseOfferFit[];
+  rhythm?: StreetRhythm; // the recurring moments of the street, read from the places Qloo knows around it
   provenance: ProvenanceRow[];
   qlooCalls: { live: number; cached: number };
 };
@@ -91,5 +93,14 @@ export async function buildNeighborhoodPulse(merchant: Merchant): Promise<Neighb
   offerFits.sort((a, b) => b.affinity - a.affinity || b.matches - a.matches);
   provenance.push({ seq: ++seq, kind: "decision", workflow: "street_offer_fit", input: {}, status: "ok", resultCount: offerFits.length, cacheHit: false, durationMs: 0, note: offerFits[0] ? `best for the everyday flow: ${offerFits[0].title} (${offerFits[0].affinity})` : "no offers" });
 
-  return { localityName, point, audienceTags, ambienceTags, brands, places, offerFits, provenance, qlooCalls: calls };
+  // Street rhythm: one more call (places with hours and descriptions), aggregated on our side.
+  let rhythm: StreetRhythm | undefined;
+  try {
+    rhythm = await streetRhythm({ lat: merchant.lat, lon: merchant.lon }, { onCall: onCall("recommend", "places around the door, with hours and descriptions, for the street rhythm") });
+    provenance.push({ seq: ++seq, kind: "decision", workflow: "street_rhythm", input: {}, status: "ok", resultCount: rhythm.moments.length, cacheHit: false, durationMs: 0, note: rhythm.moments.map((m) => `${m.label} (${m.strength})`).join(", ") || "no recurring moment found" });
+  } catch {
+    rhythm = undefined;
+  }
+
+  return { localityName, point, audienceTags, ambienceTags, brands, places, offerFits, rhythm, provenance, qlooCalls: calls };
 }

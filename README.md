@@ -2,7 +2,17 @@
 
 **Turn the crowd outside into customers inside.**
 
-Turnout is an agent for independent merchants (bars, restaurants, shops) near venues. It watches the real events within walking distance, learns who that crowd is through Qloo's taste graph, picks the merchant's offer that fits, writes the campaign for every channel, and publishes it once the merchant approves. A second, weekly mode reads the taste of the street outside the door for the everyday flow of passers-by.
+Turnout is an agent for independent merchants (bars, restaurants, shops). It watches for crowds about to be around the door, learns who that crowd is through Qloo's taste graph, picks the merchant's offer that fits, writes the campaign for every channel, and publishes it once the merchant approves. A second, weekly mode reads the taste and the rhythm of the street outside the door for the everyday flow of passers-by.
+
+A crowd is anything that could fill a quarter of the merchant's room, not only a stadium:
+
+- a show at a venue within walking distance (Ticketmaster);
+- a wave: several small shows starting or letting out together (31 Broadway houses at 22:30 is one 32,000-person moment, even if each theatre alone is not);
+- the local team on TV, away or at home across town (ESPN schedule; Qloo measures how much these streets love the team);
+- a street or city event: parades, block parties, races, processions (NYC Open Data permitted events, Que faire à Paris);
+- a city night: Halloween, Thanksgiving Eve, Beaujolais Nouveau, New Year's Eve.
+
+Relevance is relative to the merchant: a 50-seat bar needs twelve extra guests, so a Tuesday hockey game on TV counts for it and a 20,000-seat arena is not the only thing worth a campaign.
 
 Built for the Qloo Agentic Hackathon (Agents, but with taste), October 2026.
 
@@ -16,10 +26,14 @@ Twenty thousand people walk past a bar on a concert night and decide where to go
 
 ## Why it only works with Qloo
 
-Ticketmaster tells us a crowd is coming. Only Qloo tells us who they are culturally:
+Ticketmaster, ESPN and the city tell us a crowd is coming. Only Qloo tells us who they are culturally, and for some crowds Qloo is also what sizes them:
 
 - fans of Harry Styles over-index on women aged 25 to 29 (+0.75), on 'Moderately expensive' rooftop cocktail bars (Igloo Bar, 230 Fifth), and on Gucci and Dior;
 - fans of Gradur over-index on men aged 25 to 29 (+0.59), on Olympique de Marseille, Betclic and O'Tacos, and on the bars 911 Paris and Café Oz.
+
+- a Broadway let-out has no single headliner: Qloo reads Schmigadoon!, Aladdin and The Lion King through their screen versions plus the Musical Theatre tag, and returns a young, female crowd that likes The Green Room 42 and Beer Culture;
+- for the Knicks on TV, the Qloo heatmap says how much the streets around the bar love the team (median affinity rank within 800 m: Knicks at Penn & Pour 0.99, Celtics 0.77; PSG at Le Quai 12 0.88, Marseille 0.76). That number sizes the watch party;
+- the weekly pulse reads the rhythm of the street from the places Qloo knows around the door: hours, happy-hour and brunch tags, and Qloo's own descriptions ("after work" for four places next to Le Quai 12, "late-night meals after concerts" at Tick Tock Diner). That gives the after-work, late-night and brunch moments with their evidence.
 
 Same bar, same radius, same code: the agent picks the cocktail happy hour for one crowd and the midnight croque for the other, and writes different copy. Without Qloo the merchant could still buy a geofenced ad, but a generic one with generic targeting.
 
@@ -84,8 +98,8 @@ Deploy: the Dockerfile runs `next start` as a persistent Node process with SQLit
 
 ## Repository map
 
-- `src/server/events/` Ticketmaster client, deduplication, concentration scoring (venue tiers, distance, timing).
-- `src/server/qloo/` direct Qloo API client with cache and provenance, crowd profile recipe, neighbourhood pulse, tag selection.
+- `src/server/events/` crowd sources and scoring: Ticketmaster client and deduplication, waves of small shows (`moments.ts`), games on TV via ESPN with Qloo local fandom (`tv.ts`), street and city events (`street.ts`), city nights (`calendar.ts`), relevance relative to the merchant's seats (`concentration.ts`).
+- `src/server/qloo/` direct Qloo API client with cache and provenance, crowd profile recipe (one headliner, or several entities and tags for a moment), neighbourhood pulse, street rhythm (`rhythm.ts`), local fandom heatmap, tag selection.
 - `src/server/agent/` campaign and weekly-brief agents (Claude structured output, or operator inbox), prompts and schemas.
 - `src/server/channels/` publishing pipeline and adapters.
 - `src/server/weather/` Open-Meteo forecast per window and evenings of the week.

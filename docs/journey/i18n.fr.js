@@ -33,7 +33,8 @@ window.I18N_FR = {
     now: [
       { k: "Aujourd'hui", v: "Le commerçant lance tout", d: "Rien ne se passe tant qu'il ne clique pas." },
       { k: "Objectif pour le jury", v: "Alerte automatique pour les grosses foules", d: "Quand une grosse foule arrive, la campagne est rédigée avant que le commerçant ouvre l'app. Un seul geste pour la valider." },
-      { k: "Appels Qloo par foule", v: "5 + 1 par offre", d: "10 appels pour Penn & Pour, gardés 7 jours en cache." }
+      { k: "Appels Qloo par foule", v: "5 + 1 par offre", d: "10 appels pour Penn & Pour, gardés 7 jours en cache. Un match à la télé en ajoute 2 (marque de l'équipe, ferveur locale), un thème de rue jusqu'à 3." },
+      { k: "Ce qui compte comme une foule", v: "À l'échelle du commerce", d: "Un moment qui vaut un quart de vos places : un stade, la sortie des théâtres de Broadway, les Knicks à la télé, un défilé, la nuit d'Halloween." }
     ],
     work: {
       title: "Chantiers",
@@ -97,12 +98,16 @@ window.I18N_FR = {
     s4: {
       title: "Le radar repère la foule",
       who: "le commerçant ouvre le radar",
-      sees: "Une frise des trois prochains jours qui montre combien de personnes seront autour du bar, avec chaque événement, et une carte. On fait glisser la frise pour voir qui est là à tout moment, on tire le cercle pour agrandir le rayon. Mercredi : Harry Styles au Garden, environ 20 000 personnes, à 300 m.",
-      decides: "Les foules qui valent une campagne : un score d'au moins 45 et au moins 1 000 personnes. Pas d'appel à Qloo ici : Qloo connaît les goûts, pas l'affiche du soir.",
+      sees: "Une frise des trois prochains jours qui montre combien de personnes seront autour du bar, avec chaque moment, et une carte. On fait glisser la frise pour voir qui est là à tout instant, on tire le cercle pour agrandir le rayon. Cinq sortes de foules : un spectacle dans une salle (Harry Styles au Garden, 20 000 personnes, à 300 m), plusieurs petits spectacles qui commencent ou finissent en même temps (31 spectacles de Broadway à 22 h 30, 32 000 personnes), l'équipe locale à la télé (Knicks à Boston vendredi), un événement de rue (un défilé, une fête de quartier) et une nuit de la ville (Halloween).",
+      decides: "Les moments qui valent une campagne, à l'échelle du commerce : un moment capable de remplir un quart de la salle. Soixante-dix places, c'est dix-huit clients, donc un match des Rangers un mardi compte, pas seulement un stade. Pour les matchs à la télé, Qloo mesure à quel point les rues autour du bar aiment l'équipe : les Knicks autour de Penn & Pour, 0,99, un public à domicile.",
       next: "Lancer le même repérage toutes les heures pour chaque bar, sans aucun clic. C'est l'étape 5.",
       calls: [
         { what: "les événements à moins de 4,5 km, hors visites de salle et billets annexes", count: "1 · en cache 1 h" },
-        { what: "la météo heure par heure au bar", count: "1 · en cache 1 h" }
+        { what: "les matchs des équipes locales, ligue par ligue et jour par jour", count: "4 ligues × 5 jours · en cache 3 h" },
+        { what: "les événements de rue autorisés (défilés, fêtes de quartier, courses) autour du bar", count: "1 · en cache 3 h" },
+        { what: "associe chaque équipe à sa marque Qloo", count: "1 par équipe · en cache 7 jours" },
+        { what: "à quel point les rues autour du bar aiment l'équipe (carte de chaleur Qloo, médiane à moins de 800 m)", count: "1 par équipe · en cache 7 jours" },
+        { what: "la météo heure par heure au bar, pour chaque moment qui vaut une campagne", count: "1 par moment · en cache 1 h" }
       ]
     },
     s5: {
@@ -121,11 +126,11 @@ window.I18N_FR = {
     s6: {
       title: "Qui vient, et quelle offre leur convient",
       who: "le commerçant ouvre une foule depuis le radar",
-      sees: "Qui compose la foule, ce qu'elle aime, les bars voisins qu'elle fréquente déjà, et les offres du commerçant classées pour elle. Pour Harry Styles : des femmes de 25 à 29 ans, des bars à cocktails sur les toits, Gucci et Dior.",
-      decides: "Qui compose la foule, et le classement des offres pour elle. Si le nom de la tête d'affiche est ambigu, c'est le commerçant qui choisit la bonne correspondance, jamais l'IA.",
+      sees: "Qui compose la foule, ce qu'elle aime, les bars voisins qu'elle fréquente déjà, et les offres du commerçant classées pour elle. Pour Harry Styles : des femmes de 25 à 29 ans, des bars à cocktails sur les toits, Gucci et Dior. Pour la sortie des théâtres de Broadway : Schmigadoon!, Aladdin et Le Roi Lion lus à travers leurs versions à l'écran, plus le tag Musical Theatre, un public jeune et féminin. Pour les Knicks à la télé : des hommes de 30 à 34 ans, et l'offre grand écran l'emporte à 0,98.",
+      decides: "Qui compose la foule, et le classement des offres pour elle. Un spectacle a une tête d'affiche ; un moment fait de plusieurs spectacles, d'une équipe ou d'un thème est lu par Qloo comme une seule foule. Si un nom est ambigu, c'est le commerçant qui choisit la bonne correspondance, jamais l'IA.",
       next: "Le profil est recalculé à chaque chargement de la page. Le cache le rend gratuit, mais il faudrait l'enregistrer une fois par foule.",
       calls: [
-        { what: "associe le nom de la tête d'affiche à un identifiant Qloo", count: "1" },
+        { what: "associe le nom de la tête d'affiche à un identifiant Qloo ; pour un moment, les trois plus gros spectacles, l'équipe, ou les entités qui incarnent le thème", count: "1 à 4" },
         { what: "les tranches d'âge et le genre surreprésentés dans la foule", count: "1" },
         { what: "les tags de goût de la foule, pour les lieux uniquement", count: "1" },
         { what: "les bars à moins de 1,5 km que la foule aime déjà", count: "1" },
@@ -162,10 +167,11 @@ window.I18N_FR = {
     s9: {
       title: "Le pouls du quartier : la foule de tous les jours",
       who: "le commerçant ouvre le pouls du quartier. L'alerte automatique du lundi n'est pas encore construite",
-      sees: "Qui passe devant le bar un jour ordinaire, ce que ces gens aiment, où ils vont déjà, la météo de chaque soirée et l'offre à mettre en avant. Pour Penn & Pour : Cocktail Enthusiasts et Business Professionals, et sur l'ardoise « After work, before the train. »",
-      decides: "L'offre par défaut de la semaine. Les soirs d'événement passent avant.",
+      sees: "Qui passe devant le bar un jour ordinaire, ce que ces gens aiment, où ils vont déjà, la météo de chaque soirée et l'offre à mettre en avant. Nouveau : le rythme de la rue, lu dans les lieux que Qloo connaît autour de la porte. Pour Le Quai 12 : l'after-work du lundi au vendredi de 18 h à 20 h (les descriptions de Qloo elles-mêmes parlent d'after-work pour quatre lieux voisins, 14 bars sur 31 font un happy hour), les fins de soirée du vendredi et du samedi (9 lieux ouverts après 2 h contre 6 un soir ordinaire), le brunch du week-end.",
+      decides: "L'offre par défaut de la semaine, et les créneaux où la pousser : l'ardoise pour le pic de l'after-work, la publicité permanente sur ces heures, le message aux habitués pour le week-end. Les soirs d'événement passent avant.",
       calls: [
         { what: "les tags de goût de la rue, à partir de l'emplacement du bar", count: "1" },
+        { what: "les lieux autour de la porte avec leurs horaires, leurs tags et les descriptions de Qloo, agrégés en rythme de la rue", count: "1 · en cache 7 jours" },
         { what: "les marques et médias que la rue aime plus que la moyenne", count: "1" },
         { what: "les lieux concurrents que la rue aime déjà", count: "1" },
         { what: "les lieux proches qui portent les tags de chaque offre, notés pour la rue", count: "1 par offre · 5 ici" },

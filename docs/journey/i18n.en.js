@@ -33,7 +33,8 @@ window.I18N_EN = {
     now: [
       { k: "Today", v: "Pull only", d: "Nothing happens until the merchant clicks." },
       { k: "Target for the judges", v: "Push for big crowds", d: "When a big crowd is coming, the campaign is drafted before the merchant opens the app. One tap to approve." },
-      { k: "Qloo calls per crowd", v: "5 + 1 per offer", d: "10 calls for Penn & Pour, cached for 7 days." }
+      { k: "Qloo calls per crowd", v: "5 + 1 per offer", d: "10 calls for Penn & Pour, cached for 7 days. A TV game adds 2 (team brand, local fandom), a street theme adds up to 3." },
+      { k: "What counts as a crowd", v: "Relative to the room", d: "A moment worth a quarter of your seats: a stadium, a Broadway let-out, the Knicks on TV, a parade, Halloween night." }
     ],
     work: {
       title: "Workstreams",
@@ -97,12 +98,16 @@ window.I18N_EN = {
     s4: {
       title: "The radar spots the crowd",
       who: "the merchant opens the radar",
-      sees: "A timeline of the next three days showing how many people will be around the bar, with every event on it, and a map. Drag the timeline to see who is around at any moment, drag the circle to widen the radius. Wednesday: Harry Styles at the Garden, about 20,000 people, 0.3 km away.",
-      decides: "Which crowds are worth a campaign: a score of 45 or more and at least 1,000 people. Qloo is not called here: it knows tastes, not who is playing tonight.",
+      sees: "A timeline of the next three days showing how many people will be around the bar, with every moment on it, and a map. Drag the timeline to see who is around at any moment, drag the circle to widen the radius. Five kinds of crowd: a show at a venue (Harry Styles at the Garden, 20,000 people, 0.3 km), several small shows starting or letting out together (31 Broadway shows at 22:30, 32,000 people), the local team on TV (Knicks at Celtics on Friday), a street event (a parade, a block party) and a city night (Halloween).",
+      decides: "Which moments are worth a campaign, relative to the room: a moment that could bring a quarter of the bar's seats. Seventy seats means eighteen guests, so a Tuesday Rangers game counts, not only a stadium. For TV games Qloo measures how much these streets love the team: Knicks around Penn & Pour 0.99, a home crowd.",
       next: "Run the same scan every hour for every bar, with no click needed. That is step 5.",
       calls: [
         { what: "events within 4.5 km, minus venue tours and add-on tickets", count: "1 · cached 1 h" },
-        { what: "hourly weather forecast at the bar", count: "1 · cached 1 h" }
+        { what: "the local teams' games, league by league and day by day", count: "4 leagues × 5 days · cached 3 h" },
+        { what: "permitted street events (parades, block parties, races) around the bar", count: "1 · cached 3 h" },
+        { what: "matches each team to its Qloo brand", count: "1 per team · cached 7 days" },
+        { what: "how much the streets around the bar love the team (Qloo heatmap, median within 800 m)", count: "1 per team · cached 7 days" },
+        { what: "hourly weather forecast at the bar, for each moment worth a campaign", count: "1 per moment · cached 1 h" }
       ]
     },
     s5: {
@@ -121,11 +126,11 @@ window.I18N_EN = {
     s6: {
       title: "Who is coming, and which offer fits",
       who: "the merchant opens a crowd from the radar",
-      sees: "Who the crowd is, what they like, the nearby bars they already go to, and the merchant's offers ranked for them. For Harry Styles: women 25 to 29, rooftop cocktail bars, Gucci and Dior.",
-      decides: "Who the crowd is and how each offer ranks for it. If the headliner's name is ambiguous, the merchant picks the match, never the AI.",
+      sees: "Who the crowd is, what they like, the nearby bars they already go to, and the merchant's offers ranked for them. For Harry Styles: women 25 to 29, rooftop cocktail bars, Gucci and Dior. For the Broadway let-out: Schmigadoon!, Aladdin and The Lion King read through their screen versions plus the Musical Theatre tag, a young and female crowd. For the Knicks on TV: men 30 to 34, and the big-screen offer wins at 0.98.",
+      decides: "Who the crowd is and how each offer ranks for it. A show has one headliner; a moment made of several shows, a team or a theme is read by Qloo as one crowd. If a headliner's name is ambiguous, the merchant picks the match, never the AI.",
       next: "The profile is rebuilt on every page load. The cache makes that free, but it should be saved once per crowd.",
       calls: [
-        { what: "matches the headliner's name to a Qloo ID", count: "1" },
+        { what: "matches the headliner's name to a Qloo ID; for a moment, the three biggest shows, the team, or the entities that stand for the theme", count: "1 to 4" },
         { what: "age and gender groups overrepresented in the crowd", count: "1" },
         { what: "the crowd's taste tags, for places only", count: "1" },
         { what: "bars within 1.5 km the crowd already likes", count: "1" },
@@ -162,10 +167,11 @@ window.I18N_EN = {
     s9: {
       title: "Neighbourhood pulse: the everyday crowd",
       who: "the merchant opens the pulse. The automatic Monday alert is not built yet",
-      sees: "Who walks past on a normal day, what they like, where they already go, the weather each evening, and the offer to feature. For Penn & Pour: Cocktail Enthusiasts and Business Professionals, and the chalkboard line “After work, before the train.”",
-      decides: "The default offer for the week. Event nights override it.",
+      sees: "Who walks past on a normal day, what they like, where they already go, the weather each evening, and the offer to feature. New: the rhythm of the street, read from the places Qloo knows around the door. For Le Quai 12: after work Monday to Friday 18:00 to 20:00 (Qloo's own descriptions say “after work” for four places next door, 14 of 31 bars run a happy hour), late nights on Friday and Saturday (9 places open past 2 am against 6 on a usual night), weekend brunch.",
+      decides: "The default offer for the week, and the slots to push it: the board line for the after-work peak, the always-on ad on those hours, the regulars note for the weekend. Event nights override it.",
       calls: [
         { what: "taste tags for the street, based on the bar's location", count: "1" },
+        { what: "the places around the door with their hours, tags and Qloo's descriptions, aggregated into the street's rhythm", count: "1 · cached 7 days" },
         { what: "brands and media the street likes more than average", count: "1" },
         { what: "competing places the street already likes", count: "1" },
         { what: "nearby places with each offer's tags, scored for the street", count: "1 per offer · 5 here" },

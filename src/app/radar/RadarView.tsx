@@ -430,7 +430,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
                         <p className="tnum text-sm font-semibold" style={{ color: "var(--ink)" }}>
                           {fmtTime.format(new Date(it.w.start))} <span style={{ color: "var(--muted)", fontWeight: 400 }}>· crowd from {fmtTime.format(new Date(it.w.arrive))} to {fmtTime.format(new Date(it.w.leave))}</span>
                         </p>
-                        {KIND_LABEL[it.kind] && <p className="text-xs font-semibold" style={{ color: "var(--accent)" }}>{KIND_LABEL[it.kind]}</p>}
+                        {KIND_LABEL[it.kind] && <p className="text-xs font-semibold" style={{ color: "var(--accent-text, var(--accent))" }}>{KIND_LABEL[it.kind]}</p>}
                         <p className="truncate font-display text-lg">{it.headliner}</p>
                         <p className="truncate text-sm" style={{ color: "var(--muted)" }}>
                           {it.kind === "venue" ? `${it.venue} · ${it.distanceKm.toFixed(1)} km` : it.kind === "street" ? `${it.blurb ?? it.venue} · ${it.distanceKm.toFixed(1)} km` : (it.blurb ?? it.venue)} · ~{it.capacity.toLocaleString("en-US")} people{it.kind === "venue" || it.kind === "wave" ? "" : " (estimate)"}

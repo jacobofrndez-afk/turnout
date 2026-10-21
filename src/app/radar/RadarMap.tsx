@@ -65,15 +65,20 @@ function palette(): Palette {
   const muted = tok("--muted", "#6b655b");
   const panel = tok("--panel", "#ffffff");
   const paper = tok("--paper", "#f7f4ee");
+  // Map-specific tokens win when the identity defines them (--map-land, --map-cold, --map-hot); otherwise the
+  // colours derive from the shared tokens.
+  const mapCold = tok("--map-cold", "");
+  const mapHot = tok("--map-hot", "");
+  const mapLand = tok("--map-land", "");
   return {
     ink: resolveColor(ink, "#17150f"),
-    accent: resolveColor(tok("--accent", "#b4530a"), "#b4530a"),
-    neutral: resolveColor(muted, "#b8af9f", panel, 0.5),
-    ring: resolveColor(muted, "#a39c8f", panel, 0.7),
+    accent: mapHot ? resolveColor(mapHot, "#b4530a") : resolveColor(tok("--accent", "#b4530a"), "#b4530a"),
+    neutral: mapCold ? resolveColor(mapCold, "#b8af9f") : resolveColor(muted, "#b8af9f", panel, 0.5),
+    ring: mapCold ? resolveColor(mapCold, "#a39c8f") : resolveColor(muted, "#a39c8f", panel, 0.7),
     lineStrong: resolveColor(tok("--line-strong", "#cfc7b8"), "#cfc7b8"),
     muted: resolveColor(muted, "#6b655b"),
     panel: resolveColor(panel, "#ffffff"),
-    paper: resolveColor(paper, "#f7f4ee"),
+    paper: mapLand ? resolveColor(mapLand, "#f7f4ee") : resolveColor(paper, "#f7f4ee"),
     sky: resolveColor(tok("--line", "#e4ded3"), "#e4ded3", panel, 0.6),
   };
 }

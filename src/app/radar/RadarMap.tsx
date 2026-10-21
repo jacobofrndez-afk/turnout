@@ -274,20 +274,32 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
         // Each side slides along the map edge to stay inside, then is tested against the obstacles.
         const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
         const sides: [number, number][] = [[0, h / 2 + gap], [0, -(h / 2 + gap)], [-(w / 2 + gap), 0], [w / 2 + gap, 0]];
+        // Then the four corners of the map (narrow screens often leave no free side next to the venue).
+        const corners: [number, number][] = [
+          [mapRect.left + 6 + w / 2, mapRect.top + 6 + h / 2],
+          [mapRect.right - 6 - w / 2, mapRect.top + 6 + h / 2],
+          [mapRect.left + 6 + w / 2, mapRect.bottom - 6 - h / 2],
+          [mapRect.right - 6 - w / 2, mapRect.bottom - 6 - h / 2],
+        ];
+        const candidates: [number, number][] = [
+          ...sides.map(([dx, dy]): [number, number] => [clamp(cx + dx, mapRect.left + 6 + w / 2, mapRect.right - 6 - w / 2), clamp(cy + dy, mapRect.top + 6 + h / 2, mapRect.bottom - 6 - h / 2)]),
+          ...corners,
+        ];
         let chosen: [number, number] | undefined;
-        let fallback: [number, number] = sides[0];
-        for (const [dx, dy] of sides) {
-          const ccx = clamp(cx + dx, mapRect.left + 6 + w / 2, mapRect.right - 6 - w / 2);
-          const ccy = clamp(cy + dy, mapRect.top + 6 + h / 2, mapRect.bottom - 6 - h / 2);
+        for (const [ccx, ccy] of candidates) {
           const r = new DOMRect(ccx - w / 2, ccy - h / 2, w, h);
-          const off: [number, number] = [ccx - cx, ccy - cy];
-          if (dx === 0 && dy > 0) fallback = off;
           if (!obstacles.some((o) => hits(o, r))) {
-            chosen = off;
+            chosen = [ccx - cx, ccy - cy];
             break;
           }
         }
-        c.setOffset(chosen ?? fallback);
+        if (!chosen) {
+          // Nothing free: the corner farthest from your place, so the merchant always reads.
+          const meR = meEl.current?.querySelector(".tm-me")?.getBoundingClientRect();
+          const far = meR ? [...corners].sort((a, b) => Math.hypot(b[0] - meR.left, b[1] - meR.top) - Math.hypot(a[0] - meR.left, a[1] - meR.top))[0] : corners[0];
+          chosen = [far[0] - cx, far[1] - cy];
+        }
+        c.setOffset(chosen);
         obstacles.push(el.getBoundingClientRect());
       }
       for (const sgn of signs.current.slice(1)) {

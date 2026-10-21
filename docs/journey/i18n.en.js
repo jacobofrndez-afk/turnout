@@ -14,8 +14,8 @@ window.I18N_EN = {
     exitFullscreen: "Exit full screen",
     discovery: {
       title: "How the merchant finds out about a crowd",
-      today: "Today, pull: the merchant has to open the radar to see it.",
-      target: "Target, push: Turnout alerts the merchant with the campaign already drafted. The radar becomes the place to look further, not the way in."
+      today: "Built, push: every hour the server scans each bar, drafts the campaign for the strongest new moment and alerts the merchant with a link to approve. The radar is the place to look further, not the way in.",
+      target: "Next: the alert reaches the merchant's phone on WhatsApp as soon as Twilio is connected. Until then it is recorded on the alerts page, word for word."
     },
     screensNote: "",
     hood: "Under the hood",
@@ -31,8 +31,8 @@ window.I18N_EN = {
     legend: { pull: "the merchant starts it", push: "a schedule or a crowd threshold starts it", qloo: "a call to Qloo" },
     svc: { storefront: "Storefront", screen: "Screen" },
     now: [
-      { k: "Today", v: "Pull only", d: "Nothing happens until the merchant clicks." },
-      { k: "Target for the judges", v: "Push for big crowds", d: "When a big crowd is coming, the campaign is drafted before the merchant opens the app. One tap to approve." },
+      { k: "Today", v: "Push every hour", d: "The server scans every bar, drafts the campaign for the strongest new moment and alerts the merchant. One alert per scan, never twice for the same moment." },
+      { k: "Target for the judges", v: "The alert on the phone", d: "Connect Twilio and the same message lands on WhatsApp. Today it is recorded on the alerts page." },
       { k: "Qloo calls per crowd", v: "5 + 1 per offer", d: "10 calls for Penn & Pour, cached for 7 days. A TV game adds 2 (team brand, local fandom), a street theme adds up to 3." },
       { k: "What counts as a crowd", v: "Relative to the room", d: "A moment worth a quarter of your seats: a stadium, a Broadway let-out, the Knicks on TV, a parade, Halloween night." }
     ],
@@ -45,7 +45,8 @@ window.I18N_EN = {
         { item: "Put the server live on Railway with the Anthropic key, before October 24", who: "Jacobo", status: "todo", steps: ["7", "8"] },
         { item: "Swing logo, S1 weight and color palette", who: "Design", status: "wip", label: "Waiting for Jacobo's pick", steps: ["1"] },
         { item: "Landing page that leads with what a bar gains", who: "Marketing", status: "done", steps: ["1"] },
-        { item: "Push: the scheduler and the merchant alert", who: "Backend", status: "todo", steps: ["5", "9"] },
+        { item: "Push: the hourly scan and the merchant alert", who: "Backend", status: "done", steps: ["5"] },
+        { item: "Push for the weekly pulse: the Monday brief sent on its own", who: "Backend", status: "todo", steps: ["9"] },
         { item: "Save each crowd profile once instead of rebuilding it", who: "Backend", status: "todo", steps: ["6", "7"] },
         { item: "A code per campaign to count who came", who: "Not assigned yet", status: "todo", steps: ["10"] }
       ]
@@ -111,15 +112,15 @@ window.I18N_EN = {
     },
     s5: {
       title: "Get alerted with the campaign ready",
-      who: "the hourly scan finds a crowd above the threshold",
-      sees: "A WhatsApp message: Harry Styles plays the Garden on Wednesday, about 20,000 people 300 m away, and the campaign is ready. One button to review, one to approve.",
-      decides: "When the merchant hears about the crowd. The earlier they know, the longer the campaign can run.",
-      codeNote: "Needs a scheduler on the server, not built yet. Steps 4, 6 and 7 already work; the scheduler only has to run them.",
-      next: "Build the scheduler and the WhatsApp alert.",
+      who: "the hourly scan finds a moment worth a campaign that nobody has been told about",
+      sees: "A WhatsApp message: the moment, its size for the room, the offer the agent chose, and a link to approve. This morning for Penn & Pour: “Theatre crowd arriving, 16 shows at 12:00, about 19,200 people 1.2 km from you. Could bring about 96 guests, 100% of your 70 seats. Campaign ready.” One tap to review, one to approve.",
+      decides: "When the merchant hears about the crowd, and which moment gets the campaign: the strongest new one, one per scan, so the agent never floods the merchant.",
+      codeNote: "Built. The server runs the scan every hour and the alerts page runs it on demand. The WhatsApp send is live once Twilio is connected; until then the message is recorded on the alerts page.",
+      next: "Connect the Twilio sandbox so the message reaches the merchant's phone.",
       calls: [
-        { what: "the step 4 event scan, every hour, for every bar", count: "1 per bar per hour" },
-        { what: "steps 6 and 7 run before the merchant opens the app", count: "same as steps 6 and 7" },
-        { what: "the alert to the merchant", count: "1" }
+        { what: "the step 4 scan, every hour, for every bar", count: "1 per bar per hour" },
+        { what: "steps 6 and 7 for the chosen moment, before the merchant opens the app", count: "same as steps 6 and 7" },
+        { what: "the alert to the merchant", count: "1 · WhatsApp once connected" }
       ]
     },
     s6: {

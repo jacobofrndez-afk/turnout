@@ -14,8 +14,8 @@ window.I18N_FR = {
     exitFullscreen: "Quitter le plein écran",
     discovery: {
       title: "Comment le commerçant apprend qu'une foule arrive",
-      today: "Aujourd'hui, en pull : il doit ouvrir le radar pour la voir.",
-      target: "Objectif, en push : Turnout le prévient, avec la campagne déjà rédigée. Le radar sert alors à aller plus loin, ce n'est plus la porte d'entrée."
+      today: "Construit, en push : chaque heure, le serveur passe chaque bar au radar, rédige la campagne du moment le plus fort et prévient le commerçant avec un lien pour valider. Le radar sert à aller plus loin, ce n'est plus la porte d'entrée.",
+      target: "Prochaine étape : l'alerte arrive sur le téléphone du commerçant, par WhatsApp, dès que Twilio est connecté. En attendant, elle est enregistrée mot pour mot sur la page des alertes."
     },
     screensNote: "Les écrans sont en anglais, comme le produit.",
     hood: "Sous le capot",
@@ -31,8 +31,8 @@ window.I18N_FR = {
     legend: { pull: "lancé par le commerçant", push: "lancé à heure fixe ou quand une foule dépasse un seuil", qloo: "un appel à Qloo" },
     svc: { storefront: "Vitrine", screen: "Écran" },
     now: [
-      { k: "Aujourd'hui", v: "Le commerçant lance tout", d: "Rien ne se passe tant qu'il ne clique pas." },
-      { k: "Objectif pour le jury", v: "Alerte automatique pour les grosses foules", d: "Quand une grosse foule arrive, la campagne est rédigée avant que le commerçant ouvre l'app. Un seul geste pour la valider." },
+      { k: "Aujourd'hui", v: "Push toutes les heures", d: "Le serveur passe chaque bar au radar, rédige la campagne du moment le plus fort et prévient le commerçant. Une alerte par passage, jamais deux fois pour le même moment." },
+      { k: "Objectif pour le jury", v: "L'alerte sur le téléphone", d: "Une fois Twilio connecté, le même message arrive sur WhatsApp. Aujourd'hui il est enregistré sur la page des alertes." },
       { k: "Appels Qloo par foule", v: "5 + 1 par offre", d: "10 appels pour Penn & Pour, gardés 7 jours en cache. Un match à la télé en ajoute 2 (marque de l'équipe, ferveur locale), un thème de rue jusqu'à 3." },
       { k: "Ce qui compte comme une foule", v: "À l'échelle du commerce", d: "Un moment qui vaut un quart de vos places : un stade, la sortie des théâtres de Broadway, les Knicks à la télé, un défilé, la nuit d'Halloween." }
     ],
@@ -45,7 +45,8 @@ window.I18N_FR = {
         { item: "Mettre le serveur en ligne sur Railway avec la clé Anthropic, avant le 24 octobre", who: "Jacobo", status: "todo", steps: ["7", "8"] },
         { item: "Logo Swing, graisse S1 et palette de couleurs", who: "Design", status: "wip", label: "En attente du choix de Jacobo", steps: ["1"] },
         { item: "Page d'accueil qui met en avant ce que le bar y gagne", who: "Marketing", status: "done", steps: ["1"] },
-        { item: "Push : le planificateur et l'alerte au commerçant", who: "Backend", status: "todo", steps: ["5", "9"] },
+        { item: "Push : le passage horaire au radar et l'alerte au commerçant", who: "Backend", status: "done", steps: ["5"] },
+        { item: "Push pour le pouls du quartier : le plan du lundi envoyé tout seul", who: "Backend", status: "todo", steps: ["9"] },
         { item: "Enregistrer chaque profil de foule une seule fois, au lieu de le recalculer", who: "Backend", status: "todo", steps: ["6", "7"] },
         { item: "Un code par campagne pour compter qui est venu", who: "Pas encore attribué", status: "todo", steps: ["10"] }
       ]
@@ -111,15 +112,15 @@ window.I18N_FR = {
     },
     s5: {
       title: "Recevoir l'alerte, campagne déjà prête",
-      who: "le repérage horaire trouve une foule au-dessus du seuil",
-      sees: "Un message WhatsApp : Harry Styles joue au Garden mercredi, environ 20 000 personnes à 300 m, et la campagne est prête. Un bouton pour la relire, un autre pour la valider.",
-      decides: "Le moment où le commerçant apprend qu'une foule arrive. Plus il le sait tôt, plus la campagne peut tourner longtemps.",
-      codeNote: "Il faut un planificateur sur le serveur, pas encore construit. Les étapes 4, 6 et 7 marchent déjà : le planificateur n'a qu'à les lancer.",
-      next: "Construire le planificateur et l'alerte WhatsApp.",
+      who: "le passage horaire trouve un moment qui vaut une campagne et dont personne n'a encore été prévenu",
+      sees: "Un message WhatsApp : le moment, sa taille à l'échelle de la salle, l'offre choisie par l'agent et un lien pour valider. Ce matin pour Penn & Pour : « Theatre crowd arriving, 16 shows at 12:00, about 19,200 people 1.2 km from you. Could bring about 96 guests, 100% of your 70 seats. Campaign ready. » Un geste pour relire, un autre pour valider.",
+      decides: "Le moment où le commerçant apprend qu'une foule arrive, et quel moment reçoit sa campagne : le plus fort parmi les nouveaux, un seul par passage, pour que l'agent ne noie jamais le commerçant.",
+      codeNote: "Construit. Le serveur lance le passage toutes les heures, et la page des alertes le lance à la demande. L'envoi WhatsApp s'active dès que Twilio est connecté ; en attendant, le message est enregistré sur la page des alertes.",
+      next: "Connecter le bac à sable Twilio pour que le message arrive sur le téléphone du commerçant.",
       calls: [
-        { what: "le repérage de l'étape 4, toutes les heures, pour chaque bar", count: "1 par bar et par heure" },
-        { what: "les étapes 6 et 7, lancées avant que le commerçant ouvre l'app", count: "comme aux étapes 6 et 7" },
-        { what: "l'alerte au commerçant", count: "1" }
+        { what: "le passage de l'étape 4, toutes les heures, pour chaque bar", count: "1 par bar et par heure" },
+        { what: "les étapes 6 et 7 pour le moment retenu, avant que le commerçant ouvre l'app", count: "comme aux étapes 6 et 7" },
+        { what: "l'alerte au commerçant", count: "1 · WhatsApp une fois connecté" }
       ]
     },
     s6: {

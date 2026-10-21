@@ -44,6 +44,7 @@ export type MomentMeta = {
   kind?: string;
   members?: { id: string; name: string; venue: string; capacity: number; startsAt: string; segment?: string; genre?: string }[];
   signal?: { entities?: SignalPart[]; tags?: SignalPart[] };
+  themeProxies?: { query: string; type: string }[];
   windowLabel?: string;
   windowWhy?: string;
   why?: string;
@@ -162,11 +163,28 @@ function memberLookup(m: { segment?: string; genre?: string; venue: string }): {
 
 async function momentSignal(event: EventRow, profile: CrowdProfile, onCall: (w: string, note?: string) => (c: QlooCall) => void): Promise<void> {
   const meta = momentMeta(event);
-  // TV, street and calendar moments carry a signal already resolved through Qloo when they were detected.
+  // TV, street and calendar moments carry a signal resolved when they were detected (a team, a theme tag).
   if (meta.signal) {
-    profile.signal.entities = meta.signal.entities ?? [];
-    profile.signal.tags = meta.signal.tags ?? [];
-    return;
+    profile.signal.entities = [...(meta.signal.entities ?? [])];
+    profile.signal.tags = [...(meta.signal.tags ?? [])];
+    // A theme (Halloween, a marathon) also has well-known entities that stand for it: Qloo needs entities for
+    // place taste and offer fit, tags alone only echo their own words.
+    for (const p of meta.themeProxies ?? []) {
+      if (profile.signal.entities.length >= 3) break;
+      const results = await searchEntities(p.query, [p.type], { onCall: onCall("describe", `theme proxy "${p.query}"`) });
+      const hit = results.find((r) => norm(r.name) === norm(p.query) && (r.popularity ?? 0) >= 0.5);
+      if (hit) profile.signal.entities.push({ id: hit.entity_id, name: hit.name, type: p.type, note: "stands for the theme of this crowd" });
+    }
+    if (hasSignal(profile)) return;
+  }
+  // A street event with no theme: read it through the closest Qloo tag to its own name.
+  if (event.origin === "street") {
+    const words = event.name.replace(/[^\p{L}\p{N} ]/gu, " ").split(/\s+/).filter((w) => w.length > 3).slice(0, 3).join(" ");
+    const tag = words ? (await findTags(words, 3, { onCall: onCall("find_tags", `tag for "${words}"`) }))[0] : undefined;
+    if (tag) {
+      profile.signal.tags.push({ id: tagId(tag), name: tag.name, type: "tag", note: "closest Qloo tag to the event's name" });
+      return;
+    }
   }
   // A wave: resolve its biggest shows by exact name. Unknown shows are skipped, not guessed.
   const seen = new Set<string>();

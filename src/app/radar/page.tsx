@@ -49,8 +49,8 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
       id: it.event.id,
       kind: origin === "ticketmaster" ? "venue" : origin,
       headliner: it.headliner.name,
-      short: origin === "wave" ? `${Number(it.event.meta?.count ?? members.length)} shows ${it.event.meta?.kind === "arrival" ? "starting" : "letting out"}` : it.headliner.name,
-      blurb: names.length ? `${names.slice(0, 3).join(", ")}${Number(it.event.meta?.count ?? names.length) > 3 ? ` and ${Number(it.event.meta?.count ?? names.length) - 3} more` : ""}` : undefined,
+      short: shortLabel(it.event, members.length),
+      blurb: blurbOf(it.event, names),
       members: members.map((m) => m.id),
       venue: it.event.venue.name,
       lat: it.event.venue.lat,
@@ -103,3 +103,42 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
     </main>
   );
 }
+
+type Meta = Record<string, unknown> & { fandom?: { rank: number; band: string } | null };
+
+// Label on the timeline: short enough to sit next to a marker.
+function shortLabel(e: RadarItem["event"], memberCount: number): string {
+  const meta = (e.meta ?? {}) as Meta;
+  switch (e.origin) {
+    case "wave":
+      return `${Number(meta.count ?? memberCount)} shows ${meta.kind === "arrival" ? "starting" : "letting out"}`;
+    case "tv":
+      return e.name.replace(/ on .+$/, "") + " on TV";
+    case "street":
+      return e.name.length > 30 ? `${e.name.slice(0, 28).trim()}…` : e.name;
+    default:
+      return headlinerOf(e);
+  }
+}
+
+const headlinerOf = (e: RadarItem["event"]) => e.attractions[0]?.name ?? e.name;
+
+// One line saying what the moment is made of and where the evidence comes from.
+function blurbOf(e: RadarItem["event"], memberNames: string[]): string | undefined {
+  const meta = (e.meta ?? {}) as Meta;
+  switch (e.origin) {
+    case "wave": {
+      const count = Number(meta.count ?? memberNames.length);
+      return memberNames.length ? `${memberNames.slice(0, 3).join(", ")}${count > 3 ? ` and ${count - 3} more` : ""}` : undefined;
+    }
+    case "tv":
+      return [meta.league, meta.side === "away" ? "away game" : "home game across town", meta.tv, meta.fandom ? `Qloo local fandom ${meta.fandom.rank.toFixed(2)}, ${meta.fandom.band}` : undefined].filter(Boolean).join(" · ");
+    case "street":
+      return [meta.type, e.venue.name].filter(Boolean).join(" · ");
+    case "calendar":
+      return "A night the whole city goes out";
+    default:
+      return undefined;
+  }
+}
+

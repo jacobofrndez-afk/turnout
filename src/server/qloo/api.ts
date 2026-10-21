@@ -149,3 +149,33 @@ export async function findTags(query: string, take = 8, opts: Opts = {}): Promis
 }
 
 export const tagId = (t: QlooTag) => t.tag_id ?? t.id ?? "";
+
+// Local fandom: how much the streets around a point love an entity, from the Qloo heatmap.
+// affinity and popularity are rescaled inside each response (they average 0.5), so only affinity_rank
+// compares entities. We keep the median affinity_rank of the cells within `nearM` of the point.
+export type HeatCell = { location: { latitude: number; longitude: number; geohash: string }; query: { affinity?: number; affinity_rank?: number; popularity?: number } };
+
+export async function localFandom(entityIds: string[], lat: number, lon: number, opts: Opts & { nearM?: number } = {}): Promise<{ rank: number; cells: number } | undefined> {
+  const nearM = opts.nearM ?? 800;
+  const key = { entityIds: [...entityIds].sort(), lat: lat.toFixed(4), lon: lon.toFixed(4), nearM };
+  const cached = cacheGet<{ rank: number; cells: number } | null>("qloo-fandom", key);
+  if (cached !== undefined) return cached ?? undefined;
+  const body = await qlooGet<{ results?: { heatmap?: HeatCell[] } }>(
+    "/v2/insights",
+    { "filter.type": "urn:heatmap", "signal.interests.entities": entityIds.join(","), "filter.location": `POINT(${lon} ${lat})`, "filter.location.radius": "2000" },
+    { ...opts, ttl: 60 }, // the raw heatmap is large: keep the computed median for a week instead
+  );
+  const cells = body.results?.heatmap ?? [];
+  const near = cells
+    .filter((c) => metres(lat, lon, c.location.latitude, c.location.longitude) <= nearM && typeof c.query.affinity_rank === "number")
+    .map((c) => c.query.affinity_rank as number)
+    .sort((a, b) => a - b);
+  const out = near.length ? { rank: near[Math.floor(near.length / 2)], cells: near.length } : null;
+  cacheSet("qloo-fandom", key, out, 7 * 24 * 3600);
+  return out ?? undefined;
+}
+
+function metres(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  return Math.hypot((lat2 - lat1) * 111_320, (lon2 - lon1) * 111_320 * Math.cos((lat1 * Math.PI) / 180));
+}
+

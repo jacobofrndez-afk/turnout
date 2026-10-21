@@ -39,7 +39,9 @@ type Props = {
 const H = 3_600_000;
 const Q = 15 * 60_000;
 type Crowd = ViewItem;
-const KIND_LABEL: Record<string, string> = { venue: "", wave: "Several shows at once", tv: "On TV nearby", street: "In the street", calendar: "City moment" };
+const KIND_LABEL: Record<string, string> = { venue: "", wave: "Several shows at once", tv: "A game on TV", street: "In the street", calendar: "A city night" };
+// Moments with a real place of their own go on the map; TV games and city nights are everywhere around you.
+const ON_MAP = new Set(["venue", "street"]);
 
 export default function RadarView({ merchant, items, nowIso, hours }: Props) {
   const router = useRouter();
@@ -141,7 +143,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
   const markers = useMemo(() => {
     const laneEnds = [-1, -1, -1];
     return inView.map((c) => {
-      const big = c.interesting || (c.kind === "venue" && c.capacity >= 2500);
+      const big = c.interesting || (c.kind === "venue" && c.capacity >= 2500) || c.kind === "calendar";
       let lane = -1;
       if (big) {
         const x = pct(c.w.start);
@@ -258,7 +260,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
   // Waves have no venue of their own: selecting one lights up its shows, and the peek card describes the wave.
   const points: MapPoint[] = useMemo(() => {
     const byVenue = new Map<string, Crowd[]>();
-    for (const c of all.filter((i) => i.kind === "venue" && (isHot(i) || i.capacity >= 400))) {
+    for (const c of all.filter((i) => ON_MAP.has(i.kind) && (isHot(i) || i.capacity >= 400))) {
       const k = `${c.venue}|${c.lat.toFixed(4)},${c.lon.toFixed(4)}`;
       byVenue.set(k, [...(byVenue.get(k) ?? []), c]);
     }
@@ -431,7 +433,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
                         {KIND_LABEL[it.kind] && <p className="text-xs font-semibold" style={{ color: "var(--accent)" }}>{KIND_LABEL[it.kind]}</p>}
                         <p className="truncate font-display text-lg">{it.headliner}</p>
                         <p className="truncate text-sm" style={{ color: "var(--muted)" }}>
-                          {it.kind === "venue" ? `${it.venue} · ${it.distanceKm.toFixed(1)} km` : (it.blurb ?? it.venue)} · ~{it.capacity.toLocaleString("en-US")} people
+                          {it.kind === "venue" ? `${it.venue} · ${it.distanceKm.toFixed(1)} km` : it.kind === "street" ? `${it.blurb ?? it.venue} · ${it.distanceKm.toFixed(1)} km` : (it.blurb ?? it.venue)} · ~{it.capacity.toLocaleString("en-US")} people{it.kind === "venue" || it.kind === "wave" ? "" : " (estimate)"}
                         </p>
                         {it.interesting && (
                           <p className="text-sm" style={{ color: "var(--text)" }}>

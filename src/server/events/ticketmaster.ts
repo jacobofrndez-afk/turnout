@@ -69,7 +69,7 @@ export async function fetchEventsNear(args: FetchArgs): Promise<TmEvent[]> {
       page: String(page),
       sort: "date,asc",
     });
-    const res = await fetch(`${API}?${q}`);
+    const res = await fetch(`${API}?${q}`, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) throw new Error(`Ticketmaster HTTP ${res.status}`);
     const body = (await res.json()) as { _embedded?: { events?: RawEvent[] }; page?: { totalPages?: number } };
     raw.push(...(body._embedded?.events ?? []));

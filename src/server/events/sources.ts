@@ -14,6 +14,10 @@ export type MomentSource = {
 
 const SOURCES: MomentSource[] = [];
 
+// A source that failed recently is skipped for a few minutes, so an outage costs one timeout, not one per page view.
+const COOLDOWN_MS = 5 * 60_000;
+const failedAt = ((globalThis as unknown as { __sourceFailedAt?: Map<string, number> }).__sourceFailedAt ??= new Map<string, number>());
+
 export function registerSource(s: MomentSource): void {
   if (!SOURCES.some((x) => x.id === s.id)) SOURCES.push(s);
 }
@@ -21,9 +25,17 @@ export function registerSource(s: MomentSource): void {
 export async function collectMoments(m: SourceMerchant, now: Date, hoursAhead: number): Promise<{ moments: TmEvent[]; errors: { source: string; message: string }[] }> {
   const errors: { source: string; message: string }[] = [];
   const runs = SOURCES.filter((s) => s.appliesTo(m)).map(async (s) => {
+    const last = failedAt.get(s.id);
+    if (last && Date.now() - last < COOLDOWN_MS) {
+      errors.push({ source: s.id, message: "skipped, failed less than 5 minutes ago" });
+      return [];
+    }
     try {
-      return await withTimeout(s.fetch(m, now, hoursAhead), 12_000);
+      const out = await withTimeout(s.fetch(m, now, hoursAhead), 9_000);
+      failedAt.delete(s.id);
+      return out;
     } catch (e) {
+      failedAt.set(s.id, Date.now());
       errors.push({ source: s.id, message: String((e as Error).message).slice(0, 160) });
       return [];
     }

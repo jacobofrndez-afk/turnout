@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 // Vector map in the spirit of the global search prototype: MapLibre on OpenFreeMap "positron" (free, no key),
 // a short flight in from the globe on first open, venues drawn as map layers (size = crowd), a peek card on the
 // selected crowd, radar rings with walking times, and a draggable handle to widen or narrow the merchant's radius.
-// Brand rules (design/brand/GUIDELINES.md): merchant in ink, hot crowds in amber, others neutral, no blue, no pulsing.
+// Brand rules (Marquise): merchant in ink as a square, hot crowds solid raspberry with a sign label, others cold grey, no blue, no pulsing.
 
 export type MapPoint = {
   key: string;
@@ -61,25 +61,24 @@ function resolveColor(css: string, fallback: string, under?: string, alpha = 1):
 function palette(): Palette {
   const css = getComputedStyle(document.documentElement);
   const tok = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
-  const ink = tok("--ink", "#17150f");
-  const muted = tok("--muted", "#6b655b");
-  const panel = tok("--panel", "#ffffff");
-  const paper = tok("--paper", "#f7f4ee");
+  const ink = tok("--ink", "#111114");
+  const muted = tok("--muted", "#62646B");
+  const panel = tok("--panel", "#FFFFFF");
   // Map-specific tokens win when the identity defines them (--map-land, --map-cold, --map-hot); otherwise the
   // colours derive from the shared tokens.
-  const mapCold = tok("--map-cold", "");
-  const mapHot = tok("--map-hot", "");
-  const mapLand = tok("--map-land", "");
+  const mapCold = tok("--map-cold", "#7C8794");
+  const mapHot = tok("--map-hot", tok("--accent", "#E0115F"));
+  const mapLand = tok("--map-land", tok("--paper", "#ECEDEC"));
   return {
-    ink: resolveColor(ink, "#17150f"),
-    accent: mapHot ? resolveColor(mapHot, "#b4530a") : resolveColor(tok("--accent", "#b4530a"), "#b4530a"),
-    neutral: mapCold ? resolveColor(mapCold, "#b8af9f") : resolveColor(muted, "#b8af9f", panel, 0.5),
-    ring: mapCold ? resolveColor(mapCold, "#a39c8f") : resolveColor(muted, "#a39c8f", panel, 0.7),
-    lineStrong: resolveColor(tok("--line-strong", "#cfc7b8"), "#cfc7b8"),
-    muted: resolveColor(muted, "#6b655b"),
-    panel: resolveColor(panel, "#ffffff"),
-    paper: mapLand ? resolveColor(mapLand, "#f7f4ee") : resolveColor(paper, "#f7f4ee"),
-    sky: resolveColor(tok("--line", "#e4ded3"), "#e4ded3", panel, 0.6),
+    ink: resolveColor(ink, "#111114"),
+    accent: resolveColor(mapHot, "#E0115F"),
+    neutral: resolveColor(mapCold, "#7C8794"),
+    ring: resolveColor(ink, "#111114"),
+    lineStrong: resolveColor(tok("--line-strong", "#C9CBCD"), "#C9CBCD"),
+    muted: resolveColor(muted, "#62646B"),
+    panel: resolveColor(panel, "#FFFFFF"),
+    paper: resolveColor(mapLand, "#ECEDEC"),
+    sky: resolveColor(tok("--line", "#E3E4E4"), "#E3E4E4", panel, 0.6),
   };
 }
 const MIN_R = 300;
@@ -92,6 +91,7 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
   const mapEl = useRef<HTMLDivElement>(null);
   const map = useRef<ML>(null);
   const card = useRef<ML>(null);
+  const signs = useRef<ML[]>([]);
   const handle = useRef<ML>(null);
   const [ready, setReady] = useState(false);
   const [radius, setRadius] = useState(merchant.radiusM);
@@ -186,6 +186,8 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
     return () => {
       cancelled = true;
       card.current?.remove();
+      for (const sgn of signs.current) sgn.remove();
+      signs.current = [];
       map.current?.remove();
       map.current = null;
       setReady(false);
@@ -205,15 +207,28 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
         properties: { eventId: p.eventId, label: p.label, cap: p.capacity, hot: p.hot ? 1 : 0, active: p.active ? 1 : 0, selected: p.selected ? 1 : 0, labelled: p.hot || p.active || p.selected ? 1 : 0 },
       })),
     });
+    const ml = (window as unknown as { maplibregl: ML }).maplibregl;
+    // Hot venues carry a solid sign label (an HTML marker); cold venues keep the map's own text layer.
+    for (const sgn of signs.current) sgn.remove();
+    signs.current = points
+      .filter((p) => p.hot && !p.selected)
+      .map((p) => {
+        const el = document.createElement("div");
+        el.className = "tm-sign";
+        el.textContent = p.label;
+        return new ml.Marker({ element: el, anchor: "left", offset: [11, 0] }).setLngLat([p.lon, p.lat]).addTo(m);
+      });
     const sel = points.find((p) => p.selected);
     card.current?.remove();
     card.current = null;
     if (sel) {
-      const ml = (window as unknown as { maplibregl: ML }).maplibregl;
       const el = document.createElement("div");
-      el.className = "tm-peek";
-      el.innerHTML = `<p class="tm-peek-k">${escapeHtml(sel.time)}${sel.active ? ` · <span class="on">around you now on the timeline</span>` : ""}</p><p class="tm-peek-t">${escapeHtml(sel.label)}</p><p class="tm-peek-s">${escapeHtml(sel.venue)} · ~${sel.capacity.toLocaleString("en-US")} people · ${walkMin(sel.distanceKm * 1000)} min walk</p>${sel.href && sel.hot ? `<a class="tm-peek-a" href="${sel.href}">Qualify this crowd with Qloo →</a>` : ""}`;
-      card.current = new ml.Marker({ element: el, anchor: "bottom", offset: [0, -16] }).setLngLat([sel.lon, sel.lat]).addTo(m);
+      el.className = `tm-peek${sel.hot ? " hot" : ""}`;
+      el.innerHTML = `<p class="tm-peek-k">${escapeHtml(sel.time)}${sel.active ? ` · <span class="on">around you now on the timeline</span>` : ""}</p><p class="tm-peek-t">${escapeHtml(sel.label)}</p><p class="tm-peek-s">${escapeHtml(sel.venue)} · ~<span class="mono">${sel.capacity.toLocaleString("en-US")}</span> people · <span class="mono">${walkMin(sel.distanceKm * 1000)} min</span> walk</p>${sel.href && sel.hot ? `<a class="tm-peek-a" href="${sel.href}">Qualify this crowd with Qloo</a>` : ""}`;
+      // Keep the card inside the map: hang it below the venue when the venue sits near the top edge.
+      const y = m.project([sel.lon, sel.lat]).y;
+      const below = y < 150;
+      card.current = new ml.Marker({ element: el, anchor: below ? "top" : "bottom", offset: [0, below ? 16 : -16] }).setLngLat([sel.lon, sel.lat]).addTo(m);
     }
   }, [points, ready]);
 
@@ -258,7 +273,7 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
 function addLayers(m: ML, P: Palette) {
   m.addSource("rings", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
   m.addLayer({ id: "ring-fill", type: "fill", source: "rings", filter: ["==", ["get", "main"], 1], paint: { "fill-color": P.ink, "fill-opacity": 0.025 } });
-  m.addLayer({ id: "ring-line", type: "line", source: "rings", filter: ["==", ["geometry-type"], "Polygon"], paint: { "line-color": ["case", ["==", ["get", "main"], 1], P.ring, P.lineStrong], "line-width": ["case", ["==", ["get", "main"], 1], 1.5, 0.8], "line-dasharray": ["case", ["==", ["get", "main"], 1], ["literal", [3, 2.5]], ["literal", [1]]] } });
+  m.addLayer({ id: "ring-line", type: "line", source: "rings", filter: ["==", ["geometry-type"], "Polygon"], paint: { "line-color": ["case", ["==", ["get", "main"], 1], P.ink, P.lineStrong], "line-width": ["case", ["==", ["get", "main"], 1], 1.5, 0.8], "line-dasharray": ["case", ["==", ["get", "main"], 1], ["literal", [3, 2.5]], ["literal", [1]]] } });
   m.addSource("ring-labels", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
   m.addLayer({ id: "ring-label", type: "symbol", source: "ring-labels", layout: { "text-field": ["get", "label"], "text-font": FONT, "text-size": 10.5, "text-anchor": "bottom", "text-offset": [0, -0.2], "text-allow-overlap": true }, paint: { "text-color": P.muted, "text-halo-color": P.panel, "text-halo-width": 1.6 } });
   m.addSource("venues", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
@@ -270,10 +285,10 @@ function addLayers(m: ML, P: Palette) {
     paint: {
       "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, ["*", 0.12, ["sqrt", ["get", "cap"]]], 16, ["*", 0.34, ["sqrt", ["get", "cap"]]]],
       "circle-color": ["case", ["==", ["get", "hot"], 1], P.accent, P.neutral],
-      "circle-opacity": ["case", ["==", ["get", "active"], 1], 0.2, 0.06],
+      "circle-opacity": ["case", ["==", ["get", "active"], 1], 0.14, 0.05],
       "circle-stroke-color": ["case", ["==", ["get", "hot"], 1], P.accent, P.neutral],
       "circle-stroke-width": ["case", ["==", ["get", "active"], 1], 1, 0],
-      "circle-stroke-opacity": 0.5,
+      "circle-stroke-opacity": 0.6,
     },
   });
   m.addLayer({
@@ -284,7 +299,7 @@ function addLayers(m: ML, P: Palette) {
     paint: {
       "circle-radius": ["case", ["==", ["get", "hot"], 1], 7, 5],
       "circle-color": ["case", ["==", ["get", "hot"], 1], P.accent, P.neutral],
-      "circle-opacity": ["case", ["==", ["get", "active"], 1], 1, 0.5],
+      "circle-opacity": 1,
       "circle-stroke-color": ["case", ["==", ["get", "selected"], 1], P.ink, P.panel],
       "circle-stroke-width": ["case", ["==", ["get", "selected"], 1], 2.5, 1.8],
     },
@@ -293,9 +308,9 @@ function addLayers(m: ML, P: Palette) {
     id: "venue-label",
     type: "symbol",
     source: "venues",
-    filter: ["all", ["==", ["get", "labelled"], 1], ["==", ["get", "selected"], 0]],
-    layout: { "text-field": ["get", "label"], "text-font": FONT_BOLD, "text-size": 12, "text-anchor": "left", "text-offset": [0.9, 0], "text-max-width": 12, "text-padding": 4, "symbol-sort-key": ["-", 2, ["get", "hot"]] },
-    paint: { "text-color": ["case", ["==", ["get", "hot"], 1], P.ink, P.muted], "text-halo-color": P.panel, "text-halo-width": 1.8 },
+    filter: ["all", ["==", ["get", "labelled"], 1], ["==", ["get", "selected"], 0], ["==", ["get", "hot"], 0]],
+    layout: { "text-field": ["get", "label"], "text-font": FONT_BOLD, "text-size": 12, "text-anchor": "left", "text-offset": [0.9, 0], "text-max-width": 12, "text-padding": 4 },
+    paint: { "text-color": P.muted, "text-halo-color": P.panel, "text-halo-width": 1.8 },
   });
 }
 

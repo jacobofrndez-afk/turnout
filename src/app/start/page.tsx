@@ -10,7 +10,7 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
         Nothing you type here reaches Qloo except the words describing your offers. Your address is only used to draw the radar.
       </p>
 
-      {error && <p className="mt-5 rounded-xl p-3 text-sm" style={{ background: "var(--danger-soft)", color: "var(--danger)" }}>{error}</p>}
+      {error && <p className="mt-5 p-3 text-sm" style={{ background: "var(--danger-soft)", color: "var(--danger)" }}>{error}</p>}
 
       <form action="/api/merchants" method="post" className="card mt-8 space-y-6 p-7">
         <div className="grid gap-4 sm:grid-cols-[1fr_150px_110px]">
@@ -64,7 +64,7 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
               ["dooh", "Digital screen nearby", "simulated in the demo"],
             ].map(([v, l, d]) => (
               <label key={v} className="card-flat flex cursor-pointer items-start gap-3 px-3 py-2.5">
-                <input type="checkbox" name="channels" value={v} defaultChecked={v !== "dooh"} className="mt-1 accent-[#b4530a]" />
+                <input type="checkbox" name="channels" value={v} defaultChecked={v !== "dooh"} className="mt-1" />
                 <span>
                   <span className="font-semibold" style={{ color: "var(--ink)" }}>{l}</span>
                   <span className="block text-xs" style={{ color: "var(--muted)" }}>{d}</span>
@@ -75,7 +75,7 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
         </div>
         <div className="flex items-center justify-between gap-3 pt-2">
           <Link href="/" className="text-sm" style={{ color: "var(--muted)" }}>Cancel</Link>
-          <button className="btn btn-accent">Locate my place and read my offers →</button>
+          <button className="btn btn-accent">Locate my place</button>
         </div>
       </form>
     </main>

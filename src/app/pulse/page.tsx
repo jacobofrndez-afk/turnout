@@ -39,7 +39,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
         </div>
         <form action="/api/pulse" method="post">
           <input type="hidden" name="merchant" value={merchant.id} />
-          <button className="btn btn-accent">{brief ? "Redo this week's brief" : "Write this week's brief →"}</button>
+          <button className="btn btn-accent">{brief ? "Redo this week's brief" : "Write this week's brief"}</button>
         </form>
       </header>
 
@@ -50,7 +50,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
             {evenings.map((e) => {
               const wet = ["rain", "storm", "snow", "cold"].includes(e.summary.kind);
               return (
-                <div key={e.day} className="rounded-lg px-2 py-1.5" style={{ background: wet ? "var(--warn-soft)" : "var(--ok-soft)", color: wet ? "var(--warn)" : "var(--ok)" }}>
+                <div key={e.day} className="px-2 py-1.5" style={{ background: wet ? "var(--warn-soft)" : "var(--ok-soft)", color: wet ? "var(--warn)" : "var(--ok)" }}>
                   <p className="font-semibold">{e.day}</p>
                   <p>{e.summary.label}</p>
                 </div>
@@ -74,7 +74,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
                 <p className="font-display text-xl">{r.label}</p>
                 <p className="tnum mt-1 text-sm font-semibold" style={{ color: "var(--ink)" }}>
                   {dayRange(r.days)} · {r.from} to {r.to}
-                  <span className="ml-2 text-xs font-semibold" style={{ color: r.strength === "strong" ? "var(--accent)" : "var(--muted)" }}>{r.strength === "strong" ? "strong" : "likely"}</span>
+                  <span className="ml-2 text-xs font-medium" style={{ color: r.strength === "strong" ? "var(--accent-text)" : "var(--muted)" }}>{r.strength === "strong" ? "strong" : "likely"}</span>
                 </p>
                 <ul className="mt-3 space-y-1.5 text-sm" style={{ color: "var(--text)" }}>
                   {r.evidence.map((e) => <li key={e}>{e}</li>)}
@@ -130,7 +130,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
             {pulse.places.slice(0, 10).map((p) => (
               <li key={p.entity_id} className="flex justify-between gap-2">
                 <span className="truncate">{p.name} <span className="text-xs" style={{ color: "var(--muted)" }}>{(p.properties?.geocode as { name?: string } | undefined)?.name}</span></span>
-                <span className="tnum font-semibold" style={{ color: "var(--accent)" }}>{(p.query?.affinity ?? 0).toFixed(2)}</span>
+                <span className="tnum font-display text-base" style={{ color: "var(--ink)" }}>{(p.query?.affinity ?? 0).toFixed(2)}</span>
               </li>
             ))}
             {pulse.places.length === 0 && <li style={{ color: "var(--muted)" }}>Nothing returned for this radius.</li>}
@@ -144,7 +144,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
                 <tr key={f.offerId}>
                   <td className="font-semibold" style={{ color: "var(--ink)" }}>{i === 0 ? "★ " : ""}{f.title}</td>
                   <td className="text-xs" style={{ color: "var(--muted)" }}>{f.tagNames.join(", ")}</td>
-                  <td className="tnum text-right font-semibold" style={{ color: "var(--accent)" }}>{f.affinity.toFixed(2)}</td>
+                  <td className="tnum text-right font-display text-base" style={{ color: i === 0 ? "var(--accent-text)" : "var(--ink)" }}>{f.affinity.toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
@@ -223,7 +223,7 @@ function Block({ title, tag, children }: { title: string; tag: string; children:
     <div className="card p-5">
       <div className="flex items-baseline justify-between gap-2">
         <p className="eyebrow">{title}</p>
-        <span className="text-[10px] font-semibold" style={{ color: "var(--accent)" }}>{tag}</span>
+        <span className="text-[12px] font-medium" style={{ color: "var(--muted)" }}>{tag}</span>
       </div>
       <div className="mt-3 space-y-1">{children}</div>
     </div>

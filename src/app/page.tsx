@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Mark } from "@/components/Logo";
 import { getMerchant, listMerchants, radarFor, type RadarItem } from "@/server/events/radar";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +19,7 @@ async function tonightNear(merchantId: string): Promise<{ item: RadarItem; merch
 export default async function Home() {
   const demos = listMerchants().filter((m) => m.id === "m_penn_pour" || m.id === "m_quai_bercy");
   const live = await tonightNear("m_penn_pour");
-  const fmt = live ? new Intl.DateTimeFormat("en-US", { weekday: "long", hour: "numeric", minute: "2-digit", timeZone: live.merchant.timezone }) : undefined;
+  const fmt = live ? new Intl.DateTimeFormat("en-GB", { weekday: "long", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: live.merchant.timezone }) : undefined;
 
   return (
     <main className="mx-auto max-w-6xl px-5">
@@ -28,10 +27,16 @@ export default async function Home() {
       <section className="grid items-center gap-12 py-16 md:grid-cols-[1.2fr_1fr] md:py-24">
         <div>
           <p className="eyebrow">
-            {live ? `${live.item.capacity.toLocaleString("en-US")} people, ${live.item.distanceKm.toFixed(1)} km from a bar in Midtown, ${fmt!.format(new Date(live.item.event.startsAt))}` : "Tonight, thousands of people walk past your door"}
+            {live ? (
+              <>
+                <span className="mono">{live.item.capacity.toLocaleString("en-US")}</span> people, <span className="mono">{live.item.distanceKm.toFixed(1)} km</span> from a bar in Midtown, <span className="mono">{fmt!.format(new Date(live.item.event.startsAt))}</span>
+              </>
+            ) : (
+              "Tonight, thousands of people walk past your door"
+            )}
           </p>
-          <h1 className="mt-4 text-5xl leading-[1.02] md:text-[4.4rem]">
-            Turn the crowd outside into <em style={{ fontStyle: "italic", color: "var(--accent)" }}>customers inside</em>.
+          <h1 className="mt-4 text-5xl leading-[0.98] md:text-[90px] md:leading-[0.88] md:tracking-[-0.012em]">
+            Turn the crowd outside into customers inside.
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed" style={{ color: "var(--text)" }}>
             Every concert, game and show within walking distance sends a crowd past your door, and they choose a place in the ten minutes before and after. Turnout knows who they are, what they love, and says the one thing that makes them pick you.
@@ -50,9 +55,9 @@ export default async function Home() {
         </div>
 
         {/* Live card */}
-        <div className="card p-7">
+        <div className={live ? "card card-live p-7" : "card p-7"}>
           <div className="flex items-center gap-3">
-            <Mark size={40} />
+            {live && <span aria-hidden="true" className="inline-block h-1.5 w-1.5 shrink-0" style={{ background: "var(--accent)" }} />}
             <div>
               <p className="eyebrow">{live ? `Live · next crowd near ${live.merchant.name}` : "Example · near Penn & Pour"}</p>
               <p className="font-display text-xl">{live ? `${live.item.headliner.name} · ${live.item.event.venue.name}` : "Harry Styles · Madison Square Garden"}</p>
@@ -60,7 +65,7 @@ export default async function Home() {
           </div>
           <dl className="mt-6 grid grid-cols-3 gap-4 text-sm">
             <div><dt className="eyebrow">Crowd</dt><dd className="tnum mt-1 font-display text-2xl">{(live?.item.capacity ?? 20000).toLocaleString("en-US")}</dd></div>
-            <div><dt className="eyebrow">Walk</dt><dd className="tnum mt-1 font-display text-2xl">{live ? `${Math.max(1, Math.round(live.item.distanceKm * 12))} min` : "4 min"}</dd></div>
+            <div><dt className="eyebrow">Walk</dt><dd className="tnum mt-1 font-display text-2xl">{live ? Math.max(1, Math.round(live.item.distanceKm * 12)) : 4} <span className="eyebrow inline">min</span></dd></div>
             <div><dt className="eyebrow">Score</dt><dd className="tnum mt-1 font-display text-2xl">{live?.item.score ?? 72}</dd></div>
           </dl>
           <div className="card-flat mt-6 p-4">
@@ -72,8 +77,8 @@ export default async function Home() {
             </p>
           </div>
           {live && (
-            <Link href={`/campaigns/new?merchant=${live.merchant.id}&event=${live.item.event.id}`} className="mt-4 inline-flex text-sm font-semibold" style={{ color: "var(--accent)" }}>
-              Qualify this crowd now →
+            <Link href={`/campaigns/new?merchant=${live.merchant.id}&event=${live.item.event.id}`} className="mt-4 inline-flex text-sm font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>
+              Qualify this crowd now
             </Link>
           )}
         </div>
@@ -85,12 +90,12 @@ export default async function Home() {
         <h2 className="display mt-2 max-w-3xl text-3xl md:text-4xl">The crowd decides where to go in ten minutes. You find out the next morning.</h2>
         <div className="mt-8 grid gap-6 md:grid-cols-3">
           {[
-            ["20,000", "seats empty at once at Madison Square Garden, which hosts more than 300 events a year. Barclays, Bercy, every arena does the same."],
-            ["10 min", "between the last song and the first drink. The place that already spoke to them wins. Everyone else gets the overflow."],
-            ["0", "tools an independent bar has to know who is coming. Geofencing, event data and taste data exist, but only agencies and chains buy them."],
-          ].map(([n, d]) => (
+            ["20,000", "", "seats empty at once at Madison Square Garden, which hosts more than 300 events a year. Barclays, Bercy, every arena does the same."],
+            ["10", "min", "between the last song and the first drink. The place that already spoke to them wins. Everyone else gets the overflow."],
+            ["0", "", "tools an independent bar has to know who is coming. Geofencing, event data and taste data exist, but only agencies and chains buy them."],
+          ].map(([n, u, d]) => (
             <div key={n} className="card-flat p-6">
-              <p className="tnum font-display text-4xl" style={{ color: "var(--accent)" }}>{n}</p>
+              <p className="tnum font-display text-4xl" style={{ color: "var(--ink)" }}>{n}{u && <span className="eyebrow inline"> {u}</span>}</p>
               <p className="mt-3 text-sm leading-relaxed" style={{ color: "var(--text)" }}>{d}</p>
             </div>
           ))}
@@ -105,7 +110,7 @@ export default async function Home() {
           Anyone can buy a geofenced ad around an arena. Without taste data it says what every bar says. Turnout reads the crowd through Qloo first, then chooses the offer and the words.
         </p>
         <div className="mt-8 grid gap-4 md:grid-cols-2">
-          <div className="card-flat p-6" style={{ opacity: 0.85 }}>
+          <div className="card-flat p-6">
             <p className="eyebrow">Without Turnout · generic ad</p>
             <p className="mt-3 font-display text-xl">Drinks near MSG</p>
             <p className="mt-1 text-sm">Great bar, two blocks from the Garden. Happy hour and game nights. Come by.</p>
@@ -115,8 +120,8 @@ export default async function Home() {
               <li>Reason: none</li>
             </ul>
           </div>
-          <div className="card p-6" style={{ borderColor: "var(--accent)" }}>
-            <p className="eyebrow" style={{ color: "var(--accent)" }}>With Turnout · written for this crowd</p>
+          <div className="card p-6">
+            <p className="eyebrow">With Turnout · written for this crowd</p>
             <p className="mt-3 font-display text-xl">Two cocktails before Harry</p>
             <p className="mt-1 text-sm">Penn &amp; Pour, two blocks from MSG. Two cocktails for $16 until 7 pm, then we keep the kitchen open until 1 am.</p>
             <ul className="mt-4 space-y-1 text-xs" style={{ color: "var(--muted)" }}>
@@ -138,7 +143,7 @@ export default async function Home() {
             ["03", "The agent writes, you approve", "One offer chosen with evidence, then copy for a geofenced ad, your Google listing, your regulars on WhatsApp, your chalkboard and your staff. One tap to publish."],
           ].map(([n, t, d]) => (
             <div key={n}>
-              <p className="font-display text-3xl" style={{ color: "var(--accent)" }}>{n}</p>
+              <p className="font-display text-3xl" style={{ color: "var(--ink)" }}>{n}</p>
               <h3 className="display mt-2 text-xl">{t}</h3>
               <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--muted)" }}>{d}</p>
             </div>
@@ -170,7 +175,7 @@ export default async function Home() {
       <section className="grid gap-10 border-t py-16 md:grid-cols-[1fr_1.2fr]" style={{ borderColor: "var(--line)" }}>
         <div className="card p-7">
           <p className="eyebrow">Planned pricing</p>
-          <p className="mt-3 font-display text-4xl">$49<span className="text-base" style={{ color: "var(--muted)" }}> / month</span></p>
+          <p className="mt-3 font-display text-4xl">$49 <span className="eyebrow inline">/ month</span></p>
           <p className="mt-2 text-sm" style={{ color: "var(--text)" }}>Radar, crowd profiles, unlimited campaigns, every channel. Ad spend is yours and optional; most nights the chalkboard and Google post are enough.</p>
           <p className="mt-4 text-sm font-semibold" style={{ color: "var(--ink)" }}>One extra table on one concert night pays for the month.</p>
           <Link href="/start" className="btn btn-primary mt-6">Start free during the hackathon</Link>

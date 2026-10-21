@@ -36,7 +36,7 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
         </div>
         <form action="/api/scan" method="post">
           <input type="hidden" name="merchant" value={merchant.id} />
-          <button className="btn btn-accent">Run the scan now →</button>
+          <button className="btn btn-accent">Run the scan now</button>
         </form>
       </header>
 
@@ -50,17 +50,17 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
         {alerts.map((a) => (
           <article key={a.id} className="card p-5" style={a.status === "sent" ? { borderColor: "var(--accent)" } : undefined}>
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <p className="tnum text-sm font-semibold" style={{ color: "var(--ink)" }}>{fmt.format(new Date(a.created_at.endsWith("Z") ? a.created_at : a.created_at.replace(" ", "T") + "Z"))}</p>
+              <p className="mono text-sm" style={{ color: "var(--ink)" }}>{fmt.format(new Date(a.created_at.endsWith("Z") ? a.created_at : a.created_at.replace(" ", "T") + "Z"))}</p>
               <p className="text-xs font-semibold" style={{ color: a.status === "failed" ? "var(--danger)" : a.status === "sent" ? "var(--ok)" : "var(--muted)" }}>
                 {statusLabel[a.status] ?? a.status}{a.status === "failed" && a.to_ref ? ` · ${a.to_ref}` : ""}
               </p>
             </div>
-            <div className="mt-3 max-w-md p-4 text-sm leading-relaxed" style={{ background: "var(--paper)", borderRadius: "var(--radius)", whiteSpace: "pre-wrap", color: "var(--text)" }}>
+            <div className="mt-3 max-w-md p-4 text-sm leading-relaxed" style={{ background: "var(--paper)", whiteSpace: "pre-wrap", color: "var(--text)" }}>
               {a.message}
             </div>
             {a.campaign_id && (
-              <Link href={`/campaigns/${a.campaign_id}`} className="mt-3 inline-flex text-sm font-semibold" style={{ color: "var(--accent)" }}>
-                Open the campaign →
+              <Link href={`/campaigns/${a.campaign_id}`} className="mt-3 inline-flex text-sm font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>
+                Open the campaign
               </Link>
             )}
           </article>

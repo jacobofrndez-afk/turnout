@@ -35,7 +35,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
         </div>
         {campaign.status === "drafted" && (
           <form action={`/api/campaigns/${campaign.id}/approve`} method="post">
-            <button className="btn btn-primary">Approve and publish →</button>
+            <button className="btn btn-accent">Approve and publish</button>
           </form>
         )}
         {(campaign.status === "approved" || campaign.status === "sent") && <span className="chip" style={{ background: "var(--ok-soft)", color: "var(--ok)", borderColor: "transparent" }}>Published · {sends.length} channels</span>}
@@ -81,8 +81,8 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                     {s.provider_sid ? ` · ${s.provider_sid}` : ""}
                   </p>
                   <details className="mt-1">
-                    <summary className="cursor-pointer text-[11px]" style={{ color: "var(--accent)" }}>payload</summary>
-                    <pre className="mt-1 max-h-48 overflow-auto rounded-md p-2 text-[11px]" style={{ background: "var(--paper)" }}>{JSON.stringify(payload, null, 2)}</pre>
+                    <summary className="cursor-pointer text-[11px]" style={{ color: "var(--muted)" }}>payload</summary>
+                    <pre className="mt-1 max-h-48 overflow-auto p-2 text-[11px]" style={{ background: "var(--paper)" }}>{JSON.stringify(payload, null, 2)}</pre>
                   </details>
                 </li>
               );
@@ -94,7 +94,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
       {draft && (
         <>
           <section className="mt-8 grid gap-4 md:grid-cols-[1.25fr_1fr]">
-            <div className="card p-6" style={{ borderColor: "var(--accent)" }}>
+            <div className="card card-live p-6">
               <p className="eyebrow">Chosen offer</p>
               <p className="mt-2 font-display text-2xl">{offer?.title ?? draft.chosen_offer_id}</p>
               <p className="text-sm" style={{ color: "var(--muted)" }}>{offer?.description} · {offer?.price}</p>
@@ -126,7 +126,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
             <Channel title={`Geofenced ad · ${draft.geofenced_ad.platform} · ${draft.geofenced_ad.radius_m} m · $${draft.geofenced_ad.daily_budget_usd}/day`} tag="reaches strangers near the venue">
               <p className="font-display text-lg">{draft.geofenced_ad.headline}</p>
               <p className="text-sm">{draft.geofenced_ad.body}</p>
-              <p className="mt-1 text-xs font-semibold" style={{ color: "var(--accent)" }}>{draft.geofenced_ad.cta}</p>
+              <p className="mt-1 text-xs font-semibold" style={{ color: "var(--accent-text)" }}>{draft.geofenced_ad.cta}</p>
               <p className="mt-2 text-xs" style={{ color: "var(--muted)" }}>Interests: {draft.geofenced_ad.interests.join(" · ")}</p>
             </Channel>
             <Channel title="Google Business post" tag="reaches people searching nearby">
@@ -174,7 +174,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
 
 function WeatherChip({ kind, label }: { kind: string; label: string }) {
   const wet = kind === "rain" || kind === "storm" || kind === "snow";
-  const style = wet || kind === "cold" ? { background: "var(--warn-soft)", color: "var(--warn)" } : kind === "hot" ? { background: "var(--accent-soft)", color: "var(--accent)" } : { background: "var(--ok-soft)", color: "var(--ok)" };
+  const style = wet || kind === "cold" ? { background: "var(--warn-soft)", color: "var(--warn)" } : kind === "hot" ? { background: "var(--accent-soft)", color: "var(--accent-text)" } : { background: "var(--ok-soft)", color: "var(--ok)" };
   return (
     <span className="chip ml-2" style={{ ...style, borderColor: "transparent", fontSize: 11, padding: "1px 8px" }} title="Open-Meteo forecast at your place">
       {label}
@@ -187,7 +187,7 @@ function Channel({ title, tag, children }: { title: string; tag: string; childre
     <div className="card p-5">
       <div className="flex items-baseline justify-between gap-2">
         <p className="eyebrow">{title}</p>
-        <span className="text-[10px] font-semibold" style={{ color: "var(--accent)" }}>{tag}</span>
+        <span className="text-[12px] font-medium" style={{ color: "var(--muted)" }}>{tag}</span>
       </div>
       <div className="mt-3 space-y-1">{children}</div>
     </div>

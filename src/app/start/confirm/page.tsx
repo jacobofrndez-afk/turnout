@@ -38,7 +38,7 @@ export default async function ConfirmPage({ searchParams }: { searchParams: Prom
                     {c.candidates.length === 0 && <span className="text-xs" style={{ color: "var(--muted)" }}>No Qloo tag found.</span>}
                     {c.candidates.map((t, i) => (
                       <label key={t.id} className="chip cursor-pointer" title={t.id}>
-                        <input type="checkbox" name={`tag:${o.id}`} value={`${t.id}::${t.name}`} defaultChecked={i === 0} className="accent-[#b4530a]" />
+                        <input type="checkbox" name={`tag:${o.id}`} value={`${t.id}::${t.name}`} defaultChecked={i === 0} className="" />
                         {t.name}
                         <span style={{ color: "var(--muted)" }}>· {t.namespace}</span>
                       </label>
@@ -52,7 +52,7 @@ export default async function ConfirmPage({ searchParams }: { searchParams: Prom
         {offers.length === 0 && <p className="text-sm" style={{ color: "var(--muted)" }}>No offers were parsed. Go back and add one per line.</p>}
         <div className="flex items-center justify-between gap-3 pt-2">
           <Link href="/start" className="text-sm" style={{ color: "var(--muted)" }}>Start over</Link>
-          <button className="btn btn-accent">Confirm and open my radar →</button>
+          <button className="btn btn-accent">Confirm and open my radar</button>
         </div>
       </form>
     </main>

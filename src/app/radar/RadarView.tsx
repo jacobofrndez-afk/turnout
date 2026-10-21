@@ -123,15 +123,13 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
     return { n, hot, other, max };
   }, [inView, t0, span, radius, hotMembers]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const curvePaths = useMemo(() => {
+  // Square columns per 15-minute slot: other crowds in cold grey, the hot window in solid raspberry on top.
+  const columns = useMemo(() => {
     const { n, hot, other, max } = curve;
-    const y = (v: number) => 100 - (v / max) * 94;
-    const area = (vals: number[], base?: number[]) => {
-      const top = vals.map((v, i) => `${i},${y(v + (base ? base[i] : 0)).toFixed(2)}`);
-      const bottom = base ? base.map((_, i) => `${n - 1 - i},${y(base[n - 1 - i]).toFixed(2)}`) : [`${n - 1},100`, `0,100`];
-      return `M${top.join(" L")} L${bottom.join(" L")} Z`;
-    };
-    return { other: area(other), hot: area(hot, other), n };
+    const h = (v: number) => (v / max) * 94;
+    const out: { i: number; o: number; h: number }[] = [];
+    for (let i = 0; i < n; i++) if (hot[i] + other[i] > 0) out.push({ i, o: h(other[i]), h: h(hot[i]) });
+    return { n, out };
   }, [curve]);
 
   const cursorPeople = useMemo(() => {
@@ -328,9 +326,9 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
       <div className="tm-body">
         <div className="tm-maparea">
           <RadarMap merchant={{ name: merchant.name, lat: merchant.lat, lon: merchant.lon, radiusM: radius }} points={points} onSelect={(id) => selectCrowd(id)} onRadiusChange={changeRadius} />
-          <p className="tm-maphint">{saving ? "Updating your radius…" : `Drag the white handle to change your radius · ${fmtKm(radius)}, ${walkMin(radius)} min walk`}</p>
+          <p className="tm-maphint">{saving ? "Updating your radius…" : <>Drag the white handle to change your radius · <span className="tm-mono">{fmtKm(radius)}, {walkMin(radius)} min</span> walk</>}</p>
           <button type="button" className="tm-fs" onClick={toggleFull} aria-label={full ? "Exit full screen" : "Full screen"} title={full ? "Exit full screen" : "Full screen"}>
-            {full ? "Exit full screen" : "⤢"}
+            {full ? "Exit full screen" : "Full screen"}
           </button>
         </div>
 
@@ -375,13 +373,14 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
                   </span>
                 ))}
               </div>
-              <svg className="tm-curve" viewBox={`0 0 ${Math.max(1, curvePaths.n - 1)} 100`} preserveAspectRatio="none" aria-hidden="true">
-                <path d={curvePaths.other} style={{ fill: "var(--line-strong)" }} fillOpacity="0.75" />
-                <path d={curvePaths.hot} style={{ fill: "var(--accent)" }} fillOpacity="0.45" />
+              <svg className="tm-curve" viewBox={`0 0 ${Math.max(1, columns.n)} 100`} preserveAspectRatio="none" aria-hidden="true">
+                {columns.out.map((c) => (
+                  <g key={c.i}>
+                    <rect x={c.i + 0.08} y={100 - c.o} width={0.84} height={c.o} style={{ fill: "var(--line-strong)" }} />
+                    <rect x={c.i + 0.08} y={100 - c.o - c.h} width={0.84} height={c.h} style={{ fill: "var(--accent)" }} />
+                  </g>
+                ))}
               </svg>
-              <span className="tm-curve-lbl" aria-hidden="true">
-                people around you · peak {curve.max >= 1000 ? `${Math.round(curve.max / 1000)}k` : Math.round(curve.max)}
-              </span>
               {markers.map(({ c, lane, size }) => (
                 <button
                   key={c.id}
@@ -396,7 +395,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
                 </button>
               ))}
               <span className="tm-now" style={{ left: `${pct(now)}%` }} aria-hidden="true">
-                <i>now</i>
+                <i>Now</i>
               </span>
               <span className={`tm-cursor${cursorPct > 80 ? " flip" : ""}`} style={{ left: `${cursorPct}%` }} aria-hidden="true">
                 <i>{cursorLabel} · {cursorPeople > 0 ? `${cursorPeople.toLocaleString("en-US")} people around` : "quiet"}</i>
@@ -405,7 +404,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
           </div>
           <p className="tm-legend">
             <span>
-              <i style={{ background: "var(--accent)", opacity: 0.6 }} />
+              <i style={{ background: "var(--accent)" }} />
               crowds worth a campaign
             </span>
             <span>
@@ -424,16 +423,16 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
               {list.map((it) => {
                 const isSel = selected === it.id;
                 return (
-                  <div key={it.id} className={`${it.interesting ? "card" : "card-flat"} p-4${isSel ? " tm-card-sel" : ""}`} style={it.interesting ? { borderColor: "var(--accent)" } : undefined}>
+                  <div key={it.id} className={`${it.interesting ? (isSel ? "card card-live" : "card") : "card-flat"} p-4${isSel ? " tm-card-sel" : ""}`} style={it.interesting && !isSel ? { ["--score-on" as string]: "var(--map-cold)" } : undefined}>
                     <div className="flex items-start justify-between gap-4">
                       <button type="button" className="tm-item min-w-0" onClick={() => selectCrowd(it.id)} aria-pressed={isSel}>
-                        <p className="tnum text-sm font-semibold" style={{ color: "var(--ink)" }}>
-                          {fmtTime.format(new Date(it.w.start))} <span style={{ color: "var(--muted)", fontWeight: 400 }}>· crowd from {fmtTime.format(new Date(it.w.arrive))} to {fmtTime.format(new Date(it.w.leave))}</span>
+                        <p className="text-sm" style={{ color: "var(--ink)" }}>
+                          <span className="tm-mono">{fmtTime.format(new Date(it.w.start))}</span> <span style={{ color: "var(--muted)" }}>· crowd from <span className="tm-mono">{fmtTime.format(new Date(it.w.arrive))}</span> to <span className="tm-mono">{fmtTime.format(new Date(it.w.leave))}</span></span>
                         </p>
-                        {KIND_LABEL[it.kind] && <p className="text-xs font-semibold" style={{ color: "var(--accent-text, var(--accent))" }}>{KIND_LABEL[it.kind]}</p>}
+                        {KIND_LABEL[it.kind] && <p className="text-xs font-medium" style={{ color: "var(--muted)" }}>{KIND_LABEL[it.kind]}</p>}
                         <p className="truncate font-display text-lg">{it.headliner}</p>
                         <p className="truncate text-sm" style={{ color: "var(--muted)" }}>
-                          {it.kind === "venue" ? `${it.venue} · ${it.distanceKm.toFixed(1)} km` : it.kind === "street" ? `${it.blurb ?? it.venue} · ${it.distanceKm.toFixed(1)} km` : (it.blurb ?? it.venue)} · ~{it.capacity.toLocaleString("en-US")} people{it.kind === "venue" || it.kind === "wave" ? "" : " (estimate)"}
+                          {it.kind === "venue" ? it.venue : (it.blurb ?? it.venue)}{it.kind === "venue" || it.kind === "street" ? <> · <span className="tm-mono">{it.distanceKm.toFixed(1)} km</span></> : null} · ~<span className="tm-mono">{it.capacity.toLocaleString("en-US")}</span> people{it.kind === "venue" || it.kind === "wave" ? "" : " (estimate)"}
                         </p>
                         {it.interesting && (
                           <p className="text-sm" style={{ color: "var(--text)" }}>
@@ -451,8 +450,8 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
                       </div>
                     </div>
                     {it.interesting && (
-                      <Link href={`/campaigns/new?merchant=${merchant.id}&event=${it.id}`} className="mt-3 inline-flex text-sm font-semibold" style={{ color: "var(--accent)" }}>
-                        Qualify this crowd with Qloo →
+                      <Link href={`/campaigns/new?merchant=${merchant.id}&event=${it.id}`} className={isSel ? "btn btn-accent mt-3" : "tm-link mt-3 inline-flex"}>
+                        Qualify this crowd with Qloo
                       </Link>
                     )}
                   </div>

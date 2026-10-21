@@ -26,7 +26,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
       <main className="mx-auto max-w-3xl px-5 py-16">
         <Link href={`/radar?merchant=${merchant.id}`} className="text-sm" style={{ color: "var(--muted)" }}>← Radar</Link>
         <h1 className="mt-3 text-3xl">{event.name}</h1>
-        <p className="mt-4 rounded-xl p-3 text-sm" style={{ background: "var(--danger-soft)", color: "var(--danger)" }}>
+        <p className="mt-4 p-3 text-sm" style={{ background: "var(--danger-soft)", color: "var(--danger)" }}>
           Qloo could not be reached, so this crowd cannot be read yet. Nothing was sent. Try again in a minute.
         </p>
         <p className="mt-2 text-xs" style={{ color: "var(--muted)" }}>{String((e as Error).message).slice(0, 160)}</p>
@@ -55,7 +55,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
           <ul className="mt-4 grid gap-2 sm:grid-cols-2">
             {profile.candidates.map((c) => (
               <li key={c.id}>
-                <Link href={`/campaigns/new?merchant=${merchant.id}&event=${event.id}&pick=${c.id}`} className="card-flat block p-4 hover:border-[var(--accent)]">
+                <Link href={`/campaigns/new?merchant=${merchant.id}&event=${event.id}&pick=${c.id}`} className="card-flat block p-4 hover:border-[var(--ink)]">
                   <p className="font-semibold" style={{ color: "var(--ink)" }}>{c.name} <span className="chip ml-1">{c.type.replace("urn:entity:", "")}</span></p>
                   <p className="mt-1 text-xs" style={{ color: "var(--muted)" }}>{c.description || "no description"} · popularity {((c.popularity ?? 0) * 100).toFixed(0)}%</p>
                 </Link>
@@ -119,7 +119,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
                 {Object.entries(profile.demographics.age).map(([k, v]) => (
                   <div key={k}>
                     <div className="mx-auto flex h-20 w-full items-end justify-center">
-                      <div className="w-9 rounded-sm" style={{ height: `${Math.max(4, Math.min(100, Math.abs(v) * 100))}%`, background: v >= 0 ? "var(--accent)" : "var(--line-strong)" }} />
+                      <div className="w-9" style={{ height: `${Math.max(4, Math.min(100, Math.abs(v) * 100))}%`, background: v >= 0 ? "var(--ink)" : "var(--line-strong)" }} />
                     </div>
                     <p className="mt-1.5 font-semibold" style={{ color: "var(--ink)" }}>{ageLabel(k)}</p>
                     <p className="tnum" style={{ color: "var(--muted)" }}>{v >= 0 ? "+" : ""}{v.toFixed(2)}</p>
@@ -144,7 +144,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
                 {profile.places.slice(0, 8).map((p) => (
                   <li key={p.entity_id} className="flex justify-between gap-2">
                     <span className="truncate">{p.name} <span className="text-xs" style={{ color: "var(--muted)" }}>{(p.properties?.geocode as { name?: string } | undefined)?.name}</span></span>
-                    <span className="tnum font-semibold" style={{ color: "var(--accent)" }}>{(p.query?.affinity ?? 0).toFixed(2)}</span>
+                    <span className="tnum font-display text-base" style={{ color: "var(--ink)" }}>{(p.query?.affinity ?? 0).toFixed(2)}</span>
                   </li>
                 ))}
               </ol>
@@ -161,7 +161,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
                     <td className="font-semibold" style={{ color: "var(--ink)" }}>{i === 0 ? "★ " : ""}{f.title}</td>
                     <td className="text-xs" style={{ color: "var(--muted)" }}>{f.tagNames.join(", ")}</td>
                     <td className="text-xs" style={{ color: "var(--muted)" }}>e.g. {f.topPlaces.join(", ")}</td>
-                    <td className="tnum text-right font-semibold" style={{ color: "var(--accent)" }}>{f.affinity.toFixed(2)}</td>
+                    <td className="tnum text-right font-display text-base" style={{ color: i === 0 ? "var(--accent-text)" : "var(--ink)" }}>{f.affinity.toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -173,7 +173,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
               <input type="hidden" name="merchant" value={merchant.id} />
               <input type="hidden" name="event" value={event.id} />
               {sp.pick && <input type="hidden" name="pick" value={sp.pick} />}
-              <button className="btn btn-accent">Draft the campaign →</button>
+              <button className="btn btn-accent">Draft the campaign</button>
             </form>
             <p className="text-xs" style={{ color: "var(--muted)" }}>Qloo calls: {profile.qlooCalls.live} live, {profile.qlooCalls.cached} cached.</p>
           </section>

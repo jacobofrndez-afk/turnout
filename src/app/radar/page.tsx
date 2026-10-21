@@ -80,6 +80,9 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
         </div>
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <MerchantSwitch current={merchant.id} options={merchants.map((m) => ({ id: m.id, label: `${m.name}, ${m.city}` }))} />
+          <Link href={`/alerts?merchant=${merchant.id}`} className="font-semibold" style={{ color: "var(--ink)" }}>
+            Alerts →
+          </Link>
           <Link href={`/pulse?merchant=${merchant.id}`} className="font-semibold" style={{ color: "var(--ink)" }}>
             Weekly pulse →
           </Link>

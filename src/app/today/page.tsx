@@ -7,7 +7,6 @@ import { getOffers } from "@/server/qloo/crowd";
 import { getBrief, latestPulse } from "@/server/agent/pulse";
 import { listAlerts } from "@/server/agent/scan";
 import { weatherWindow } from "@/server/weather/openmeteo";
-import MerchantSwitch from "../radar/MerchantSwitch";
 
 export const dynamic = "force-dynamic";
 
@@ -71,189 +70,172 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const alerts = listAlerts(merchant.id, 3);
   const dateLine = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: tz }).format(new Date(now));
 
+  const w0 = next ? presenceWindow(next.event) : undefined;
+  const others = merchants.filter((m) => m.id !== merchant.id);
+  const hugeBtn = { minHeight: 56, padding: "0 28px", fontSize: 17 } as const;
+  const crowdLine = next && w0 ? (
+    <>
+      {dayOf(w0.start)} from <span className="mono">{fmtTime.format(new Date(w0.arrive))}</span> to <span className="mono">{fmtTime.format(new Date(w0.leave))}</span>, {next.event.name.charAt(0).toLowerCase() + next.event.name.slice(1)}: about {next.capacity.toLocaleString("en-US")} people
+      {next.event.origin === "tv" || next.event.origin === "calendar" ? " around you" : ` ${next.distanceKm.toFixed(1)} km from your door`}. Turnout expects <b style={{ color: "var(--ink)" }}>about {next.potentialGuests} extra guests</b>, {Math.min(100, Math.round(next.fill * 100))}% of your {seats} seats.{weather ? ` ${weather} at your door.` : ""}
+    </>
+  ) : null;
+
   return (
-    <main className="mx-auto max-w-4xl px-5 py-10">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="eyebrow">{dateLine} · {merchant.city}</p>
-          <h1 className="mt-1 text-4xl">Today at {merchant.name}</h1>
-        </div>
-        <MerchantSwitch current={merchant.id} options={merchants.map((m) => ({ id: m.id, label: `${m.name}, ${m.city}` }))} />
+    <main className="mx-auto max-w-5xl px-6 py-16">
+      <header>
+        <p className="eyebrow">{dateLine} · {merchant.city}</p>
+        <h1 className="mt-2 text-5xl md:text-6xl">Today at {merchant.name}</h1>
+        {others.length > 0 && (
+          <p className="mt-3 text-sm" style={{ color: "var(--muted)" }}>
+            Also yours:{" "}
+            {others.map((m, i) => (
+              <span key={m.id}>
+                {i > 0 ? ", " : ""}
+                <Link href={`/today?merchant=${m.id}`} className="underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>{m.name}, {m.city}</Link>
+              </span>
+            ))}
+          </p>
+        )}
       </header>
 
       {error && (
-        <p className="mt-6 p-3 text-sm" style={{ background: "var(--danger-soft)", color: "var(--danger)" }}>
-          Could not read the events right now: {error}
-        </p>
+        <p className="mt-8 text-sm" style={{ color: "var(--danger)" }}>Could not read the events right now: {error}</p>
       )}
 
-      {/* The campaign to launch comes first: that is what a merchant reads. The crowd is the reason, underneath. */}
-      {next && campaign?.status === "drafted" && draft ? (
-        <section className="card card-live mt-8 p-6">
-          <p className="eyebrow">Your campaign for {dayOf(presenceWindow(next.event).start).toLowerCase()}, ready to publish</p>
-          <h2 className="display mt-1 text-4xl">{offer?.title ?? draft.chosen_offer_id}</h2>
-          {offer && <p className="mt-1 text-base" style={{ color: "var(--text)" }}>{offer.description} · {offer.price}</p>}
-
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
-            <div>
-              <p className="eyebrow">On your chalkboard</p>
-              <p className="mt-1 whitespace-pre-wrap p-3 font-display text-xl leading-tight" style={{ background: "var(--ink)", color: "var(--panel)" }}>{draft.storefront.chalkboard}</p>
-            </div>
-            <div>
-              <p className="eyebrow">To your regulars, on WhatsApp</p>
-              <p className="mt-1 whitespace-pre-wrap p-3 text-sm leading-relaxed" style={{ background: "var(--paper)", color: "var(--text)" }}>{draft.whatsapp.message}</p>
-            </div>
-            <div>
-              <p className="eyebrow">To strangers nearby, {draft.geofenced_ad.radius_m} m around the venue</p>
-              <div className="mt-1 p-3 text-sm" style={{ background: "var(--paper)" }}>
-                <p className="font-display text-xl leading-tight">{draft.geofenced_ad.headline}</p>
-                <p className="mt-1" style={{ color: "var(--text)" }}>{draft.geofenced_ad.body}</p>
-                <p className="mt-1 text-xs" style={{ color: "var(--muted)" }}>{draft.windows.map((w) => `${w.label} ${w.start_local} to ${w.end_local}`).join(" · ")} · ${draft.geofenced_ad.daily_budget_usd} a day</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-5 flex flex-wrap items-center gap-4">
+      {/* One thing in charge: the campaign to launch. The crowd is the reason, in prose, underneath. */}
+      {next && w0 && campaign?.status === "drafted" && draft ? (
+        <section className="mt-16">
+          <p className="eyebrow">Your campaign for {dayOf(w0.start).toLowerCase()}, ready to publish</p>
+          <h2 className="display mt-3" style={{ fontSize: "clamp(44px, 6.5vw, 76px)", lineHeight: 0.95, letterSpacing: "-0.01em" }}>{offer?.title ?? draft.chosen_offer_id}</h2>
+          {offer && <p className="mt-4 text-xl" style={{ color: "var(--muted)" }}>{offer.description}. {offer.price}.</p>}
+          <div className="mt-8 flex flex-wrap items-center gap-6">
             <form action={`/api/campaigns/${campaign.id}/approve`} method="post">
-              <button className="btn btn-accent">Publish it now</button>
+              <button className="btn btn-accent" style={hugeBtn}>Publish it now</button>
             </form>
-            <Link href={`/campaigns/${campaign.id}`} className="text-sm font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>
+            <Link href={`/campaigns/${campaign.id}`} className="text-base font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>
               Read every word, change anything
             </Link>
           </div>
 
-          <div className="card-flat mt-5 p-4 text-sm">
+          <div className="mt-14 grid gap-10 md:grid-cols-3">
+            <div>
+              <p className="eyebrow">On your chalkboard</p>
+              <p className="mt-3 whitespace-pre-wrap font-display text-[28px] leading-[1.05]" style={{ color: "var(--ink)" }}>{draft.storefront.chalkboard}</p>
+            </div>
+            <div>
+              <p className="eyebrow">To your regulars, on WhatsApp</p>
+              <p className="mt-3 whitespace-pre-wrap text-[17px] leading-relaxed" style={{ color: "var(--text)" }}>{draft.whatsapp.message}</p>
+            </div>
+            <div>
+              <p className="eyebrow">To strangers, {draft.geofenced_ad.radius_m} m around the venue</p>
+              <p className="mt-3 font-display text-[26px] leading-[1.05]" style={{ color: "var(--ink)" }}>{draft.geofenced_ad.headline}</p>
+              <p className="mt-2 text-[17px] leading-relaxed" style={{ color: "var(--text)" }}>{draft.geofenced_ad.body}</p>
+              <p className="mt-3 text-sm" style={{ color: "var(--muted)" }}>{draft.windows.map((w) => `${w.label}, ${w.start_local} to ${w.end_local}`).join(" · ")} · ${draft.geofenced_ad.daily_budget_usd} a day</p>
+            </div>
+          </div>
+
+          <div className="mt-14 max-w-3xl">
             <p className="eyebrow">Why this, why now</p>
-            <p className="mt-1" style={{ color: "var(--text)" }}>
-              {dayOf(presenceWindow(next.event).start)} <span className="mono">{fmtTime.format(new Date(presenceWindow(next.event).arrive))}</span> to <span className="mono">{fmtTime.format(new Date(presenceWindow(next.event).leave))}</span>: {next.event.name}, about <span className="mono">{next.capacity.toLocaleString("en-US")}</span> people
-              {next.event.origin === "tv" || next.event.origin === "calendar" ? " around you" : <>, <span className="mono">{next.distanceKm.toFixed(1)} km</span> from your door</>}. Turnout expects <b style={{ color: "var(--ink)" }}>about {next.potentialGuests} extra guests</b>, {Math.min(100, Math.round(next.fill * 100))}% of your {seats} seats.{weather ? ` Weather at your door: ${weather}.` : ""}
-            </p>
-            <p className="mt-2" style={{ color: "var(--muted)" }}>{firstSentences(draft.rationale, 300)}</p>
+            <p className="mt-3 text-lg leading-relaxed" style={{ color: "var(--text)" }}>{crowdLine}</p>
+            <p className="mt-3 text-base leading-relaxed" style={{ color: "var(--muted)" }}>{firstSentences(draft.rationale, 320)}</p>
           </div>
         </section>
-      ) : next ? (
-        <section className="card card-live mt-8 p-6">
+      ) : next && w0 ? (
+        <section className="mt-16">
           <p className="eyebrow">Next crowd at your door</p>
-          <h2 className="display mt-1 text-3xl">
-            {dayOf(presenceWindow(next.event).start)} <span className="mono text-2xl">{fmtTime.format(new Date(presenceWindow(next.event).arrive))}</span> to{" "}
-            <span className="mono text-2xl">{fmtTime.format(new Date(presenceWindow(next.event).leave))}</span>: {next.event.name}
-          </h2>
-          <p className="mt-2 text-base" style={{ color: "var(--text)" }}>
-            About <span className="mono">{next.capacity.toLocaleString("en-US")}</span> people{next.event.origin === "tv" || next.event.origin === "calendar" ? " around you" : <>, <span className="mono">{next.distanceKm.toFixed(1)} km</span> from your door</>}.
-            Turnout expects <b style={{ color: "var(--ink)" }}>about {next.potentialGuests} extra guests</b>, {Math.min(100, Math.round(next.fill * 100))}% of your {seats} seats.
-            {weather ? ` Weather at your door: ${weather}.` : ""}
-          </p>
-          <div className="card-flat mt-5 p-4">
+          <h2 className="display mt-3" style={{ fontSize: "clamp(40px, 5.5vw, 64px)", lineHeight: 0.98, letterSpacing: "-0.01em" }}>{next.event.name}</h2>
+          <p className="mt-4 max-w-3xl text-lg leading-relaxed" style={{ color: "var(--text)" }}>{crowdLine}</p>
+          <div className="mt-8">
             {campaign?.status === "sent" || campaign?.status === "approved" ? (
               <>
-                <p className="eyebrow">Published</p>
-                <p className="mt-1 font-display text-2xl">{offer?.title ?? "Your campaign"} is out</p>
-                <Link href={`/campaigns/${campaign.id}`} className="mt-2 inline-flex text-sm font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>
-                  See where it went
-                </Link>
+                <p className="font-display text-3xl">{offer?.title ?? "Your campaign"} is out</p>
+                <Link href={`/campaigns/${campaign.id}`} className="mt-3 inline-flex text-base font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>See where it went</Link>
               </>
             ) : campaign?.status === "awaiting_operator" ? (
               <>
-                <p className="eyebrow">Your campaign is being written</p>
-                <p className="mt-1 text-sm" style={{ color: "var(--text)" }}>The agent has read the crowd through Qloo and is choosing your offer and the words. Come back in a minute.</p>
-                <Link href={`/campaigns/${campaign.id}`} className="mt-2 inline-flex text-sm font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>
-                  Follow it
-                </Link>
+                <p className="font-display text-3xl">Your campaign is being written</p>
+                <p className="mt-2 max-w-2xl text-base" style={{ color: "var(--muted)" }}>The agent has read the crowd through Qloo and is choosing your offer and the words. Come back in a minute.</p>
+                <Link href={`/campaigns/${campaign.id}`} className="mt-3 inline-flex text-base font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>Follow it</Link>
               </>
             ) : campaign?.status === "needs_input" ? (
               <>
-                <p className="eyebrow">One question before the campaign</p>
-                <p className="mt-1 text-sm" style={{ color: "var(--text)" }}>Qloo knows several acts by that name. Pick the right one and the campaign writes itself.</p>
-                <Link href={`/campaigns/new?merchant=${merchant.id}&event=${next.event.id}`} className="btn btn-accent mt-3">Pick the act</Link>
+                <p className="font-display text-3xl">One question before the campaign</p>
+                <p className="mt-2 max-w-2xl text-base" style={{ color: "var(--muted)" }}>Qloo knows several acts by that name. Pick the right one and the campaign writes itself.</p>
+                <Link href={`/campaigns/new?merchant=${merchant.id}&event=${next.event.id}`} className="btn btn-accent mt-5" style={hugeBtn}>Pick the act</Link>
               </>
             ) : (
-              <>
-                <p className="eyebrow">No campaign yet</p>
-                <p className="mt-1 text-sm" style={{ color: "var(--text)" }}>Turnout reads who this crowd is through Qloo, picks the offer they will go for, and writes the words for every channel you have. You only approve.</p>
-                <div className="mt-3 flex flex-wrap items-center gap-4">
-                  <form action="/api/campaigns" method="post">
-                    <input type="hidden" name="merchant" value={merchant.id} />
-                    <input type="hidden" name="event" value={next.event.id} />
-                    <button className="btn btn-accent">Write my campaign</button>
-                  </form>
-                  <Link href={`/campaigns/new?merchant=${merchant.id}&event=${next.event.id}`} className="text-sm font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>
-                    See who is coming first
-                  </Link>
-                </div>
-              </>
+              <div className="flex flex-wrap items-center gap-6">
+                <form action="/api/campaigns" method="post">
+                  <input type="hidden" name="merchant" value={merchant.id} />
+                  <input type="hidden" name="event" value={next.event.id} />
+                  <button className="btn btn-accent" style={hugeBtn}>Write my campaign</button>
+                </form>
+                <Link href={`/campaigns/new?merchant=${merchant.id}&event=${next.event.id}`} className="text-base font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>See who is coming first</Link>
+              </div>
             )}
           </div>
         </section>
       ) : (
-        <section className="card mt-8 p-6">
+        <section className="mt-16">
           <p className="eyebrow">Next crowd at your door</p>
-          <p className="mt-1 font-display text-2xl">Nothing big enough for your {seats} seats in the next two days</p>
-          <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>Turnout keeps watching every hour. Your everyday offer, below, does the work meanwhile.</p>
+          <h2 className="display mt-3 text-5xl">Nothing big enough for your {seats} seats in the next two days</h2>
+          <p className="mt-4 max-w-2xl text-lg" style={{ color: "var(--muted)" }}>Turnout keeps watching every hour. Your everyday offer, below, does the work meanwhile.</p>
         </section>
       )}
 
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        {/* Later */}
-        <section className="card p-5">
+      <div className="mt-20 grid gap-16 md:grid-cols-2">
+        <section>
           <p className="eyebrow">Also coming</p>
-          {later.length === 0 && <p className="mt-2 text-sm" style={{ color: "var(--muted)" }}>Nothing else worth a campaign in the next two days.</p>}
-          <ul className="mt-2 space-y-3">
+          {later.length === 0 && <p className="mt-3 text-base" style={{ color: "var(--muted)" }}>Nothing else worth a campaign in the next two days.</p>}
+          <ul className="mt-3 space-y-6">
             {later.map((it) => {
               const w = presenceWindow(it.event);
               return (
-                <li key={it.event.id} className="text-sm">
-                  <p style={{ color: "var(--muted)" }}>
+                <li key={it.event.id}>
+                  <p className="text-sm" style={{ color: "var(--muted)" }}>
                     {dayOf(w.start)} <span className="mono">{fmtTime.format(new Date(w.arrive))}</span> to <span className="mono">{fmtTime.format(new Date(w.leave))}</span>
                   </p>
-                  <p className="font-display text-lg leading-tight">{it.event.name}</p>
-                  <p style={{ color: "var(--text)" }}>About {it.potentialGuests} extra guests, {Math.min(100, Math.round(it.fill * 100))}% of your seats</p>
+                  <p className="mt-1 font-display text-2xl leading-tight">{it.event.name}</p>
+                  <p className="mt-1 text-base" style={{ color: "var(--text)" }}>About {it.potentialGuests} extra guests, {Math.min(100, Math.round(it.fill * 100))}% of your seats</p>
                 </li>
               );
             })}
           </ul>
-          <Link href={`/radar?merchant=${merchant.id}`} className="mt-4 inline-flex text-sm font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>
-            See the next three days on the radar
-          </Link>
+          <Link href={`/radar?merchant=${merchant.id}`} className="mt-6 inline-flex text-base font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>The next three days on the radar</Link>
         </section>
 
-        {/* Every day */}
-        <section className="card p-5">
+        <section>
           <p className="eyebrow">Every day this week</p>
           {brief ? (
             <>
-              <p className="mt-1 font-display text-2xl">{weekOffer?.title ?? brief.featured_offer_id}</p>
-              <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>{brief.street_in_one_line}</p>
-              <p className="mt-3 whitespace-pre-wrap p-3 font-display text-lg" style={{ background: "var(--ink)", color: "var(--panel)" }}>{brief.chalkboard}</p>
-              <p className="mt-2 text-xs" style={{ color: "var(--muted)" }}>Your chalkboard line for a normal weekday.</p>
+              <p className="mt-3 font-display text-2xl leading-tight">{weekOffer?.title ?? brief.featured_offer_id}</p>
+              <p className="mt-2 text-base" style={{ color: "var(--muted)" }}>{brief.street_in_one_line}</p>
+              <p className="mt-5 whitespace-pre-wrap font-display text-[26px] leading-[1.05]" style={{ color: "var(--ink)" }}>{brief.chalkboard}</p>
+              <p className="mt-2 text-sm" style={{ color: "var(--muted)" }}>Your chalkboard line for a normal weekday.</p>
             </>
           ) : (
-            <p className="mt-2 text-sm" style={{ color: "var(--text)" }}>Turnout reads the people who walk past your door on a normal day and picks the offer to feature all week.</p>
+            <p className="mt-3 text-base leading-relaxed" style={{ color: "var(--text)" }}>Turnout reads the people who walk past your door on a normal day and picks the offer to feature all week.</p>
           )}
-          <Link href={`/pulse?merchant=${merchant.id}`} className="mt-4 inline-flex text-sm font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>
-            {brief ? "Read this week's plan" : "Read your street"}
-          </Link>
+          <Link href={`/pulse?merchant=${merchant.id}`} className="mt-6 inline-flex text-base font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>{brief ? "This week's plan" : "Read your street"}</Link>
         </section>
       </div>
 
-      {/* What happened without you */}
-      <section className="card-flat mt-4 p-5">
+      <section className="mt-20">
         <p className="eyebrow">What Turnout did on its own</p>
         {alerts.length === 0 ? (
-          <p className="mt-2 text-sm" style={{ color: "var(--muted)" }}>Every hour, Turnout scans for crowds, writes the campaign for the strongest new one and alerts you. Nothing yet.</p>
+          <p className="mt-3 text-base" style={{ color: "var(--muted)" }}>Every hour, Turnout scans for crowds, writes the campaign for the strongest new one and alerts you. Nothing yet.</p>
         ) : (
-          <ul className="mt-2 space-y-1.5 text-sm">
+          <ul className="mt-3 space-y-2 text-base">
             {alerts.map((a) => (
-              <li key={a.id} className="flex flex-wrap items-baseline gap-x-3">
-                <span className="mono" style={{ color: "var(--muted)" }}>{new Intl.DateTimeFormat("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: tz }).format(new Date(a.created_at.endsWith("Z") ? a.created_at : a.created_at.replace(" ", "T") + "Z"))}</span>
+              <li key={a.id} className="flex flex-wrap items-baseline gap-x-4">
+                <span className="mono text-sm" style={{ color: "var(--muted)" }}>{new Intl.DateTimeFormat("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: tz }).format(new Date(a.created_at.endsWith("Z") ? a.created_at : a.created_at.replace(" ", "T") + "Z"))}</span>
                 <span style={{ color: "var(--text)" }}>{a.message.split("\n")[1]?.replace(/,.*$/, "") ?? "Alert"}</span>
-                <span className="text-xs" style={{ color: "var(--muted)" }}>{a.status === "sent" ? "sent on WhatsApp" : a.status === "simulated" ? "recorded, WhatsApp not connected" : "failed"}</span>
+                <span className="text-sm" style={{ color: "var(--muted)" }}>{a.status === "sent" ? "sent on WhatsApp" : a.status === "simulated" ? "recorded, WhatsApp not connected" : "failed"}</span>
               </li>
             ))}
           </ul>
         )}
-        <Link href={`/alerts?merchant=${merchant.id}`} className="mt-3 inline-flex text-sm font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>
-          All alerts
-        </Link>
+        <Link href={`/alerts?merchant=${merchant.id}`} className="mt-4 inline-flex text-base font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>All alerts</Link>
       </section>
     </main>
   );
@@ -270,4 +252,3 @@ function firstSentences(text: string, max: number): string {
   }
   return out.trim() || `${text.slice(0, max - 1).trim()}…`;
 }
-

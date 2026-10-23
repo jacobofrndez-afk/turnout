@@ -177,6 +177,8 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
         cooperativeGestures: true,
       });
       m.touchPitch?.disable?.();
+      if (process.env.NODE_ENV !== "production") (window as unknown as { __tmMap?: ML }).__tmMap = m; // dev-only handle for debugging
+      m.on("error", (e: { error?: Error }) => console.warn("[map]", e.error?.message ?? e));
       // Markers update their DOM position on the same "move" event, after this listener: defer a frame so the
       // placement pass reads settled positions; run again when a move or a fly-in ends.
       const later = () => requestAnimationFrame(() => declutter.current());

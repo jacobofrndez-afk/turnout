@@ -1,7 +1,8 @@
 import { isCommercialBrand } from "@/lib/brands";
 import Link from "next/link";
-import { haversineKm } from "@/server/events/concentration";
-import { getMerchant } from "@/server/events/radar";
+import { haversineKm, scoreConcentration } from "@/server/events/concentration";
+import { getMerchant, rowToEvent } from "@/server/events/radar";
+import { clock } from "@/lib/clock";
 import { tagId } from "@/server/qloo/api";
 import { buildCrowdProfile, describeDemographics, getEvent, hasSignal, type CrowdProfile } from "@/server/qloo/crowd";
 import { nb } from "@/lib/nbsp";
@@ -101,7 +102,6 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
   // Where and when, in one sentence: "Madison Square Garden, tonight at 20:00, two blocks from Penn & Pour."
   const tz = merchant.timezone;
   const starts = new Date(event.starts_at);
-  const fmtTime = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: tz });
   const fmtHour = new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: tz });
   const fmtDayKey = new Intl.DateTimeFormat("en-CA", { timeZone: tz });
   const fmtDate = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "short", timeZone: tz });
@@ -144,7 +144,9 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
   };
   // When Turnout already wrote the campaign for this crowd, its choice is the one that fits (it weighs the ages and the
   // brands too); otherwise the offer whose places this crowd likes most.
-  const written = getDb().prepare("SELECT id FROM campaigns WHERE merchant_id = ? AND event_id = ? AND status IN ('drafted', 'approved', 'sent') ORDER BY created_at DESC LIMIT 1").get(merchant.id, event.id) as { id: string } | undefined;
+  const written = getDb().prepare("SELECT id FROM campaigns WHERE merchant_id = ? AND event_id = ? AND (status IN ('drafted', 'approved', 'sent') OR (status = 'awaiting_operator' AND created_at > datetime('now', '-15 minutes'))) ORDER BY created_at DESC LIMIT 1").get(merchant.id, event.id) as { id: string } | undefined;
+  // The number Explore and Today show for this crowd: the extra guests it could bring this place.
+  const guests = scoreConcentration(rowToEvent(event as Parameters<typeof rowToEvent>[0]), { lat: merchant.lat, lon: merchant.lon, radiusM: merchant.radius_m, seats: merchant.seats ?? 60 }).potentialGuests;
   const chosenId = written ? getDraft(getCampaign(written.id)!)?.chosen_offer_id : undefined;
   const top = profile.offerFits.find((f) => f.offerId === chosenId) ?? profile.offerFits[0];
   const topFits = !!top && (top.matches > 0 && top.affinity > 0 || top.offerId === chosenId);
@@ -161,11 +163,26 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
   return (
     <main className="mx-auto max-w-5xl px-5 py-10">
       <Link href={`/today?merchant=${merchant.id}`} className="link text-sm">Today</Link>
-      <h1 className="t-display mt-5">{profile.headlinerName}</h1>
-      <p className="t-lead mt-5">
-        {event.venue_name}, {day} {isShow ? "at" : "from"} <span className="mono">{fmtTime.format(starts)}</span>
-        {isShow && <>, {walk ?? <><span className="mono">{nb(km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`)}</span> from</>} {merchant.name}</>}.
-      </p>
+      <section className="stack-block">
+        <div className="plate">
+          <h1 className="t-display">{profile.headlinerName}</h1>
+          <p className="t-lead mt-5">
+            {event.venue_name}, {day} {isShow ? "at" : "from"} <span className="mono">{clock(starts, tz)}</span>
+            {isShow && <>, {walk ?? <><span className="mono">{nb(km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`)}</span> from</>} {merchant.name}</>}.
+            {guests > 0 && <> It could bring you about {guests} guests.</>}
+          </p>
+          {hasSignal(profile) && (written ? (
+            <Link href={`/campaigns/${written.id}`} className="btn btn-accent btn-lg mt-10">See my campaign</Link>
+          ) : (
+            <form action="/api/campaigns" method="post" className="mt-10">
+              <input type="hidden" name="merchant" value={merchant.id} />
+              <input type="hidden" name="event" value={event.id} />
+              {sp.pick && <input type="hidden" name="pick" value={sp.pick} />}
+              <button className="btn btn-accent btn-lg">Write my campaign</button>
+            </form>
+          ))}
+        </div>
+      </section>
 
       {profile.status === "needs_input" && (
         <section className="stack-section">
@@ -201,12 +218,6 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
               </div>
             ))}
           </section>
-          <form action="/api/campaigns" method="post" className="stack-section">
-            <input type="hidden" name="merchant" value={merchant.id} />
-            <input type="hidden" name="event" value={event.id} />
-            {sp.pick && <input type="hidden" name="pick" value={sp.pick} />}
-            <button className="btn btn-accent btn-lg">Write my campaign</button>
-          </form>
         </>
       )}
 

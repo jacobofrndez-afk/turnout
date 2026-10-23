@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { nb } from "@/lib/nbsp";
 import { getMerchant, listMerchants, radarFor, type RadarItem } from "@/server/events/radar";
@@ -14,8 +15,9 @@ const H = 3_600_000;
 // the hours folded under a link, and the crowds worth a campaign with one link each.
 export default async function RadarPage({ searchParams }: { searchParams: Promise<{ merchant?: string; hours?: string }> }) {
   const sp = await searchParams;
-  const merchants = listMerchants().filter((m) => m.id === "m_penn_pour" || m.id === "m_quai_bercy" || m.id === (sp.merchant ?? ""));
-  const merchant = getMerchant(sp.merchant ?? merchants[0]?.id ?? "");
+  const id = sp.merchant ?? (await cookies()).get("merchant")?.value ?? "";
+  const merchants = listMerchants().filter((m) => m.id === "m_penn_pour" || m.id === "m_quai_bercy" || m.id === id);
+  const merchant = getMerchant(id) ?? getMerchant(merchants[0]?.id ?? "");
   if (!merchant) {
     return (
       <main className="mx-auto max-w-3xl px-5 py-16">
@@ -136,7 +138,7 @@ function blurbOf(e: RadarItem["event"], memberNames: string[]): string | undefin
       return memberNames.length ? memberSummary(memberNames, 60, "shows", count) : undefined;
     }
     case "tv":
-      return [meta.league, meta.side === "away" ? "away game" : "home game across town", meta.tv, meta.fandom ? `Qloo local fandom: ${meta.fandom.band}` : undefined].filter(Boolean).join(" · ");
+      return [meta.league, meta.side === "away" ? "away game" : "home game across town"].filter(Boolean).join("\u00A0· ");
     case "street":
       return [meta.type, e.venue.name].filter(Boolean).join(" · ");
     case "calendar":

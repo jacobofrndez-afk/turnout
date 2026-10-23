@@ -22,7 +22,7 @@ Every secondary page starts with one link back: "Today" (not "Back to the radar"
 - **Level 2, at most four per screen (five on Today, the home carries two more sections)**: `.t-title` for section heads. Section heads are plain words a merchant
   says: "What goes out", "Why", "Coming next", "Every day this week".
 - **Level 3**: `.t-body` for everything else; `.t-lead` only for the one sentence under the headline.
-- Eyebrows (`.eyebrow`) only inside the plate and above the three channel cards. Everywhere else a label becomes a
+- Eyebrows (`.eyebrow`) only inside the plate and above the channel cards (three on Today, five on the campaign). Everywhere else a label becomes a
   `.t-title` or disappears. Dates and places go in `.t-body` sentences, not in labels.
 - Figures: at most two big figures per screen (`.t-figure`), both answering "how many people, when".
 - The plate (`.plate`): one per screen, holds the headline, the one sentence, the one button. Nothing else.
@@ -46,11 +46,12 @@ Every secondary page starts with one link back: "Today" (not "Back to the radar"
 
 ### Today
 1. Plate: eyebrow "Tonight" (or "Today", "Tomorrow"), `.t-display` the crowd in five words ("Harry Styles at the
-   Garden"), `.t-lead` "About 20,000 people pass your door from 5:30 pm. Your campaign is ready." Button "Publish"
-   when a draft exists, else "Write my campaign"; secondary link "Read every word first".
+   Garden"), `.t-lead` "About 20,000 people 0.3 km from your door from 5:30 pm. Your pre-show happy hour is ready."
+   Button "Publish" when a campaign exists, else "Write my campaign"; secondary link "Read every word first". Times
+   in the merchant's clock (`src/lib/clock.ts`): "5:30 pm" in New York, "17:30" in Paris.
 2. "What goes out": the three channel cards (chalkboard, regulars, strangers), unchanged.
 3. "Why": three lines, `.t-body .measure`, then the link "The rest of the reasoning".
-4. "Coming next": up to three lines, each "Sat 20:00 · Harry Styles · about 100 guests" + link "See the campaign".
+4. "Coming next": up to three lines, each "Sat 8 pm · Harry Styles · about 100 guests" + link "See who is coming".
 5. "Every day this week": the weekly offer in two lines + link "This week's plan".
 6. "What Turnout did on its own": three alerts + link "All alerts".
 7. Footer links in one line: "Explore the map", "Your place and offers".
@@ -64,17 +65,18 @@ Every secondary page starts with one link back: "Today" (not "Back to the radar"
 ### The campaign
 1. Link "Today". Plate: eyebrow "Your campaign for <night>", `.t-display` the offer, `.t-lead` its one line and the
    window, button "Publish" (hidden when the night has passed or the campaign is already out).
-2. "What goes out": one block per channel, `.t-title` the channel in merchant words, the copy in `.t-body`.
+2. "What goes out": one block per channel, an eyebrow names the channel in merchant words (as on Today), the copy in `.t-body` (`.t-name` for a headline). Only the channels Publish sends, plus the chalkboard.
 3. "Why": three lines + "The rest of the reasoning".
 4. "What this does not establish": `.t-body`.
 5. "How Turnout got here" (provenance) stays a closed disclosure at the end.
 
 ### Who is coming
-1. Link "Today". `.t-display` the crowd's name. `.t-lead` where and when, for which place.
+1. Link "Today". Plate: `.t-display` the crowd's name, `.t-lead` where and when, for which place, and "It could bring
+   you about N guests.", then the button "Write my campaign", or "See my campaign" when Turnout already wrote one (or
+   started less than 15 minutes ago).
 2. Three facts as `.t-title` lines with one sentence each: who ("Women, 25 to 34"), what they like ("Cocktail
    rooftops and brunch"), what fits ("Your pre-show happy hour fits them best").
-3. Button "Write my campaign".
-4. "All the evidence from Qloo": a closed disclosure holding the bars list, the brands, the tags, the age bars, the
+3. "All the evidence from Qloo": a closed disclosure holding the bars list, the brands, the tags, the age bars, the
    offers table and the provenance.
 
 ### Alerts and pulse pages

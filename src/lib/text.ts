@@ -34,3 +34,25 @@ export function noScores(s: string): string {
     .replace(/\bat \+?(0\.\d\d)\b/g, (_, n) => adverb(n))
     .replace(/\+?\b0\.\d\d\b/g, (n) => adjective(n.replace("+", "")));
 }
+
+// Analyst words read as a system talking. The agent is told not to use them; this catches stored drafts.
+export function plainWords(s: string): string {
+  return s
+    .replace(/[^.]*\bcompressed\b[^.]*\./gi, "")
+    .replace(/\bover-?index(?:es|ed)? on ([^,.;]*?) and on\b/gi, "lean toward $1 and toward")
+    .replace(/\bover-?index(?:es|ed)? on\b/gi, "lean toward")
+    .replace(/\bunder-?index(?:es|ed)? on\b/gi, "lean away from")
+    .replace(/\bover-?index(?:es|ed)?\b/gi, "stand out")
+    .replace(/\baudience tags\b/gi, "crowds")
+    .replace(/\bambience tags\b/gi, "moods")
+    .replace(/\btaste tags\b/gi, "tastes")
+    .replace(/\b(offer's|offers') tags\b/gi, "$1 kinds of places")
+    .replace(/\btags\b/gi, "tastes")
+    .replace(/\bsignals\b/gi, "reasons")
+    .replace(/\bsignal\b/gi, "reason")
+    .replace(/\baggregate affinities\b/gi, "shared tastes")
+    .replace(/\baffinities\b/gi, "tastes")
+    .replace(/\baffinity\b/gi, "taste")
+    .trim();
+}
+

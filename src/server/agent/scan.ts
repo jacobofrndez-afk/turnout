@@ -2,6 +2,7 @@
 // draft its campaign, and alert the merchant with a link to approve. The merchant never has to open the app to
 // learn that a crowd is coming. Alerts go out on WhatsApp when Twilio is configured, else they are recorded as
 // simulated and shown on the alerts page.
+import { clock, clockRange } from "@/lib/clock";
 import { getDb, newId } from "@/server/db/client";
 import { listMerchants, radarFor, type Merchant, type RadarItem } from "@/server/events/radar";
 import { presenceWindow } from "@/server/events/concentration";
@@ -111,7 +112,6 @@ export async function scanAll(opts: ScanOptions = {}): Promise<{ merchant: strin
 export function composeAlert(merchant: Merchant, it: RadarItem, campaign?: CampaignRow): string {
   const w = presenceWindow(it.event);
   const fmtDay = new Intl.DateTimeFormat("en-GB", { weekday: "long", timeZone: merchant.timezone });
-  const fmtTime = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: merchant.timezone });
   const todayKey = new Intl.DateTimeFormat("en-CA", { timeZone: merchant.timezone }).format(new Date());
   const startKey = new Intl.DateTimeFormat("en-CA", { timeZone: merchant.timezone }).format(new Date(w.start));
   const day = startKey === todayKey ? "Today" : fmtDay.format(new Date(w.start));
@@ -120,7 +120,7 @@ export function composeAlert(merchant: Merchant, it: RadarItem, campaign?: Campa
   const seats = Math.max(10, merchant.seats ?? 60);
   const lines = [
     `Turnout for ${merchant.name}`,
-    `${day} ${fmtTime.format(new Date(w.start))}: ${it.event.name}${origin === "ticketmaster" ? ` at ${it.event.venue.name}` : ""}, about ${it.capacity.toLocaleString("en-US")} people ${where}, from ${fmtTime.format(new Date(w.arrive))} to ${fmtTime.format(new Date(w.leave))}.`,
+    `${day} ${clock(w.start, merchant.timezone)}: ${it.event.name}${origin === "ticketmaster" ? ` at ${it.event.venue.name}` : ""}, about ${it.capacity.toLocaleString("en-US")} people ${where}, from ${clockRange(w.arrive, w.leave, merchant.timezone)}.`,
     `Could bring about ${it.potentialGuests} guests, ${it.fill >= 1 ? `enough to fill your ${seats} seats` : `${Math.round(it.fill * 100)}% of your ${seats} seats`}.`,
   ];
   if (campaign) {

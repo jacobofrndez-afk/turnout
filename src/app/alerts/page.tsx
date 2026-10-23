@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getMerchant, listMerchants } from "@/server/events/radar";
 import { listAlerts } from "@/server/agent/scan";
+import { getCampaign } from "@/server/agent/run";
 import { whatsappConfigured } from "@/server/channels/twilio";
 
 export const dynamic = "force-dynamic";
@@ -57,7 +58,9 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
             const when = first.split(": ")[0];
             const what = first.slice(when.length + 2).split(", about ")[0];
             const tail = what ? first.slice(when.length + 2 + what.length + 2) : first;
-            const href = a.campaign_id ? `/campaigns/${a.campaign_id}` : `/radar?merchant=${merchant.id}`;
+            const camp = a.campaign_id ? getCampaign(a.campaign_id) : undefined;
+            const unwritten = camp?.status === "awaiting_operator" && Date.now() - Date.parse(camp.created_at.replace(" ", "T") + "Z") > 15 * 60_000;
+            const href = unwritten ? `/campaigns/new?merchant=${merchant.id}&event=${a.event_id}` : a.campaign_id ? `/campaigns/${a.campaign_id}` : `/radar?merchant=${merchant.id}`;
             return (
               <article key={a.id}>
                 <p className="t-body">
@@ -72,8 +75,9 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
                     {statusLabel[a.status] ?? a.status}{a.status === "failed" && a.to_ref ? `: ${a.to_ref}` : ""}
                   </p>
                 )}
+                {unwritten && <p className="t-body mt-2 text-[var(--muted)]">Not written yet.</p>}
                 <Link href={href} className="link mt-3 inline-flex text-base">
-                  {a.campaign_id ? "See the campaign" : "Explore the map"}
+                  {unwritten ? "See who is coming" : a.campaign_id ? "See the campaign" : "Explore the map"}
                 </Link>
               </article>
             );

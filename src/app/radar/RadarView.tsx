@@ -1,4 +1,5 @@
 "use client";
+import { clock } from "@/lib/clock";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
@@ -57,7 +58,6 @@ export default function RadarView({ merchant, items, nowIso }: Props) {
   const span = t1 - t0;
   const pct = (t: number) => Math.min(100, Math.max(0, ((t - t0) / span) * 100));
 
-  const fmtTime = useMemo(() => new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: tz }), [tz]);
   const fmtDayKey = useMemo(() => new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: tz }), [tz]);
   const fmtWeekday = useMemo(() => new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "short", timeZone: tz }), [tz]);
   const fmtShortDay = useMemo(() => new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: tz }), [tz]);
@@ -334,7 +334,7 @@ export default function RadarView({ merchant, items, nowIso }: Props) {
         key: k,
         eventId: rep.id,
         label: rep.headliner,
-        time: `${dayLabel(rep.w.start)} ${fmtTime.format(new Date(rep.w.start))}`,
+        time: `${dayLabel(rep.w.start)} ${clock(rep.w.start, tz)}`,
         venue: rep.venue,
         capacity: rep.capacity,
         distanceKm: rep.distanceKm,
@@ -354,7 +354,7 @@ export default function RadarView({ merchant, items, nowIso }: Props) {
         Object.assign(anchor, {
           eventId: selWave.id,
           label: selWave.headliner,
-          time: `${dayLabel(selWave.w.start)} ${fmtTime.format(new Date(selWave.w.start))}`,
+          time: `${dayLabel(selWave.w.start)} ${clock(selWave.w.start, tz)}`,
           venue: selWave.blurb ?? selWave.venue,
           capacity: selWave.capacity,
           href: `/campaigns/new?merchant=${merchant.id}&event=${selWave.id}`,
@@ -365,11 +365,31 @@ export default function RadarView({ merchant, items, nowIso }: Props) {
       }
     }
     return pts;
-  }, [all, cursor, selected, fmtTime, merchant.id, hotMembers]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [all, cursor, selected, tz, merchant.id, hotMembers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const crowds = hotList.filter((c) => c.w.leave > now);
-  const cursorLabel = `${dayLabel(cursor, true)} ${fmtTime.format(new Date(cursor))}`;
+  const cursorLabel = `${dayLabel(cursor, true)} ${clock(cursor, tz)}`;
   const cursorPct = pct(cursor);
+
+  // One crowd in the list: the soonest six show, the rest fold. Round figures, no percentages.
+  const row = (it: Crowd) => {
+    const isSel = selected === it.id;
+    const onMap = ON_MAP.has(it.kind);
+    return (
+      <li key={it.id} className={isSel ? "tone" : undefined}>
+        <button type="button" className="tm-item t-body" onClick={() => selectCrowd(it.id)} aria-pressed={isSel}>
+          <span className="mono">{dayLabel(it.w.start, true)} {clock(it.w.start, tz)}</span> · <b>{it.headliner}</b> ·{" "}
+          {onMap ? <>{it.venue}, <span className="mono">{it.distanceKm.toFixed(1)}&nbsp;km</span></> : (it.blurb ?? it.venue)}
+        </button>
+        <p className="t-body mt-1 text-[var(--muted)]">
+          About <span className="mono">{(Math.round(it.capacity / 100) * 100).toLocaleString("en-US")}</span> people, could bring about {it.guests} guests
+          {it.guests >= merchant.seats ? `, enough to fill your ${merchant.seats} seats` : it.guests * 2 >= merchant.seats ? ", enough for half your seats" : ", enough for a few tables"}.
+          {isSel && it.weather ? ` Weather at your door: ${it.weather.label}.` : ""}{" "}
+          <Link href={`/campaigns/new?merchant=${merchant.id}&event=${it.id}`} className="link">See who is coming</Link>
+        </p>
+      </li>
+    );
+  };
 
   return (
     <div ref={rootRef} className={`tm-root${full ? " is-full" : ""}`}>
@@ -439,7 +459,7 @@ export default function RadarView({ merchant, items, nowIso }: Props) {
                   data-id={c.id}
                   className={`tm-ev${isTonight(c) ? " hot" : isHot(c) ? " later" : ""}${c.kind !== "venue" ? " moment" : ""}${selected === c.id || (selWave?.members.includes(c.id) ?? false) ? " sel" : ""}${lane >= 0 ? " lbl" : ""}${edge.left.has(c.id) ? " left" : ""}`}
                   style={{ left: `${pct(c.w.start)}%`, top: lane >= 0 ? 118 + lane * 24 : 196, ["--s" as string]: `${size}px` }}
-                  title={`${c.headliner} · ${c.kind === "venue" ? c.venue : (c.blurb ?? c.venue)} · ${fmtTime.format(new Date(c.w.start))} · ~${c.capacity.toLocaleString("en-US")} people · could bring ~${c.guests} guests`}
+                  title={`${c.headliner} · ${c.kind === "venue" ? c.venue : (c.blurb ?? c.venue)} · ${clock(c.w.start, tz)} · ~${c.capacity.toLocaleString("en-US")} people · could bring ~${c.guests} guests`}
                   onClick={() => selectCrowd(c.id)}
                   onFocus={(e) => {
                     // A flipped label can stay in view while its dot and focus ring sit past the scroller edge; Chrome will not scroll then.
@@ -470,27 +490,15 @@ export default function RadarView({ merchant, items, nowIso }: Props) {
         {crowds.length === 0 ? (
           <p className="t-body text-[var(--muted)]">Nothing big enough for your {merchant.seats} seats in the next three days. Hour by hour still shows the smaller events.</p>
         ) : (
-          <ul className="tm-crowds">
-            {crowds.map((it) => {
-              const isSel = selected === it.id;
-              const onMap = ON_MAP.has(it.kind);
-              const counted = it.kind === "venue" || it.kind === "wave";
-              return (
-                <li key={it.id} className={isSel ? "tone" : undefined}>
-                  <button type="button" className="tm-item t-body" onClick={() => selectCrowd(it.id)} aria-pressed={isSel}>
-                    <span className="mono">{dayLabel(it.w.start, true)} {fmtTime.format(new Date(it.w.start))}</span> · <b>{it.headliner}</b> ·{" "}
-                    {onMap ? <>{it.venue}, <span className="mono">{it.distanceKm.toFixed(1)}&nbsp;km</span></> : (it.blurb ?? it.venue)}
-                  </button>
-                  <p className="t-body mt-1 text-[var(--muted)]">
-                    About <span className="mono">{it.capacity.toLocaleString("en-US")}</span> people{counted ? "" : " by our estimate"}, could bring about {it.guests} guests
-                    {it.guests >= merchant.seats ? `, enough to fill your ${merchant.seats} seats` : `, ${Math.round((it.guests / merchant.seats) * 100)}% of your ${merchant.seats} seats`}.
-                    {isSel && it.weather ? ` Weather at your door: ${it.weather.label}.` : ""}{" "}
-                    <Link href={`/campaigns/new?merchant=${merchant.id}&event=${it.id}`} className="link">See who is coming</Link>
-                  </p>
-                </li>
-              );
-            })}
-          </ul>
+          <>
+            <ul className="tm-crowds">{crowds.slice(0, 6).map(row)}</ul>
+            {crowds.length > 6 && (
+              <details className="mt-5">
+                <summary className="link">All {crowds.length} crowds</summary>
+                <ul className="tm-crowds mt-5">{crowds.slice(6).map(row)}</ul>
+              </details>
+            )}
+          </>
         )}
       </section>
     </div>

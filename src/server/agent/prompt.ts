@@ -16,13 +16,15 @@ A crowd is about to gather near the merchant for an event. You receive:
 Your job: pick the one offer that best fits this crowd, write the copy for each channel, and explain why using the Qloo evidence.
 
 Rules:
-- Cite concrete Qloo evidence in the rationale: tag names, which age and gender groups over-index, brand names, place names. Never invent data. No scores or decimals in the prose: say strong, high or weak instead.
-- Fit scores are compressed (often 0.80 to 0.95). Treat them as one signal among demographics, tags and brands, not as the decision.
-- Qloo describes aggregate affinities of a group. Never describe an individual, never predict that someone will come. Say so in limitations.
+- Cite concrete Qloo evidence in the rationale: tag names, which age and gender groups are more common than usual, brand names, place names. Never invent data. No scores or decimals in the prose: say strong, high or weak instead.
+- Write every field for a bar owner. Never write signal, over-index, under-index, affinity, affinities, aggregate, score, compressed, entity or URN. Say "more women than usual", "fewer 35 to 44", "they like", "leans toward", "reasons".
+- Fit numbers sit close together (often 0.80 to 0.95). Weigh them with demographics, tags and brands, not as the decision, and never mention them in the copy, rationale or limitations.
+- Qloo describes what a group of fans tends to like, not any one person. Never describe an individual, never predict that someone will come. Say so in limitations, in plain words.
 - Copy is for the channel: short for ads and boards, warmer for WhatsApp regulars, factual for the Google post. Respect the merchant's voice. Mention the event by headliner name where natural.
 - Use the merchant's city language: English for US cities, French for France. Prices stay as given.
 - Interest keywords for the geofenced ad come from the Qloo tags and brands, phrased as ad-platform interests (e.g. "Cocktail bars", "Luxury fashion", "Pop music").
 - Time windows: use the suggested ones unless the evidence says otherwise; keep local HH:MM.
+- Day words: say "tonight" or "today" only when the event falls on the same local day as Now; otherwise name the weekday ("Saturday"). The WhatsApp message is sent the moment the merchant publishes, so it must read right on the day it is sent. Use the same day word in every channel.
 - Weather does not change who the crowd is; it changes what to offer and how to say it. Rain, storm, snow or cold favour shelter, warm food and indoor comfort; heat favours cold drinks and outdoor seating; a pleasant dry evening favours terraces and lingering. Say so in the rationale when it tips the choice, and use it in the copy only when it helps. Never invent weather that is not given.
 - No exclamation marks. No emojis. No hashtags.`;
 
@@ -67,6 +69,8 @@ export function buildUserPrompt(merchant: Merchant, event: EventRow, profile: Cr
   const fmt = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: merchant.timezone });
   const lines: string[] = [];
   lines.push(`# Merchant`, `${merchant.name}, a ${merchant.kind} at ${merchant.address ?? merchant.city}. City: ${merchant.city}. Timezone: ${merchant.timezone}.`, `Voice: ${merchant.voice ?? "friendly and direct"}`, "");
+  const fmtNow = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: merchant.timezone });
+  lines.push(`# Now`, `${fmtNow.format(new Date())} local. The merchant may publish now or later the same day.`, "");
   const origin = event.origin ?? "ticketmaster";
   if (origin === "ticketmaster") {
     lines.push(`# Event`, `${event.name} at ${event.venue_name}, ${fmt.format(new Date(event.starts_at))} local. Segment: ${event.segment ?? "?"}${event.genre ? ` / ${event.genre}` : ""}.`, `Headliner resolved in Qloo: ${profile.entity?.name ?? profile.headlinerName} (${profile.entity?.subtype?.replace("urn:entity:", "") ?? "unknown"}), popularity ${((profile.entity?.popularity ?? 0) * 100).toFixed(1)}%.`, "");

@@ -10,7 +10,7 @@ export const WindowSchema = z.object({
 
 export const CampaignDraftSchema = z.object({
   language: z.enum(["en", "fr"]).describe("Language of all copy, matching the merchant's city"),
-  chosen_offer_id: z.string().describe("The id of the offer to push tonight"),
+  chosen_offer_id: z.string().describe("The id of the offer to push for this event"),
   audience_summary: z.string().describe("Two sentences on who this crowd is, citing Qloo demographics and tags"),
   rationale: z.string().describe("Why this offer beats the others for this crowd. Cite specific Qloo evidence: tags, demographics, brands, nearby places. No marketing fluff."),
   windows: z.array(WindowSchema).min(1).max(3),

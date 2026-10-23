@@ -35,12 +35,12 @@ const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", 
 const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const HOSPITALITY = /genre:place:restaurant|category:place:(bar|pub|cafe|coffee|restaurant|night_?club|wine_bar|brewery)|genre:place:(bar|pub|cafe|night_?club|wine_bar|brewery|cocktail)/;
 
-const text = (p: PlaceEntity) =>
+const rawText = (p: PlaceEntity) =>
   Object.entries(p.properties ?? {})
     .filter(([k, v]) => /description|unique_selling_points/.test(k) && typeof v === "string" && v !== "None")
     .map(([, v]) => v as string)
-    .join(" ")
-    .toLowerCase();
+    .join(" ");
+const text = (p: PlaceEntity) => rawText(p).toLowerCase();
 const tagHit = (p: PlaceEntity, re: RegExp) => (p.tags ?? []).some((t) => re.test(t.id ?? "") || re.test((t.name ?? "").toLowerCase()));
 const hour = (t?: string) => (t ? Number(t.slice(1, 3)) : NaN);
 
@@ -114,7 +114,7 @@ export function analyzeRhythm(entities: PlaceEntity[]): StreetRhythm {
       to: "15:00",
       strength: brunch.length >= 8 || brunchText.length >= 2 ? "strong" : "medium",
       evidence: [
-        brunch.length ? `${brunch.length} places around you are tagged for brunch` : "",
+        brunch.length ? `${brunch.length} places around you serve brunch` : "",
         brunchText.length ? `"Weekend brunch" in Qloo's descriptions: ${brunchText.slice(0, 3).map((p) => p.name).join(", ")}` : "",
       ].filter(Boolean),
       places: [...brunchText, ...brunch].filter((p, i, a) => a.indexOf(p) === i).slice(0, 5).map(ref),
@@ -136,7 +136,7 @@ export function analyzeRhythm(entities: PlaceEntity[]): StreetRhythm {
   // Event habits Qloo already sees on this street: pre-show, post-show, after concerts.
   const eventHabits = entities
     .map((p) => {
-      const m = text(p).match(/[^.]*\b(pre-show|post-show|pre-concert|after (the )?(show|concert|game)s?|after concerts|before (the )?(show|concert|game)s?)\b[^.]*/);
+      const m = rawText(p).match(/[^.]*\b(pre-show|post-show|pre-concert|after (the )?(show|concert|game)s?|after concerts|before (the )?(show|concert|game)s?)\b[^.]*/i);
       return m ? { place: p.name, text: m[0].trim().slice(0, 160) } : undefined;
     })
     .filter((x): x is { place: string; text: string } => !!x)

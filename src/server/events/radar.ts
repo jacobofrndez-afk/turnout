@@ -86,7 +86,7 @@ type EventDbRow = {
   origin?: string | null; window_start?: string | null; window_end?: string | null; crowd_est?: number | null; meta_json?: string | null;
 };
 
-function rowToEvent(r: EventDbRow): TmEvent {
+export function rowToEvent(r: EventDbRow): TmEvent {
   return {
     id: r.id,
     name: r.name,

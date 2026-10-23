@@ -15,9 +15,9 @@ import { eveningsThisWeek } from "@/server/weather/openmeteo";
 
 export const PulseBriefSchema = z.object({
   language: z.enum(["en", "fr"]),
-  street_in_one_line: z.string().max(160).describe("Who walks past this door on a normal week, in one sentence, citing Qloo tags"),
+  street_in_one_line: z.string().max(160).describe("Who walks past this door on a normal week, in one sentence, in plain lower-case words, never the word tag"),
   featured_offer_id: z.string(),
-  rationale: z.string().describe("Why this offer for the everyday flow. Cite Qloo audience tags, ambience tags, brands and nearby places. No scores or decimals in the prose: say strong, high or weak instead."),
+  rationale: z.string().describe("Why this offer for the everyday flow. Name the kinds of people and places in plain lower-case words, with brands and nearby places by name; never write tag, audience, ambience, affinity, signal, score or over-index. No scores or decimals in the prose: say strong, high or weak instead."),
   chalkboard: z.string().max(90).describe("Two lines max for the board outside, for a normal weekday"),
   google_post: z.object({ title: z.string().max(58), body: z.string().max(300) }),
   whatsapp: z.string().max(280).describe("A short weekly note to regulars; warm, one offer, no exclamation marks"),
@@ -32,7 +32,7 @@ You receive Qloo's taste profile of the street (signal = the merchant's GPS poin
 
 You also get the evening weather forecast for the coming week (Open-Meteo): use it to say which evenings to push which line (wet or cold evenings favour shelter and warm food, warm dry evenings favour terraces and cold drinks), never invent weather.
 
-Pick the one offer to feature this week, write the board line, the Google post, the note to regulars and a small always-on geofenced ad. Cite Qloo evidence by name. Qloo describes aggregate affinities of an area, never individuals, and never predicts a visit: say so in limitations. Use the city's language (English for US cities, French for France). No exclamation marks, no emojis, no hashtags.`;
+Pick the one offer to feature this week, write the board line, the Google post, the note to regulars and a small always-on geofenced ad. Cite Qloo evidence by name. Qloo describes the shared taste of an area, never individuals, and never predicts a visit: say so in limitations, in plain words, without the words affinity, tag or score. Use the city's language (English for US cities, French for France). No exclamation marks, no emojis, no hashtags.`;
 
 export type PulseRow = { id: string; merchant_id: string; status: "awaiting_operator" | "drafted" | "failed"; brief_json: string | null; error: string | null; created_at: string };
 

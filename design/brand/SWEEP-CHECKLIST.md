@@ -1,5 +1,7 @@
 # Marquise sweep checklist for the pages owner
 
+> SUPERSEDED by Velours (v3.0). Do not apply. The live list is design/brand/PREMIUM-CHECKLIST.md; tokens and rules in design/brand/tokens.css and GUIDELINES.md.
+
 Identity landed in commit 5464f1a: tokens and shared classes in src/app/globals.css, fonts in src/app/layout.tsx, logo in src/components/Logo.tsx. The items below are in files owned by the product session and were found by the verifiers on real renders (1440 and 390 px, scale 1 and 2).
 
 ## UI rules

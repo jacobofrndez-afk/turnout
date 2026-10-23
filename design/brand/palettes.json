@@ -1,7 +1,7 @@
 {
-  "status": "SUPERSEDED by identity \"Marquise\" (v2.0). This file holds no palette and is not a source of tokens.",
+  "status": "SUPERSEDED by identity \"Velours\" (v3.0). This file holds no palette and is not a source of tokens.",
   "supersededBy": "design/brand/tokens.css, design/brand/tokens.json, design/brand/GUIDELINES.md",
-  "tokens": "Marquise has one palette. Its tokens live in design/brand/tokens.css (app copy: the :root of src/app/globals.css) and design/brand/tokens.json.",
+  "tokens": "Velours has one palette. Its tokens live in design/brand/tokens.css and tokens.json; the rules in GUIDELINES.md.",
   "retired": "The v1 colour exploration (five palettes) is retired and kept only as a record in design/_archive/brand/palettes-v1.json.",
   "palettes": []
 }

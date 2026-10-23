@@ -1,61 +1,129 @@
-/* Turnout design tokens, identity "Marquise": stadium signage on a light page.
-   The app's copy lives in src/app/globals.css (same values); keep both in sync.
-   Fonts come from next/font in src/app/layout.tsx, which sets --font-display, --font-sans and --font-mono on <html>;
-   outside the app use one Google Fonts link:
-   https://fonts.googleapis.com/css2?family=Big+Shoulders:opsz,wght@10..72,600..900&family=Instrument+Sans:wght@400..600&family=IBM+Plex+Mono:wght@500&display=swap
-   Contrast (WCAG 2.x): ink 16.96, text 13.53, muted 5.31, accent-text 5.94 on paper; muted 5.91 and accent-text 6.61
-   on white; white on accent 4.76; ok 4.83, warn 5.18, danger 5.18 on paper; accent 4.28 on paper (fills, marks and
-   large type only); map-cold 3.11 on map land. */
+/* Turnout design tokens, identity "Velours".
+   A white page, one flat aubergine plate at most per screen, one quiet tone, a deep wine that is only ever a dot
+   or a mark. No lines, no gradients, no shadows, corners 0.
+   The app's copy is the :root of src/app/globals.css (same values); keep both in sync.
+   Fonts come from next/font in src/app/layout.tsx (--font-display, --font-sans on <html>). Outside the app:
+   https://fonts.googleapis.com/css2?family=Big+Shoulders:opsz,wght@10..72,400..700&family=Instrument+Sans:wght@400..600&display=swap
+   Contrast (WCAG 2.x, computed): ink 17.83, text 12.12, muted 6.40, plum 14.68, wine 9.15 on white;
+   text 11.02, muted 5.81, plum 13.34 on tone; on-plum 13.18, on-plum-text 11.25, on-plum-muted 8.16,
+   rose 7.31 on plum; white on wine 9.15; placeholder 4.58 on tone; map hot vs cold 4.65. */
 :root {
-  /* surfaces: cool concrete page, white boards, hairlines */
-  --paper: #F2F3F3;
+  /* surfaces */
+  --paper: #FFFFFF;
   --panel: #FFFFFF;
-  --panel-2: #F8F8F8;
-  --line: #E3E4E4;
-  --line-strong: #C9CBCD;
-  --tag: #EBECEC;
+  --tone: #F6F3F7;
+  --tone-2: #EFEAF1;
+  --panel-2: #F6F3F7;
+  --tag: #F6F3F7;
+  --line: transparent;       /* hairlines are retired */
+  --line-strong: #E4DFE8;    /* data only */
+  --skeleton: #E6E1EA;       /* loading blocks: 1.30 on white; breathe 1 to 0.7 */
 
-  /* type colours */
-  --ink: #111114;
-  --ink-hover: #2E2E30;
-  --text: #26262C;
-  --muted: #62646B;
-  --placeholder: #898B90;
+  /* the plate */
+  --plum: #3B1C42;
+  --plum-2: #4A2652;
+  --plum-3: #2C1432;
+  --on-plum: #F6F1F8;
+  --on-plum-text: #E8DEEC;
+  --on-plum-muted: #CDBBD6;
+  --rose-on-plum: #E6A4C2;
 
-  /* raspberry: live, hot, go. Never decoration. */
-  --accent: #E0115F;
+  /* type */
+  --ink: #1D1424;
+  --ink-hover: #3B1C42;
+  --text: #3A3342;
+  --muted: #635C6D;
+  --placeholder: #736C7D;
+
+  /* accent: a dot or a mark, never a fill behind words */
+  --wine: #84204D;
+  --accent: #84204D;
   --accent-ink: #FFFFFF;
-  --accent-soft: #FDE6EF;
-  --accent-text: #B8094B;
+  --accent-soft: #F6E9EF;
+  --accent-text: #3B1C42;
 
-  /* status: green, amber, vermilion (never raspberry) */
-  --ok: #0B7A4E;
-  --ok-soft: #E2F4EA;
-  --warn: #8A5D00;
-  --warn-soft: #FCF0D6;
-  --danger: #B83A0A;
-  --danger-soft: #FCE8E0;
+  /* links and focus */
+  --link: #3B1C42;
+  --link-hover: #84204D;
+  --focus: #3B1C42;          /* 2 px ring, offset 3 px (2 px on fields) */
+  --focus-halo: #FFFFFF;     /* inline links: 2 px halo of the surface, then the ring (tone on .tone, plum on the plate) */
 
-  /* map */
-  --map-land: #ECEDEC;
-  --map-hot: #E0115F;
-  --map-cold: #7C8794;
-  --sweep: rgba(224, 17, 95, 0.22);
+  /* fields and chips */
+  --field-bg: #F6F3F7;
+  --field-bg-hover: #EFEAF1;
+  --chip-bg: #F6F3F7;
 
-  /* logo */
-  --mark-ink: #111114;
-  --mark-needle: #E0115F;
-  --mark-arc: #606062;       /* ink at 65 % over paper: outer arc at 64 px and below */
-  --mark-arc-white: #646466; /* ink at 65 % over white */
+  /* status folds into the palette */
+  --ok: #635C6D;
+  --ok-soft: #F6F3F7;
+  --warn: #635C6D;
+  --warn-soft: #F6F3F7;
+  --danger: #84204D;
+  --danger-soft: #F6E9EF;
 
-  /* shape: square, a 3 px top rail, no soft shadows */
+  /* map and timeline */
+  --map-land: #F4F2F5;
+  --map-hot: #84204D;
+  --map-cold: #BDB6C5;
+  --map-cold-ring: #8E8598;  /* hollow cold venue ring: 3.17 on land */
+  --sweep: rgba(132, 32, 77, 0.14);
+  --bar-hot: #6A4874;
+  --bar-other: #E6E1EA;
+  --now: #DDD7E1;
+
+  /* logo; tone="reverse" on the plate uses the -reverse tokens. Arc tokens draw the 20 and 16 px arcs only */
+  --mark-ink: #3B1C42;
+  --mark-needle: #84204D;
+  --mark-arc: #806B84;
+  --mark-arc-white: #806B84;
+  --mark-ground: #FFFFFF;
+  --wordmark: #3B1C42;
+  --mark-ink-reverse: #F6F1F8;
+  --mark-needle-reverse: #E6A4C2;
+  --mark-arc-reverse: #B5A6B8;
+  --mark-glow-reverse: #5A3459;   /* the afterglow on the plate: rose 18 % over plum, one flat tint */
+  /* --mark-glow (the afterglow on white, #F0E4EA) is left unset: Logo.tsx mixes it from --mark-needle 12 % over
+     --mark-ground, so the plum scope retints it on its own. Set it only together with a plum-scope value. */
+
+  /* type scale */
+  --fs-display: clamp(56px, 8.4vw, 124px);
+  --fs-title: clamp(44px, 5.4vw, 80px);
+  --fs-heading: clamp(32px, 3.4vw, 48px);
+  --fs-name: clamp(24px, 2vw, 30px);
+  --fs-lead: clamp(19px, 1.45vw, 21px);
+  --fs-body: 17px;
+  --fs-body-lg: 18px;
+  --fs-small: 15px;
+  --fs-label: 14px;
+  --fs-meta: 13px;
+  --fs-clock: 15px;
+
+  /* spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+  --space-10: 128px;
+  --space-11: 160px;
+  --section: clamp(96px, 11vw, 160px);
+  --block: clamp(48px, 6vw, 80px);
+  --plate-pad: clamp(28px, 5vw, 64px);
+  --tone-pad: clamp(24px, 3.6vw, 44px);
+  --measure: 32em;           /* about 70 characters of Instrument Sans at any size (66ch set about 97) */
+  --measure-narrow: 25em;    /* about 55 characters: empty states, helpers */
+
+  /* shape */
   --radius: 0px;
   --radius-sm: 0px;
-  --rail: 3px;
-  --shadow: 0 1px 0 rgba(17, 17, 20, 0.06);
+  --rail: 0px;
+  --shadow: none;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
 
-  /* type: names and numbers / sentences / clock and distances */
   --font-display: "Big Shoulders", "Arial Narrow", sans-serif;
   --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
 }

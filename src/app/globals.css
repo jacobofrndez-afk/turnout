@@ -1,12 +1,21 @@
 @import "tailwindcss";
 
-/* Turnout, identity "Marquise": stadium signage on a light page.
-   Ink on concrete paper and white boards hung from a 3 px rail. Raspberry means live, hot or go, nothing else.
-   Big Shoulders speaks names and numbers, Instrument Sans speaks sentences, IBM Plex Mono speaks clock and distances.
-   Source of truth: design/brand/tokens.css and design/brand/GUIDELINES.md. */
+/* ==========================================================================================================
+   Turnout, identity "Velours".
+   A white page, one flat aubergine plate at most per screen, one quiet tone, a deep wine that only ever appears
+   as a dot or a mark. No lines (no rails, hairlines, rules, underlined links, outlined buttons or fields), no
+   gradients, no shadows, corners 0. Sections separate by space. Big Shoulders speaks names and numbers,
+   Instrument Sans speaks every sentence, the clock included (tabular figures). IBM Plex Mono is retired.
+   Source of truth: design/brand/tokens.css, design/brand/tokens.json, design/brand/GUIDELINES.md.
 
-/* Corners are 0 everywhere: Tailwind's radius scale is zero, so no rounded-* utility can round a board, a button
-   or a tag. Round map objects (venues are circles) set border-radius: 50% in their own CSS. */
+   Layers: tokens and Tailwind's theme first, then base (elements), components (shared classes), and a short
+   unlayered block at the end for what must beat Tailwind utilities or inline styles already in the markup.
+   ========================================================================================================== */
+
+/* ---------- Tailwind theme: corners 0, and a readable type scale behind the text-* utilities ----------
+   Pages already use text-xs, text-sm, text-base, text-lg... Retuning the scale here lifts every page at once:
+   nothing renders under 13 px, small is 15, body 17, lead 20. Big Shoulders is condensed, so the display end
+   of the scale runs larger than Tailwind's default. */
 @theme {
   --radius: 0px;
   --radius-xs: 0px;
@@ -18,396 +27,1180 @@
   --radius-3xl: 0px;
   --radius-4xl: 0px;
   --radius-full: 0px;
+
+  --text-xs: 13px;   --text-xs--line-height: 1.5;    /* meta: dates, sources, footnotes */
+  --text-sm: 15px;   --text-sm--line-height: 1.6;    /* small: secondary sentences */
+  --text-base: 17px; --text-base--line-height: 1.65; /* body */
+  --text-lg: 20px;   --text-lg--line-height: 1.6;    /* lead */
+  --text-xl: 22px;   --text-xl--line-height: 1.45;
+  --text-2xl: 26px;  --text-2xl--line-height: 1.15;
+  --text-3xl: 34px;  --text-3xl--line-height: 1.05;
+  --text-4xl: 46px;  --text-4xl--line-height: 1;
+  --text-5xl: 58px;  --text-5xl--line-height: 0.96;
+  --text-6xl: 72px;  --text-6xl--line-height: 0.94;
+  --text-7xl: 88px;  --text-7xl--line-height: 0.92;
+  --text-8xl: 108px; --text-8xl--line-height: 0.9;
+  --text-9xl: 128px; --text-9xl--line-height: 0.9;
+
+  --leading-tight: 1.2;
+  --leading-snug: 1.4;
+  --leading-normal: 1.6;
+  --leading-relaxed: 1.65;
+  --leading-loose: 1.75;
 }
 
-/* Font stacks. layout.tsx (next/font) sets --font-display, --font-sans and --font-mono on <html> to the loaded
-   families; these layered defaults only apply when it does not. Never redefine them unlayered. */
+/* Font stacks. layout.tsx (next/font) sets --font-display and --font-sans on <html> to the loaded families;
+   these layered defaults only apply when it does not. Never redefine those two unlayered. */
 @layer base {
   :root {
     --font-display: "Big Shoulders", "Arial Narrow", sans-serif;
     --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
-    --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
   }
 }
-
-:root {
-  /* surfaces: cool concrete page, white boards, hairlines */
-  --paper: #F2F3F3;
-  --panel: #FFFFFF;
-  --panel-2: #F8F8F8;
-  --line: #E3E4E4;
-  --line-strong: #C9CBCD;
-  --tag: #EBECEC; /* soft fill of a neutral tag */
-
-  /* type colours */
-  --ink: #111114;
-  --ink-hover: #2E2E30;
-  --text: #26262C;
-  --muted: #62646B;
-  --placeholder: #898B90; /* 3.41 on white: placeholders only, always with a label */
-
-  /* raspberry: live, hot, go. Never decoration. */
-  --accent: #E0115F;
-  --accent-ink: #FFFFFF;
-  --accent-soft: #FDE6EF;
-  --accent-text: #B8094B; /* raspberry text: 5.94 on paper, 6.61 on white; also the hover of raspberry fills */
-
-  /* status: green, amber, vermilion (kept clear of the raspberry) */
-  --ok: #0B7A4E;
-  --ok-soft: #E2F4EA;
-  --warn: #8A5D00;
-  --warn-soft: #FCF0D6;
-  --danger: #B83A0A;
-  --danger-soft: #FCE8E0;
-
-  /* map */
-  --map-land: #ECEDEC;
-  --map-hot: #E0115F;
-  --map-cold: #7C8794;
-  --sweep: rgba(224, 17, 95, 0.22);
-
-  /* logo: the outer arc is ink at 65 % over the page colour, precomputed solid */
-  --mark-ink: #111114;
-  --mark-needle: #E0115F;
-  --mark-arc: #606062; /* on paper #F2F3F3 */
-  --mark-arc-white: #646466; /* on white boards */
-
-  /* shape: square boards, a 3 px top rail, no soft shadows */
-  --radius: 0px;
-  --radius-sm: 0px;
-  --rail: 3px;
-  --shadow: 0 1px 0 rgba(17, 17, 20, 0.06);
+/* IBM Plex Mono is retired: any leftover var(--font-mono) (radar.css, code) now resolves to Instrument Sans.
+   html:root outranks the next/font class that still declares it. */
+html:root {
+  --font-mono: var(--font-sans);
 }
 
+/* ==========================================================================================================
+   TOKENS. Contrast ratios are WCAG 2.x, computed. AAA is 7:1, AA 4.5:1 (3:1 for large type and UI marks).
+   ========================================================================================================== */
+:root {
+  /* surfaces */
+  --paper: #FFFFFF;          /* the page, everywhere */
+  --panel: #FFFFFF;          /* legacy name: same white */
+  --tone: #F6F3F7;           /* the one quiet surface per screen: a breath of aubergine in the white */
+  --tone-2: #EFEAF1;         /* its hover / pressed state */
+  --panel-2: #F6F3F7;        /* legacy name for the tone */
+  --tag: #F6F3F7;            /* legacy name: chip fill */
+  --line: transparent;       /* legacy name: hairlines are retired, so every inline border using it vanishes */
+  --line-strong: #E4DFE8;    /* data only: the map's inner rings, negative bars */
+  --skeleton: #E6E1EA;       /* loading blocks: 1.30 on white, 1.19 on tone. Breathes 1 to 0.7, never fades out */
+
+  /* the plate: flat aubergine */
+  --plum: #3B1C42;           /* plate, primary button, links, timeline cursor. 14.68 on white, 13.34 on tone (AAA) */
+  --plum-2: #4A2652;         /* hover of aubergine fills */
+  --plum-3: #2C1432;         /* pressed */
+  --on-plum: #F6F1F8;        /* titles and buttons on the plate: 13.18 on plum, 11.16 on plum-2 (AAA) */
+  --on-plum-text: #E8DEEC;   /* sentences on the plate: 11.25 on plum (AAA) */
+  --on-plum-muted: #CDBBD6;  /* labels on the plate: 8.16 on plum (AAA) */
+  --rose-on-plum: #E6A4C2;   /* the live dot on the plate: 7.31 on plum. A dot, never a word */
+
+  /* type: plum blacks, never pure black */
+  --ink: #1D1424;            /* titles, names, figures: 17.83 on white, 16.20 on tone (AAA) */
+  --ink-hover: #3B1C42;
+  --text: #3A3342;           /* body: 12.12 on white, 11.02 on tone (AAA) */
+  --muted: #635C6D;          /* labels, meta: 6.40 on white, 5.81 on tone, 5.40 on tone-2 (AA, near AAA) */
+  --placeholder: #665F70;    /* placeholders only, always with a label: 5.15 on tone-2 (hover), 5.55 on tone (AA) */
+
+  /* the accent: deep wine. A dot or a mark (hot crowds, map signs, the logo needle). Never a button fill,
+     never a word, never an arrow. White on wine 9.15 (map signs). */
+  --wine: #84204D;           /* 9.15 on white, 8.22 on map land */
+  --accent: #84204D;
+  --accent-strong: #84204D;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #F6E9EF;    /* error banner fill only: wine on it 7.77 */
+  --accent-text: #3B1C42;    /* legacy "accent text" now reads aubergine: emphasis is plum, not wine (14.68) */
+
+  /* links and focus (re-scoped on the plate) */
+  --link: #3B1C42;           /* 14.68 on white */
+  --link-hover: #4A2652;     /* 12.42 on white: hover is a hairline underline, the word stays plum, never wine */
+  --focus: #3B1C42;          /* the 2 px ring, offset 3 px: 14.68 on white (UI marks need 3) */
+  --focus-halo: #FFFFFF;     /* inline links: a 2 px halo of the surface, then the 2 px ring (no glyph collisions) */
+
+  /* fields and chips (re-scoped on the tone surface, where they turn white) */
+  --field-bg: #F6F3F7;
+  --field-bg-hover: #EFEAF1;
+  --chip-bg: #F6F3F7;
+
+  /* status folds into the palette: weather is information, not an alarm; only an error speaks wine */
+  --ok: #635C6D;
+  --ok-soft: #F6F3F7;
+  --warn: #635C6D;
+  --warn-soft: #F6F3F7;
+  --danger: #84204D;
+  --danger-soft: #F6E9EF;
+
+  /* map (RadarMap.tsx reads these at load): hot vs cold 4.65 apart (deutan 4.18, protan 5.58) */
+  --map-land: #F4F2F5;
+  --map-hot: #84204D;        /* 8.22 on land */
+  --map-cold: #BDB6C5;       /* 1.77 on land: a quiet context dot, always beside a hot one */
+  --map-cold-ring: #8E8598;  /* hollow cold venue ring: 3.17 on land (UI mark) */
+  --sweep: rgba(132, 32, 77, 0.14);
+
+  /* timeline */
+  --bar-hot: #6A4874;        /* window worth a campaign: 7.52 on white */
+  --bar-other: #E6E1EA;      /* other events: context only */
+  --now: #DDD7E1;            /* the faint "now" mark */
+
+  /* logo: walls and arc aubergine, needle wine. Reversed on the plate (see .plate) */
+  --mark-ink: #3B1C42;
+  --mark-needle: #84204D;
+  --mark-arc: #806B84;       /* 4.82 on white */
+  --mark-arc-white: #806B84;
+  --mark-ground: #FFFFFF;
+  --wordmark: #3B1C42;
+  --mark-ink-reverse: #F6F1F8;     /* Logo tone="reverse", on the plate: 13.18 on plum */
+  --mark-needle-reverse: #E6A4C2;  /* 7.31 on plum */
+  --mark-arc-reverse: #B5A6B8;     /* 6.37 on plum */
+
+  /* type scale (also as utilities below) */
+  --fs-display: clamp(56px, 8.4vw, 124px);  /* the one hero line per screen */
+  --fs-title: clamp(44px, 5.4vw, 80px);     /* page titles */
+  --fs-heading: clamp(32px, 3.4vw, 48px);   /* section titles */
+  --fs-name: clamp(24px, 2vw, 30px);        /* names: offers, events, places */
+  --fs-lead: clamp(19px, 1.45vw, 21px);
+  --fs-body: 17px;
+  --fs-body-lg: 18px;
+  --fs-small: 15px;
+  --fs-label: 14px;
+  --fs-meta: 13px;
+  --fs-clock: 15px;                          /* clocks and distances, tabular: never smaller */
+
+  /* spacing: a 4 px base, then the large steps that separate sections (space instead of lines) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+  --space-10: 128px;
+  --space-11: 160px;
+  --section: clamp(96px, 11vw, 160px);       /* between sections */
+  --block: clamp(48px, 6vw, 80px);           /* between groups inside a section */
+  --plate-pad: clamp(28px, 5vw, 64px);
+  --tone-pad: clamp(24px, 3.6vw, 44px);
+  /* The measure is set in em, not ch: in Instrument Sans the "0" is 0.665 em wide while running prose averages
+     0.455 em a character, so 66ch set about 97 characters. 32em sets about 70 characters at any size
+     (15 px wraps at 480 px, 17 px at 544, 20 px at 640). */
+  --measure: 32em;
+  --measure-narrow: 25em;                    /* about 55 characters: empty states, helpers */
+
+  /* shape */
+  --radius-sm: 0px;
+  --rail: 0px;
+  --shadow: none;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* ==========================================================================================================
+   BASE: elements
+   ========================================================================================================== */
 @layer base {
-  /* Only upright 400 to 900 weights are loaded. No synthesis: a stray italic or bold renders upright and real,
-     never as a faked oblique or smeared bold. */
+  /* Only upright faces are loaded: no synthesis, a stray italic or bold renders upright and real. */
   html {
     background: var(--paper);
     font-synthesis: none;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
     background: var(--paper);
     color: var(--text);
     font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    font-size: var(--fs-body);
     font-weight: 400;
+    line-height: 1.65;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-kerning: normal;
+    overflow-wrap: break-word;   /* a long URL in a preview wraps instead of widening the phone page */
   }
 
-  /* Titles: Big Shoulders 800, optical size follows the font size. Leading defaults tight through --tw-leading,
-     so an explicit leading-* utility still wins. */
+  /* Titles: Big Shoulders 500, optical size follows the font size, balanced lines. */
   h1 {
     font-family: var(--font-display), "Arial Narrow", sans-serif;
-    font-weight: 800;
+    font-weight: 500;
     font-optical-sizing: auto;
-    letter-spacing: -0.005em;
-    --tw-leading: 0.98;
-    line-height: 0.98;
+    letter-spacing: 0.002em;
+    line-height: 0.95;
     color: var(--ink);
+  }
+  h1, h2, h3, h4 { text-wrap: balance; }
+  p, li, dd, dt, blockquote, figcaption { text-wrap: pretty; }
+
+  /* Readable measure by default: a paragraph never runs past ~70 characters, wherever it sits.
+     A max-w-* utility on the element still wins. */
+  p, li, dd, blockquote, figcaption { max-width: var(--measure); }
+
+  b, strong { font-weight: 600; color: var(--ink); }
+
+  /* One focus language everywhere: a 2 px aubergine ring with a 3 px breath (light on the plate). */
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+  }
+  /* Inline links sit between words: the same 2 px ring, drawn tight with a 2 px halo of the surface under it,
+     so it never runs into the neighbouring word or a trailing period. Each wrapped line gets its own ring. */
+  a:not(.btn):focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--focus-halo), 0 0 0 4px var(--focus);
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
   }
 
   ::selection {
-    background: var(--ink);
-    color: var(--panel);
+    background: var(--plum);
+    color: var(--on-plum);
   }
+
+  button, summary, label[for], select { cursor: pointer; }
+
+  /* Disclosure: the OS triangle is replaced by a fine aubergine chevron that turns when open. */
+  summary {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after {
+    content: "";
+    width: 12px;
+    height: 8px;
+    flex: none;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%233B1C42' stroke-width='1.6'/%3E%3C/svg%3E") center / 12px 8px no-repeat;
+    transition: transform 200ms var(--ease);
+  }
+  details[open] > summary::after { transform: rotate(180deg); }
+
+  hr { border: 0; height: var(--section); margin: 0; }
+
+  /* Code is Instrument Sans too: same size as the words around it (no mono compensation, never under 13 px). */
+  code, kbd, samp, pre {
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+    font-size: inherit;
+  }
+
+  /* Checkboxes and radios, drawn: a 20 px square (the radio is round, by convention), a fine muted ring that
+     makes the control visible (6.40 on white, the one boundary the system keeps, WCAG 1.4.11), aubergine when on. */
+  input[type="checkbox"],
+  input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    flex: none;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: var(--paper);
+    box-shadow: inset 0 0 0 1.5px var(--muted);
+    display: inline-grid;
+    place-content: center;
+    cursor: pointer;
+    accent-color: var(--plum);
+    transition: background-color 160ms var(--ease), box-shadow 160ms var(--ease);
+    vertical-align: -4px;
+  }
+  input[type="radio"] { border-radius: 50%; }
+  input[type="checkbox"]:hover,
+  input[type="radio"]:hover { box-shadow: inset 0 0 0 1.5px var(--plum); }
+  input[type="checkbox"]::after {
+    content: "";
+    width: 10px;
+    height: 5.5px;
+    border-left: 2px solid var(--on-plum);
+    border-bottom: 2px solid var(--on-plum);
+    transform: translateY(-1.5px) rotate(-45deg);
+    opacity: 0;
+  }
+  input[type="checkbox"]:checked {
+    background: var(--plum);
+    box-shadow: none;
+  }
+  input[type="checkbox"]:checked::after { opacity: 1; }
+  input[type="radio"]::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--plum);
+    transform: scale(0);
+    transition: transform 160ms var(--ease);
+  }
+  input[type="radio"]:checked { box-shadow: inset 0 0 0 1.5px var(--plum); }
+  input[type="radio"]:checked::after { transform: scale(1); }
+  input[type="checkbox"]:disabled,
+  input[type="radio"]:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Number fields: no OS spinners. */
+  input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 }
 
-/* Checkboxes and radios are a choice, not a live signal: ink. Unlayered on purpose, so it holds even where
-   markup still carries an accent-[...] utility. */
-input[type="checkbox"],
-input[type="radio"] {
-  accent-color: var(--ink);
-}
-
-/* Checkbox drawn square (corners 0 everywhere): no OS rounding, ink box, white check when on. */
-input[type="checkbox"] {
-  appearance: none;
-  -webkit-appearance: none;
-  flex: none;
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  border: 1.5px solid var(--ink);
-  border-radius: 0;
-  background: var(--panel);
-  display: inline-grid;
-  place-content: center;
-  cursor: pointer;
-}
-input[type="checkbox"]::after {
-  content: "";
-  width: 9px;
-  height: 5px;
-  border-left: 2px solid var(--panel);
-  border-bottom: 2px solid var(--panel);
-  transform: translateY(-1px) rotate(-45deg);
-  opacity: 0;
-}
-input[type="checkbox"]:checked {
-  background: var(--ink);
-}
-input[type="checkbox"]:checked::after {
-  opacity: 1;
-}
-input[type="checkbox"]:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 2px;
-}
-
+/* ==========================================================================================================
+   COMPONENTS: the shared classes
+   ========================================================================================================== */
 @layer components {
+  /* ---------- type ---------- */
   h2.display,
   h3.display {
     font-family: var(--font-display), "Arial Narrow", sans-serif;
-    font-weight: 800;
+    font-weight: 500;
     font-optical-sizing: auto;
-    letter-spacing: -0.005em;
-    --tw-leading: 1;
+    letter-spacing: 0.004em;
     line-height: 1;
     color: var(--ink);
   }
+  h3.display { font-weight: 600; letter-spacing: 0.006em; line-height: 1.08; }
 
   /* Names and figures. Figures add .tnum. */
   .font-display {
     font-family: var(--font-display), "Arial Narrow", sans-serif;
-    font-weight: 800;
+    font-weight: 600;
     font-optical-sizing: auto;
-    letter-spacing: 0;
-    --tw-leading: 1.05;
-    line-height: 1.05;
+    letter-spacing: 0.006em;
+    line-height: 1.06;
+    color: var(--ink);
   }
 
-  .tnum {
-    font-variant-numeric: tabular-nums;
-  }
+  .tnum { font-variant-numeric: tabular-nums; }
 
-  /* Clock, distances, coordinates. */
+  /* Clock and distances: Instrument Sans with tabular figures, no typewriter in a hospitality brand.
+     A clock or a distance never breaks across two lines ("1.3 / km"). */
   .mono {
-    font-family: var(--font-mono), ui-monospace, monospace;
-    font-weight: 500;
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    font-weight: inherit;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0;
+    white-space: nowrap;
   }
 
-  /* Board: white, 1 px hairline, hung from a 3 px ink rail. The rail is the top border, so an inline
-     borderColor (or .card-live / -ok / -warn / -danger) recolours the rail and leaves the hairline grey. */
-  .card {
-    background: var(--panel);
-    border: 0 solid var(--ink);
-    border-top-width: var(--rail);
-    border-radius: 0;
-    box-shadow:
-      inset 1px 0 0 var(--line),
-      inset -1px 0 0 var(--line),
-      inset 0 -1px 0 var(--line);
-  }
-  .card-live { border-color: var(--accent); }
-  .card-ok { border-color: var(--ok); }
-  .card-warn { border-color: var(--warn); }
-  .card-danger { border-color: var(--danger); }
-
-  /* Board without a rail: a quieter panel, nested in a board or set on the page. */
-  .card-flat {
-    background: var(--panel-2);
-    border: 1px solid var(--line);
-    border-radius: 0;
-  }
-
-  /* Labels: sentence case, Instrument Sans 500, 13 px, muted. No caps, no tracking. */
+  /* Label: sentence case, 14 px, muted, never uppercase, never tracked out. */
   .eyebrow {
     font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-    font-size: 13px;
-    line-height: 1.35;
+    font-size: var(--fs-label);
+    line-height: 1.4;
     font-weight: 500;
-    letter-spacing: 0;
+    letter-spacing: 0.004em;
     text-transform: none;
     color: var(--muted);
   }
 
-  /* Buttons: 44 px, square, sentence case 600 / 15 px. Ink fill, raspberry fill (once per screen), ink outline. */
+  /* The scale as classes, for new markup. */
+  .t-display {
+    font-family: var(--font-display), "Arial Narrow", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-size: var(--fs-display);
+    line-height: 0.9;
+    letter-spacing: 0;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .t-title {
+    font-family: var(--font-display), "Arial Narrow", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-size: var(--fs-title);
+    line-height: 0.94;
+    letter-spacing: 0.002em;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .t-heading {
+    font-family: var(--font-display), "Arial Narrow", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-size: var(--fs-heading);
+    line-height: 1.02;
+    letter-spacing: 0.004em;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .t-name {
+    font-family: var(--font-display), "Arial Narrow", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-size: var(--fs-name);
+    line-height: 1.08;
+    letter-spacing: 0.006em;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .t-figure {
+    font-family: var(--font-display), "Arial Narrow", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    line-height: 0.92;
+    letter-spacing: 0;
+    color: var(--ink);
+  }
+  .t-lead { font-size: var(--fs-lead); line-height: 1.6; color: var(--text); max-width: var(--measure); }
+  .t-body { font-size: var(--fs-body); line-height: 1.65; color: var(--text); max-width: var(--measure); }
+  .t-body-lg { font-size: var(--fs-body-lg); line-height: 1.66; color: var(--text); max-width: var(--measure); }
+  .t-small { font-size: var(--fs-small); line-height: 1.6; color: var(--text); }
+  .t-label { font-size: var(--fs-label); line-height: 1.4; font-weight: 500; color: var(--muted); }
+  .t-meta { font-size: var(--fs-meta); line-height: 1.5; letter-spacing: 0.01em; color: var(--muted); }
+  .t-clock { font-size: var(--fs-clock); font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+  .t-muted { color: var(--muted); }
+  .measure { max-width: var(--measure); }
+  .measure-narrow { max-width: var(--measure-narrow); }
+
+  /* ---------- spacing helpers: sections separate by space, never by a rule ---------- */
+  .stack-section { margin-top: var(--section); }
+  .stack-block { margin-top: var(--block); }
+
+  /* Grid and flex children may shrink below their content (a truncated line, a long name) instead of pushing the
+     phone page wider than the screen. A min-w-* utility on the child still wins (utilities come later). */
+  .grid > *,
+  .flex > .truncate,
+  .flex > .min-w-0 { min-width: 0; }
+
+  /* ---------- links ---------- */
+  .link {
+    color: var(--link);
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 160ms var(--ease);
+  }
+  .link:hover { color: var(--link-hover); }
+  .link:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--focus-halo), 0 0 0 4px var(--focus);
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  /* ---------- surfaces ----------
+     Page: white, frameless. Groups are plain blocks separated by space.
+     .tone: the one quiet surface per screen (the chosen moment, a draft to read).
+     .plate (.card-live): the one flat aubergine plate per screen (the hero offer, the live crowd). */
+  .card,
+  .card-flat {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .card-ok, .card-warn, .card-danger { border: 0; }
+
+  .tone {
+    --field-bg: #FFFFFF;
+    --field-bg-hover: #FFFFFF;
+    --chip-bg: #FFFFFF;
+    --focus-halo: var(--tone);
+    --skeleton: #E2DCE6;      /* 1.19 on tone */
+    background: var(--tone);
+    padding: var(--tone-pad);
+  }
+
+  .plate,
+  .card-live {
+    --ink: var(--on-plum);
+    --text: var(--on-plum-text);
+    --muted: var(--on-plum-muted);
+    --accent: var(--rose-on-plum);
+    --accent-text: var(--on-plum);
+    --link: var(--on-plum);
+    --link-hover: #FFFFFF;
+    --focus: var(--on-plum);
+    --focus-halo: var(--plum);
+    --tone: rgba(246, 241, 248, 0.08);
+    --tone-2: rgba(246, 241, 248, 0.14);
+    --skeleton: rgba(246, 241, 248, 0.16);
+    --mark-arc: var(--mark-arc-reverse);
+    --chip-bg: rgba(246, 241, 248, 0.12);
+    --mark-ink: var(--on-plum);
+    --mark-arc-white: var(--mark-arc-reverse);
+    --mark-needle: var(--rose-on-plum);
+    --mark-ground: var(--plum);
+    --wordmark: var(--on-plum);
+    background: var(--plum);
+    color: var(--on-plum-text);
+  }
+  .plate ::selection,
+  .card-live ::selection { background: var(--on-plum); color: var(--plum); }
+
+  /* the live dot: a 6 px circle, wine on white, dusty rose on the plate */
+  .live-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex: none;
+  }
+
+  /* ---------- buttons ----------
+     Primary: a flat aubergine rectangle, 52 px, 16 px semibold. On the plate it inverts (light on aubergine).
+     Secondary: the tone, aubergine words. Text button: aubergine words, nothing else.
+     Wine is never a button. No outline, no shadow, no arrow. */
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    min-height: 44px;
-    padding: 0 20px;
-    border: 1.5px solid transparent;
+    min-height: 52px;
+    padding: 0 28px;
+    border: 0;
     border-radius: 0;
+    background: transparent;
     font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
     line-height: 1.2;
-    letter-spacing: 0;
+    letter-spacing: 0.005em;
     text-transform: none;
     text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
     cursor: pointer;
-    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 160ms var(--ease), color 160ms var(--ease);
   }
-  .btn:focus-visible {
-    outline: 2px solid var(--ink);
-    outline-offset: 2px;
-  }
-  .btn-primary { background: var(--ink); border-color: var(--ink); color: var(--panel); }
-  .btn-primary:hover { background: var(--ink-hover); border-color: var(--ink-hover); }
-  .btn-accent { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-  .btn-accent:hover { background: var(--accent-text); border-color: var(--accent-text); }
-  .btn-ghost { background: transparent; border-color: var(--ink); color: var(--ink); }
-  .btn-ghost:hover { background: var(--panel); }
-  .btn[disabled],
-  .btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
+  .btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 
-  /* Tags: 22 px, soft fill, square. .chip-dot adds the 6 px square dot in the text colour. */
+  .btn-primary,
+  .btn-accent { background: var(--plum); color: var(--on-plum); }          /* 13.18 */
+  .btn-primary:hover,
+  .btn-accent:hover { background: var(--plum-2); }                         /* 11.16 */
+  .btn-primary:active,
+  .btn-accent:active { background: var(--plum-3); }
+
+  .btn-secondary { background: var(--tone); color: var(--plum); }          /* 13.34 */
+  .btn-secondary:hover { background: var(--tone-2); }
+
+  .btn-ghost,
+  .btn-text {
+    min-height: 52px;
+    padding: 0 2px;
+    background: transparent;
+    color: var(--link);
+  }
+  .btn-ghost:hover,
+  .btn-text:hover { color: var(--link-hover); background: transparent; }
+
+  .btn-lg { min-height: 60px; padding: 0 36px; font-size: 17px; }
+  .btn-sm { min-height: 44px; padding: 0 20px; font-size: 15px; }
+
+  /* disabled reads as a quiet tone, not a faded button: muted on tone-2 5.40 (AA), no opacity */
+  .btn[disabled],
+  .btn:disabled,
+  .btn[aria-disabled="true"] { background: var(--tone-2); color: var(--muted); box-shadow: none; cursor: not-allowed; pointer-events: none; }
+  .plate .btn[disabled], .plate .btn:disabled, .plate .btn[aria-disabled="true"],
+  .card-live .btn[disabled], .card-live .btn:disabled, .card-live .btn[aria-disabled="true"] { background: rgba(246, 241, 248, 0.12); color: var(--on-plum-muted); }
+  .btn[aria-busy="true"] { cursor: progress; }
+
+  /* on the plate */
+  .plate .btn-primary, .plate .btn-accent,
+  .card-live .btn-primary, .card-live .btn-accent { background: var(--on-plum); color: var(--plum); }
+  .plate .btn-primary:hover, .plate .btn-accent:hover,
+  .card-live .btn-primary:hover, .card-live .btn-accent:hover { background: #FFFFFF; }
+  .plate .btn-secondary,
+  .card-live .btn-secondary { background: rgba(246, 241, 248, 0.12); color: var(--on-plum); }
+  .plate .btn-secondary:hover,
+  .card-live .btn-secondary:hover { background: rgba(246, 241, 248, 0.2); }
+
+  /* ---------- chips: quiet and rare. A tone tag, 30 px, ink words. .chip-live carries the wine dot. ---------- */
   .chip {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    height: 22px;
-    padding: 0 8px;
-    border: 1px solid transparent;
+    gap: 8px;
+    height: 30px;
+    padding: 0 12px;
+    border: 0;
     border-radius: 0;
-    background: var(--tag);
-    color: var(--text);
+    background: var(--chip-bg);
+    color: var(--ink);
     font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-    font-size: 12px;
+    font-size: var(--fs-meta);
     font-weight: 500;
     line-height: 1;
-    letter-spacing: 0;
+    letter-spacing: 0.005em;
     white-space: nowrap;
   }
-  .chip-dot::before {
+  .chip-dot::before,
+  .chip-live::before {
     content: "";
     width: 6px;
     height: 6px;
     flex: none;
-    background: currentColor;
+    border-radius: 50%;
+    background: var(--muted);
   }
-  .chip-live { background: var(--accent-soft); color: var(--accent-text); }
-  .chip-ok { background: var(--ok-soft); color: var(--ok); }
-  .chip-warn { background: var(--warn-soft); color: var(--warn); }
+  .chip-live::before { background: var(--accent); }
+  .chip-live,
+  .chip-ok,
+  .chip-warn { background: var(--chip-bg); color: var(--ink); }
   .chip-danger { background: var(--danger-soft); color: var(--danger); }
 
-  /* Fields: square, 44 px, hairline that turns ink on focus, doubled by a 1 px ink ring (focus is not live: no raspberry). */
+  /* ---------- fields: the tone, no outline, 48 px, 17 px words (no zoom on phones). Focus is the ring. ---------- */
   .field {
     width: 100%;
-    min-height: 44px;
-    padding: 10px 12px;
-    border: 1px solid var(--line-strong);
+    min-height: 48px;
+    padding: 12px 16px;
+    border: 0;
     border-radius: 0;
-    background: var(--panel);
+    background-color: var(--field-bg);
     color: var(--ink);
     font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-    font-size: 15px;
+    font-size: var(--fs-body);
     line-height: 1.4;
-    outline: none;
-    transition: border-color 120ms ease, box-shadow 120ms ease;
+    box-shadow: none;
+    transition: background-color 160ms var(--ease);
   }
-  .field:hover { border-color: var(--muted); }
-  .field:focus {
-    border-color: var(--ink);
-    box-shadow: 0 0 0 1px var(--ink);
+  .field:hover { background-color: var(--field-bg-hover); }
+  .field:focus,
+  .field:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .field::placeholder { color: var(--placeholder); opacity: 1; }
+  .field:disabled { opacity: 0.5; cursor: not-allowed; }
+  .field[aria-invalid="true"] { background-color: var(--danger-soft); }
+  /* The textarea grows with what is typed (no OS resize grip); where field-sizing is not supported it keeps its
+     152 px and scrolls. */
+  textarea.field {
+    min-height: 152px;
+    max-height: 60vh;
+    padding: 14px 16px;
+    line-height: 1.6;
+    resize: none;
+    field-sizing: content;
   }
-  .field::placeholder { color: var(--placeholder); }
 
-  /* Score: the figure, then a 20-segment marquee bar (one segment per 5 points). Hot boards light it raspberry,
-     quiet boards (.card-flat) light it in the cold-venue grey. Markup: <div class="score-ring" style="--p: 72"><span>72</span></div> */
+  /* The select: no OS chrome, a fine aubergine chevron. */
+  select.field,
+  select.select {
+    appearance: none;
+    -webkit-appearance: none;
+    min-height: 48px;
+    padding: 0 48px 0 16px;
+    background-color: var(--field-bg);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%233B1C42' stroke-width='1.6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 18px center;
+    background-size: 12px 8px;
+    color: var(--ink);
+    font-size: var(--fs-body);
+    font-weight: 400;          /* the same voice as the input beside it */
+    line-height: 48px;
+    cursor: pointer;
+  }
+  select.field::-ms-expand { display: none; }
+
+  /* ---------- score: one calm figure and the Swing as its mark ----------
+     The figure in Big Shoulders; beside it the Swing: a quarter arc on a floor (the logo's door) and a needle that
+     opens from flat (0) to upright (100), plum at rest, wine on the chosen moment. No bar, no segments, no gauge.
+     Markup unchanged: <div class="score-ring" style="--p: 72"><span>72</span></div> */
   .score-ring {
     --p: 0;
-    --score-on: var(--accent);
-    display: grid;
-    justify-items: start;
-    align-content: start;
-    gap: 5px;
-    width: 80px;
+    position: relative;
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 10px;
+    padding-right: 2px;
   }
-  .card-flat .score-ring { --score-on: var(--map-cold); }
   .score-ring > span {
     font-family: var(--font-display), "Arial Narrow", sans-serif;
-    font-weight: 800;
     font-optical-sizing: auto;
-    font-size: 28px;
-    line-height: 0.9;
+    font-weight: 500;
+    font-size: 30px;
+    line-height: 0.82;
     font-variant-numeric: tabular-nums;
     color: var(--ink);
+  }
+  .score-ring::before {
+    content: "";
+    order: 2;
+    width: 22px;
+    height: 22px;
+    flex: none;
+    box-sizing: border-box;
+    border-top: 1.5px solid var(--mark-arc);      /* #806B84: 4.82 on white, 4.38 on tone; #B5A6B8 on the plate, 6.37 */
+    border-right: 1.5px solid var(--mark-arc);
+    border-bottom: 1.5px solid var(--mark-arc);
+    border-top-right-radius: 22px;
   }
   .score-ring::after {
     content: "";
-    display: block;
-    width: 80px;
-    height: 10px;
-    background: linear-gradient(90deg, var(--score-on) 0 calc(var(--p) * 1%), var(--line) 0);
-    -webkit-mask: repeating-linear-gradient(90deg, #000 0 3px, transparent 3px 4px);
-    mask: repeating-linear-gradient(90deg, #000 0 3px, transparent 3px 4px);
+    position: absolute;
+    left: calc(100% - 24px);
+    bottom: 0;
+    width: 22px;
+    height: 2px;
+    background: var(--bar-hot);
+    transform-origin: 0 50%;
+    transform: rotate(calc(var(--p) * -0.9deg));
   }
-  @supports (width: round(down, 72%, 5%)) {
-    .score-ring::after {
-      background: linear-gradient(90deg, var(--score-on) 0 round(down, calc(var(--p) * 1%), 5%), var(--line) 0);
-    }
-  }
-  /* Phones: a 60 px bar, 2 px segments on a 3 px pitch, so the name beside it keeps its room. */
-  @media (max-width: 640px) {
-    .score-ring,
-    .score-ring::after {
-      width: 60px;
-    }
-    .score-ring::after {
-      -webkit-mask: repeating-linear-gradient(90deg, #000 0 2px, transparent 2px 3px);
-      mask: repeating-linear-gradient(90deg, #000 0 2px, transparent 2px 3px);
-    }
-  }
+  /* on the chosen moment the needle lights: wine on the tone, dusty rose on the plate */
+  .card-live .score-ring::after,
+  .plate .score-ring::after,
+  .tone .score-ring::after { background: var(--accent); }
 
-  /* Data tables: sentence-case muted heads, hairline rows, tabular figures. */
+  /* ---------- data tables: no rules, generous rows, tabular figures ---------- */
+  table.data { border-collapse: collapse; }
   table.data th {
-    padding: 6px 8px;
-    border-bottom: 1px solid var(--line-strong);
+    padding: 0 20px 12px 0;
+    border: 0;
     text-align: left;
-    font-size: 12px;
+    font-size: var(--fs-meta);
     font-weight: 500;
-    letter-spacing: 0;
+    letter-spacing: 0.01em;
     text-transform: none;
     color: var(--muted);
+    vertical-align: bottom;
   }
+  /* Cells share one baseline: a 17 px name, a 13 px tag and a Big Shoulders figure line up on the same line. */
   table.data td {
-    padding: 8px;
-    border-top: 1px solid var(--line);
-    vertical-align: top;
+    padding: 14px 20px 14px 0;
+    border: 0;
+    vertical-align: baseline;
     font-variant-numeric: tabular-nums;
   }
-  table.data code {
-    font-family: var(--font-mono), ui-monospace, monospace;
-    font-size: 0.95em;
+  table.data th:last-child,
+  table.data td:last-child { padding-right: 0; }
+  table.data code { font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif; font-size: 1em; font-weight: 500; }
+
+  /* ---------- empty state: a quiet quarter arc (the Swing), a name, one sentence ---------- */
+  .empty {
+    padding: var(--space-7) 0;
+    max-width: var(--measure-narrow);
+  }
+  .empty::before {
+    content: "";
+    display: block;
+    width: 28px;
+    height: 28px;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+    border-top: 1.5px solid var(--mark-arc);      /* 4.82 on white, 4.38 on tone */
+    border-right: 1.5px solid var(--mark-arc);
+    border-top-right-radius: 28px;
+  }
+  .empty-title {
+    font-family: var(--font-display), "Arial Narrow", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-size: 32px;
+    line-height: 1.02;
+    color: var(--ink);
+  }
+  .empty p:not(.empty-title) { margin-top: 10px; color: var(--muted); }
+
+  /* ---------- loading: blocks in the timeline grey that breathe (opacity 1 to 0.7, no shimmer, still under
+     reduced motion). #E6E1EA reads at 1.30 on white, so a loading page never looks blank. ---------- */
+  .skeleton {
+    display: block;
+    background: var(--skeleton);
+    color: transparent !important;
+    user-select: none;
+    animation: velours-breathe 1.6s var(--ease) infinite alternate;
+  }
+  .skeleton-line { height: 0.8em; margin: 0.45em 0; max-width: var(--measure); }
+  .skeleton-line:last-child { width: 62%; }
+  .skeleton-title { height: 0.86em; width: 70%; font-size: var(--fs-heading); }
+  .skeleton-block { min-height: 160px; }
+  @keyframes velours-breathe {
+    from { opacity: 1; }
+    to { opacity: 0.7; }
   }
 }
 
-/* MapLibre (radar map, its CSS loaded from the CDN after this sheet, hence the .maplibregl-map prefix): square
-   controls, attribution and popups, a hairline instead of the soft shadow. The map style itself is painted from
-   --map-land, --map-cold and --map-hot by RadarMap.tsx, so no tile filter is needed. Venues stay round (map objects). */
-/* Two classes so it beats maplibre-gl.css (0,1,0), which loads after this sheet and sets Helvetica. */
+/* ==========================================================================================================
+   UNLAYERED: what must beat Tailwind utilities already in the markup (underline, p-*, gap-*) or inline styles
+   (style={{ color: "var(--ink)" }} on links, padding on the place switch). Kept to the minimum.
+   ========================================================================================================== */
+
+/* Links: aubergine words, weight 600, no underline, no arrow. Hover deepens to wine. Light on the plate. */
+a.underline,
+a.hover\:underline {
+  text-decoration-line: none;
+}
+a.underline {
+  color: var(--link) !important;
+  font-weight: 600;
+  transition: color 160ms var(--ease);
+}
+a.underline:hover,
+a.hover\:underline:hover { color: var(--link-hover) !important; }
+/* Hover on any text link: a 1 px underline set low, in the word's own colour. No colour jump to wine. */
+a.underline:hover,
+a.hover\:underline:hover,
+.link:hover,
+.btn-text:hover,
+.tm-root .tm-link:hover,
+.tm-root .tm-more:hover,
+.tm-root .tm-peek-a:hover {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.32em;
+}
+
+/* Frameless groups align with the text around them: no side padding, the vertical rhythm stays. */
+.card:not(.card-live):not(.tone),
+.card-flat:not(.tone) {
+  padding-top: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+/* Frameless columns need a real gutter where a board needed 16 px. */
+.grid:has(> .card, > .card-flat) { column-gap: clamp(32px, 3.6vw, 56px); }
+
+/* The plate and the tone keep generous padding whatever p-* the markup carries. */
+.plate,
+.card-live { padding: var(--plate-pad); }
+.tone { padding: var(--tone-pad); }
+
+/* The place switch carries an inline padding and a 13 px size: the select keeps its chevron room and the 17 px
+   of every other field, so Type reads the same size as Name and Seats beside it. */
+select.field,
+select.select {
+  padding: 0 48px 0 16px !important;
+  font-size: var(--fs-body) !important;
+  min-height: 48px;
+}
+
+/* The quiet select: in a header row of links (the radar's place switch) the select drops its field fill and
+   reads as one more aubergine link with the chevron, so the header carries no surface. .select-quiet in new
+   markup. */
+main header select.field,
+select.select-quiet {
+  padding: 0 26px 0 0 !important;
+  min-height: 44px;
+  background-color: transparent;
+  background-position: right 4px center;
+  color: var(--link);
+  font-weight: 600;
+  line-height: 44px;
+  width: auto;
+  transition: color 160ms var(--ease);
+}
+main header select.field:hover,
+select.select-quiet:hover { background-color: transparent; color: var(--link-hover); }
+
+/* Readability floor (R3) for prose the markup still sets small. Pages will move these to text-base and text-sm
+   (see design/brand/PREMIUM-CHECKLIST.md); until then a sentence in main never renders under 17 px, a 13 px
+   sentence becomes 15 px, and 13 px stays for metadata (labels, tags, table heads, chips). Order matters: the
+   15 px rule first, the 17 px rule overrides it for leading-relaxed prose. */
+main :where(p, li).text-xs:not(.font-semibold, .eyebrow, .mono, .tnum),
+main :where(ul, ol).text-xs > li {
+  font-size: var(--fs-small);
+  line-height: 1.6;
+}
+main :where(p, dd, blockquote).text-sm:not(.eyebrow, .truncate, .mono),
+main :where(div, section, article).text-sm > :where(p, blockquote):not(.eyebrow, .truncate, .mono, .text-xs, .text-sm, .text-lg),
+main :where(ul, ol).text-sm > li:not(.flex),
+main :where(p, dd).text-xs.leading-relaxed {
+  font-size: var(--fs-body);
+  line-height: 1.65;
+}
+/* Wide max-w-* utilities on paragraphs fall back to the measure (about 70 characters). */
+main :where(p).max-w-3xl,
+main :where(p).max-w-2xl { max-width: var(--measure); }
+main :where(p).max-w-xl { max-width: min(36rem, var(--measure)); }
+
+/* A Big Shoulders name that wraps keeps its lines together (text-xl carries body leading). */
+.font-display.text-xl:not(.truncate),
+.font-display.text-2xl:not(.truncate) { line-height: 1.08; }
+
+/* Clocks and distances (R3): 15 px, tabular, wherever a label or a table cell carries one. */
+p.eyebrow:has(.mono),
+table.data td:has(.mono) { font-size: var(--fs-clock); }
+
+/* The site footer (layout.tsx) is one fine-print sentence set loose in a 72rem box: 15 px and held to the measure
+   from the content's left edge (the right padding absorbs the rest), so it never runs 150 characters wide. */
+body > footer {
+  font-size: var(--fs-small);
+  line-height: 1.6;
+  padding-right: max(20px, calc(min(72rem, 100%) - 20px - var(--measure)));
+}
+
+/* Next.js dev badge: development only. */
+nextjs-portal { display: none !important; }
+
+/* ==========================================================================================================
+   RADAR CHROME: the timeline, the map controls, the peek board, the signs (scoped under .tm-root so it outranks
+   the layout file src/app/radar/radar.css, which loads after this sheet).
+   ========================================================================================================== */
+.tm-root .tm-summary { font-size: var(--fs-lead); line-height: 1.6; color: var(--text); max-width: var(--measure); }
+.tm-root .tm-summary b { color: var(--plum); font-weight: 600; }
+
+/* timeline: on the page. No surface, no day walls, no hour rules, no night bands, no tinted alternate day (the
+   bold day names mark the days; the chosen moment below keeps the one tone of the screen).
+   Three rows at the top so nothing overlaps: the day names, the cursor label, then the columns.
+   Clocks 15 px tabular, names 14 px, day names 14 px semibold. */
+.tm-root .tm-scroll { background: transparent; border-top: 0; border-radius: 0; box-shadow: none; }
+.tm-root .tm-track { height: 236px; outline: none; }
+.tm-root .tm-track:focus-visible { box-shadow: none; outline: 2px solid var(--focus); outline-offset: 3px; }
+.tm-root .tm-day { border-left: 0; }
+.tm-root .tm-day.alt { background: transparent; }
+.tm-root .tm-day b { top: 6px; left: 12px; font-size: var(--fs-label); font-weight: 600; color: var(--ink); letter-spacing: 0.004em; }
+.tm-root .tm-night,
+.tm-root .tm-tickline { display: none; }
+.tm-root .tm-tick { bottom: 0; font-family: var(--font-sans), sans-serif; font-size: var(--fs-clock); line-height: 1.3; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.tm-root .tm-curve { top: 60px; height: 54px; --accent: var(--bar-hot); --line-strong: var(--bar-other); }
+.tm-root .tm-ev i { background: var(--map-cold); box-shadow: 0 0 0 2px #FFFFFF; }
+.tm-root .tm-ev.hot i { background: var(--wine); }
+.tm-root .tm-ev span { font-size: var(--fs-label); line-height: 1.4; color: var(--muted); background: rgba(255, 255, 255, 0.94); padding: 1px 6px; }
+.tm-root .tm-ev.hot span { color: var(--ink); font-weight: 500; }
+.tm-root .tm-ev:hover span { color: var(--plum); }
+.tm-root .tm-ev.sel i { box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 3.5px var(--plum); }
+.tm-root .tm-ev.sel span { background: var(--plum); color: var(--on-plum); font-weight: 600; }
+.tm-root .tm-ev:focus-visible { outline: none; }
+.tm-root .tm-ev:focus-visible i { outline: 2px solid var(--focus); outline-offset: 3px; }
+.tm-root .tm-now { border-left: 1px solid var(--now); }
+.tm-root .tm-now i { bottom: 26px; left: 6px; font-size: var(--fs-meta); font-weight: 500; color: var(--muted); }
+.tm-root .tm-cursor { width: 1px; margin-left: 0; background: var(--plum); }
+.tm-root .tm-cursor i {
+  top: 29px;
+  left: 8px;
+  padding: 3px 10px;
+  background: var(--plum);
+  color: var(--on-plum);
+  font-family: var(--font-sans), sans-serif;
+  font-size: var(--fs-clock);
+  font-weight: 500;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+.tm-root .tm-cursor.flip i { left: auto; right: 8px; }
+.tm-root .tm-legend { --accent: var(--bar-hot); --line-strong: var(--bar-other); gap: 8px 28px; font-size: var(--fs-meta); color: var(--muted); }
+.tm-root .tm-legend i { width: 10px; height: 10px; vertical-align: 0; margin-right: 8px; }
+
+/* map: a borderless plate; flat square controls; your place an aubergine square */
+.tm-root .tm-mapwrap { border: 0; border-radius: 0; box-shadow: none; background: var(--map-land); }
+.tm-root .tm-me { background: var(--plum); border-radius: 0; box-shadow: 0 0 0 3px #FFFFFF; }
+.tm-root .tm-chip { border: 0; border-radius: 0; box-shadow: none; background: #FFFFFF; color: var(--ink); padding: 3px 9px; font-size: var(--fs-label); font-weight: 600; line-height: 1.35; }
+.tm-root .tm-handle-dot { border: 2px solid var(--plum); background: #FFFFFF; border-radius: 50%; box-shadow: none; }
+.tm-root .tm-handle-lbl { top: -12px; background: var(--plum); color: var(--on-plum); border-radius: 0; padding: 2px 9px; font-family: var(--font-sans), sans-serif; font-size: var(--fs-clock); line-height: 1.35; font-weight: 500; font-variant-numeric: tabular-nums; }
+.tm-root .tm-handle:focus-visible { outline: none; }
+.tm-root .tm-handle:focus-visible .tm-handle-dot { outline: 2px solid var(--focus); outline-offset: 3px; }
+
+/* the peek board: a white board on the map, no frame, no shadow; the words carry it. */
+.tm-root .tm-peek {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: #FFFFFF;
+  color: var(--text);
+  padding: 16px 20px 18px;
+  min-width: 240px;
+  max-width: 300px;
+  font-family: var(--font-sans), sans-serif;
+}
+.tm-root .tm-peek.hot { border-top: 0; }
+.tm-root .tm-peek-k { font-size: var(--fs-clock); line-height: 1.4; color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+.tm-root .tm-peek.hot .tm-peek-k::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 8px; border-radius: 50%; background: var(--wine); vertical-align: 1px; }
+.tm-root .tm-peek-k .on { color: var(--plum); font-weight: 600; }
+.tm-root .tm-peek-t { margin-top: 6px; font-family: var(--font-display), "Arial Narrow", sans-serif; font-optical-sizing: auto; font-weight: 600; font-size: 24px; line-height: 1.04; color: var(--ink); letter-spacing: 0.006em; }
+.tm-root .tm-peek-s { margin-top: 8px; font-size: var(--fs-clock); line-height: 1.5; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tm-root .tm-peek-s .mono { font-family: var(--font-sans), sans-serif; font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
+.tm-root .tm-peek-a { display: inline-block; margin-top: 12px; font-size: var(--fs-small); font-weight: 600; color: var(--link); text-decoration: none; transition: color 160ms var(--ease); }
+.tm-root .tm-peek-a:hover { color: var(--link-hover); }
+
+/* hot venue signs: wine, white words (9.15), 14 px: the names are the content of the map, not metadata */
+.tm-root .tm-sign { background: var(--wine); color: #FFFFFF; border-radius: 0; padding: 3px 9px; font-size: var(--fs-label); font-weight: 600; line-height: 1.35; max-width: 220px; }
+
+/* the hint leaves the map and becomes a caption under it */
+.tm-root .tm-maphint {
+  position: static;
+  margin-top: 14px;
+  max-width: none;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  padding: 0;
+  font-size: var(--fs-clock);
+  line-height: 1.5;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.tm-root .tm-maphint .tm-mono { color: var(--text); }
+.tm-root.is-full .tm-maphint,
+.tm-root:fullscreen .tm-maphint { display: none; }
+
+/* full screen: a flat white tile, aubergine words */
+.tm-root .tm-fs {
+  top: 14px;
+  right: 14px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 0;
+  background: #FFFFFF;
+  color: var(--plum);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  box-shadow: none;
+  transition: background-color 160ms var(--ease);
+}
+.tm-root .tm-fs:hover { background: var(--tone); }
+.tm-root .tm-fs:focus-visible,
+.tm-root .tm-more:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+
+/* the moments: frameless on the page; the chosen one on the tone (the map is in charge, so no plate here) */
+.tm-root .tm-daygroup { row-gap: 36px; }
+.tm-root .tm-list { row-gap: 20px; }
+.tm-root .tm-daygroup + .tm-daygroup { margin-top: 36px; }
+.tm-root .tm-daygroup h3 { font-family: var(--font-sans), sans-serif; font-size: var(--fs-label); font-weight: 600; color: var(--ink); letter-spacing: 0.004em; }
+.tm-root .tm-card-sel { outline: 0; }
+.tm-root .tm-item { --ok: var(--muted); --warn: var(--muted); }
+.tm-root .tm-item:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+.tm-root .tm-mono { font-family: var(--font-sans), sans-serif; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tm-root .tm-list .card-live {
+  --ink: #1D1424;
+  --text: #3A3342;
+  --muted: #635C6D;
+  --mark-arc: #806B84;
+  --focus-halo: #F6F3F7;
+  --tone-2: #EFEAF1;
+  --skeleton: #E2DCE6;
+  --accent: var(--wine);
+  --accent-text: var(--plum);
+  --link: var(--plum);
+  --link-hover: var(--plum-2);
+  --focus: var(--plum);
+  --tone: #F6F3F7;
+  --chip-bg: #FFFFFF;
+  background: var(--tone);
+  color: var(--text);
+  padding: var(--tone-pad);
+}
+.tm-root .tm-list .card-live .btn-accent,
+.tm-root .tm-list .card-live .btn-primary { background: var(--plum); color: var(--on-plum); }
+.tm-root .tm-list .card-live .btn-accent:hover,
+.tm-root .tm-list .card-live .btn-primary:hover { background: var(--plum-2); }
+.tm-root .tm-link { color: var(--link); font-size: var(--fs-small); font-weight: 600; text-decoration: none; transition: color 160ms var(--ease); }
+.tm-root .tm-link:hover { color: var(--link-hover); }
+.tm-root .tm-more { padding: 12px 0; font-size: var(--fs-small); font-weight: 600; color: var(--link); text-decoration: none; transition: color 160ms var(--ease); }
+.tm-root .tm-more:hover { color: var(--link-hover); }
+
+/* ==========================================================================================================
+   MAPLIBRE (its CSS loads from the CDN after this sheet, hence the .maplibregl-map prefix):
+   flat square controls on white, no separators, a quiet attribution, a frameless popup.
+   ========================================================================================================== */
 body .maplibregl-map,
 .tm-mapwrap .maplibregl-map {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 .maplibregl-map .maplibregl-ctrl-group,
 .maplibregl-map .maplibregl-ctrl-group:not(:empty) {
+  border: 0;
   border-radius: 0;
   box-shadow: none;
-  border: 1px solid var(--line-strong);
+  background: transparent;
+  display: grid;
+  gap: 2px;
 }
-.maplibregl-map .maplibregl-ctrl-group button,
-.maplibregl-map .maplibregl-ctrl-group button:first-child,
-.maplibregl-map .maplibregl-ctrl-group button:last-child,
-.maplibregl-map .maplibregl-ctrl-attrib.maplibregl-compact,
-.maplibregl-map .maplibregl-ctrl-attrib.maplibregl-compact-show,
-.maplibregl-map .maplibregl-ctrl-attrib-button {
+.maplibregl-map .maplibregl-ctrl-group button {
+  width: 44px;
+  height: 44px;
   border-radius: 0;
+  background-color: #FFFFFF;
+  transition: background-color 160ms var(--ease);
+}
+.maplibregl-map .maplibregl-ctrl-group button + button { border-top: 0; }
+.maplibregl-map .maplibregl-ctrl-group button:not(:disabled):hover { background-color: var(--tone); }
+.maplibregl-map .maplibregl-ctrl-group button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; box-shadow: none; }
+.maplibregl-map .maplibregl-ctrl-group button:first-child,
+.maplibregl-map .maplibregl-ctrl-group button:last-child { border-radius: 0; }
+
+/* Attribution: collapsed at every width to a 28 px white square carrying an aubergine "i" (14.68 on white).
+   Hover or keyboard focus opens the credit to its left on a solid white strip, 13 px muted words (6.40), links
+   muted, aubergine on hover. RadarMap sets compact: true, so MapLibre always renders the compact <details>;
+   it opens it on load, so visibility is decided here (hover, focus) and not by [open]: ::details-content stays
+   rendered and the inner line is hidden until asked for. The selectors outrank MapLibre's sheet, loaded after. */
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib,
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact,
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact.maplibregl-compact-show {
+  position: relative;
+  box-sizing: content-box;
+  min-height: 28px;
+  margin: 0 12px 12px 0;
+  padding: 0 28px 0 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--fs-meta);
+  line-height: 28px;
+  visibility: visible;
+}
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib::details-content { content-visibility: visible; }
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-inner {
+  display: none;
+  padding: 0 12px;
+  background: #FFFFFF;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact:is(:hover, :focus-within) { background: #FFFFFF; }
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact:is(:hover, :focus-within) .maplibregl-ctrl-attrib-inner { display: block; }
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-inner a { color: var(--muted); font-weight: 500; text-decoration: none; transition: color 160ms var(--ease); }
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-inner a:hover { color: var(--plum); text-decoration: none; }
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button,
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-button,
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact-show .maplibregl-ctrl-attrib-button {
+  display: block;
+  position: absolute;
+  top: auto;
+  bottom: 0;
+  right: 0;
+  left: auto;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 0;
+  background-color: #FFFFFF;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Ccircle cx='14' cy='8.6' r='1.7' fill='%233B1C42'/%3E%3Cpath d='M13 12.2h2v8.6h-2z' fill='%233B1C42'/%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 28px 28px;
+  box-shadow: none;
+  outline: none;
+  transition: background-color 160ms var(--ease);
+}
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button:hover { background-color: var(--tone); }
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-inner a:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; box-shadow: none; }
+@media (max-width: 640px) {
+  .maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-inner {
+    width: min(232px, calc(100vw - 112px));
+    padding: 4px 12px;
+    line-height: 1.5;
+    white-space: normal;
+  }
 }
 .maplibregl-map .maplibregl-popup-content {
+  border: 0;
   border-radius: 0;
   box-shadow: none;
-  border: 1px solid var(--line);
-  border-top: var(--rail) solid var(--ink);
+  padding: 16px 20px;
+  background: #FFFFFF;
+  color: var(--text);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-small);
+  line-height: 1.55;
+}
+.maplibregl-map .maplibregl-popup-close-button { width: 36px; height: 36px; font-size: 20px; color: var(--muted); border-radius: 0; }
+.maplibregl-map .maplibregl-popup-close-button:hover { background: var(--tone); color: var(--plum); }
+
+/* ==========================================================================================================
+   MOTION AND PHONES
+   ========================================================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+  .skeleton { animation: none; opacity: 0.75; }
+}
+
+/* Under 560 px the map has no free side for the peek board: it would cover your place and the full screen
+   button. The chosen moment is the first card under the map, so the board steps aside. */
+@media (max-width: 559px) {
+  .tm-root .tm-peek { display: none; }
+}
+
+@media (max-width: 640px) {
+  .score-ring > span { font-size: 26px; }
+  .tm-root .tm-peek { min-width: 0; max-width: 230px; padding: 12px 14px 14px; }
+  .tm-root .tm-peek-t { font-size: 20px; }
+  .tm-root .tm-fs { top: 12px; right: 12px; padding: 0 14px; }
 }

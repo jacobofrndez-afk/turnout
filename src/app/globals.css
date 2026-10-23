@@ -147,9 +147,11 @@ html:root {
 
   /* type scale (also as utilities below) */
   --fs-display: clamp(56px, 8.4vw, 124px);  /* the one hero line per screen */
-  --fs-title: clamp(44px, 5.4vw, 80px);     /* page titles */
-  --fs-heading: clamp(32px, 3.4vw, 48px);   /* section titles */
-  --fs-name: clamp(24px, 2vw, 30px);        /* names: offers, events, places */
+  /* Three levels per screen (docs/UX-ONE-PATH.md): the display line once, section titles, body. The steps are far
+     apart on purpose (121 / 36 / 17 px at 1440) so the one loud line is unmistakable. */
+  --fs-title: clamp(28px, 2.5vw, 36px);     /* section titles: "What goes out", "Why", "Coming next" */
+  --fs-heading: var(--fs-title);            /* legacy: same level as .t-title */
+  --fs-name: clamp(19px, 1.45vw, 21px);     /* names and campaign copy: body family, 600, the lead's size */
   --fs-lead: clamp(19px, 1.45vw, 21px);
   --fs-body: 17px;
   --fs-body-lg: 18px;
@@ -170,8 +172,8 @@ html:root {
   --space-9: 96px;
   --space-10: 128px;
   --space-11: 160px;
-  --section: clamp(96px, 11vw, 160px);       /* between sections */
-  --block: clamp(48px, 6vw, 80px);           /* between groups inside a section */
+  --section: clamp(72px, 7.5vw, 112px);      /* between sections: sized to 36 px section titles */
+  --block: clamp(40px, 4.5vw, 64px);         /* between groups inside a section */
   --plate-pad: clamp(28px, 5vw, 64px);
   --tone-pad: clamp(24px, 3.6vw, 44px);
   /* The measure is set in em, not ch: in Instrument Sans the "0" is 0.665 em wide while running prose averages
@@ -404,7 +406,7 @@ html:root {
     font-optical-sizing: auto;
     font-weight: 500;
     font-size: var(--fs-title);
-    line-height: 0.94;
+    line-height: 1;
     letter-spacing: 0.002em;
     color: var(--ink);
     text-wrap: balance;
@@ -414,18 +416,18 @@ html:root {
     font-optical-sizing: auto;
     font-weight: 500;
     font-size: var(--fs-heading);
-    line-height: 1.02;
+    line-height: 1;
     letter-spacing: 0.004em;
     color: var(--ink);
     text-wrap: balance;
   }
+  /* names and campaign copy are body text with weight, not a fourth display size */
   .t-name {
-    font-family: var(--font-display), "Arial Narrow", sans-serif;
-    font-optical-sizing: auto;
+    font-family: var(--font-sans), sans-serif;
     font-weight: 600;
     font-size: var(--fs-name);
-    line-height: 1.08;
-    letter-spacing: 0.006em;
+    line-height: 1.45;
+    letter-spacing: 0;
     color: var(--ink);
     text-wrap: balance;
   }
@@ -831,8 +833,6 @@ a.underline:hover,
 a.hover\:underline:hover,
 .link:hover,
 .btn-text:hover,
-.tm-root .tm-link:hover,
-.tm-root .tm-more:hover,
 .tm-root .tm-peek-a:hover {
   text-decoration-line: underline;
   text-decoration-thickness: 1px;
@@ -930,8 +930,6 @@ nextjs-portal { display: none !important; }
    RADAR CHROME: the timeline, the map controls, the peek board, the signs (scoped under .tm-root so it outranks
    the layout file src/app/radar/radar.css, which loads after this sheet).
    ========================================================================================================== */
-.tm-root .tm-summary { font-size: var(--fs-lead); line-height: 1.6; color: var(--text); max-width: var(--measure); }
-.tm-root .tm-summary b { color: var(--plum); font-weight: 600; }
 
 /* timeline: on the page. No surface, no day walls, no hour rules, no night bands, no tinted alternate day (the
    bold day names mark the days; the chosen moment below keeps the one tone of the screen).
@@ -1048,45 +1046,13 @@ nextjs-portal { display: none !important; }
   transition: background-color 160ms var(--ease);
 }
 .tm-root .tm-fs:hover { background: var(--tone); }
-.tm-root .tm-fs:focus-visible,
-.tm-root .tm-more:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.tm-root .tm-fs:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 
 /* the moments: frameless on the page; the chosen one on the tone (the map is in charge, so no plate here) */
-.tm-root .tm-daygroup { row-gap: 36px; }
 .tm-root .tm-list { row-gap: 20px; }
-.tm-root .tm-daygroup + .tm-daygroup { margin-top: 36px; }
-.tm-root .tm-daygroup h3 { font-family: var(--font-sans), sans-serif; font-size: var(--fs-label); font-weight: 600; color: var(--ink); letter-spacing: 0.004em; }
-.tm-root .tm-card-sel { outline: 0; }
 .tm-root .tm-item { --ok: var(--muted); --warn: var(--muted); }
 .tm-root .tm-item:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
 .tm-root .tm-mono { font-family: var(--font-sans), sans-serif; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.tm-root .tm-list .card-live {
-  --ink: #1D1424;
-  --text: #3A3342;
-  --muted: #635C6D;
-  --mark-arc: #806B84;
-  --focus-halo: #F6F3F7;
-  --tone-2: #EFEAF1;
-  --skeleton: #E2DCE6;
-  --accent: var(--wine);
-  --accent-text: var(--plum);
-  --link: var(--plum);
-  --link-hover: var(--plum-2);
-  --focus: var(--plum);
-  --tone: #F6F3F7;
-  --chip-bg: #FFFFFF;
-  background: var(--tone);
-  color: var(--text);
-  padding: var(--tone-pad);
-}
-.tm-root .tm-list .card-live .btn-accent,
-.tm-root .tm-list .card-live .btn-primary { background: var(--plum); color: var(--on-plum); }
-.tm-root .tm-list .card-live .btn-accent:hover,
-.tm-root .tm-list .card-live .btn-primary:hover { background: var(--plum-2); }
-.tm-root .tm-link { color: var(--link); font-size: var(--fs-small); font-weight: 600; text-decoration: none; transition: color 160ms var(--ease); }
-.tm-root .tm-link:hover { color: var(--link-hover); }
-.tm-root .tm-more { padding: 12px 0; font-size: var(--fs-small); font-weight: 600; color: var(--link); text-decoration: none; transition: color 160ms var(--ease); }
-.tm-root .tm-more:hover { color: var(--link-hover); }
 
 /* ==========================================================================================================
    MAPLIBRE (its CSS loads from the CDN after this sheet, hence the .maplibregl-map prefix):

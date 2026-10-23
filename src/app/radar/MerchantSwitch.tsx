@@ -6,11 +6,11 @@ export default function MerchantSwitch({ current, options }: { current: string; 
   const router = useRouter();
   if (options.length < 2) return null;
   return (
-    <label className="inline-flex items-center gap-2" style={{ color: "var(--muted)" }}>
+    <label className="inline-flex items-center gap-2 text-[var(--muted)]">
       <span className="sr-only">Place</span>
       <select
         className="field"
-        style={{ width: "auto", padding: "6px 10px", fontSize: 13 }}
+        style={{ width: "auto" }}
         value={current}
         onChange={(e) => router.push(`/radar?merchant=${e.target.value}`)}
       >

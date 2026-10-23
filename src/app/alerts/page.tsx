@@ -12,7 +12,7 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
     return (
       <main className="mx-auto max-w-3xl px-5 py-16">
         <h1 className="text-3xl">No place yet</h1>
-        <Link href="/start" className="underline">Set up your place</Link>
+        <Link href="/start" className="link">Set up your place</Link>
       </main>
     );
   }
@@ -23,49 +23,49 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
   const statusLabel: Record<string, string> = { sent: "Sent on WhatsApp", simulated: "Simulated, WhatsApp not connected", failed: "WhatsApp failed" };
 
   return (
-    <main className="mx-auto max-w-3xl px-5 py-10">
-      <Link href={`/radar?merchant=${merchant.id}`} className="text-sm" style={{ color: "var(--muted)" }}>← Radar</Link>
-      <header className="mt-3 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="eyebrow">Alerts · push</p>
-          <h1 className="mt-1 text-4xl">What Turnout told {merchant.name}</h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
-            {every > 0 ? `Every ${every} minutes` : "When asked"}, Turnout scans the radar, drafts the campaign for the strongest new moment and sends this message.{" "}
-            {live ? "WhatsApp is connected: messages go to the demo number." : "WhatsApp is not connected yet, so messages are recorded here instead of sent."}
-          </p>
-        </div>
-        <form action="/api/scan" method="post">
-          <input type="hidden" name="merchant" value={merchant.id} />
-          <button className="btn btn-accent">Run the scan now</button>
-        </form>
-      </header>
+    <main className="mx-auto max-w-5xl px-6 py-10">
+      <div className="max-w-3xl">
+        <Link href={`/radar?merchant=${merchant.id}`} className="link text-sm">Back to the radar</Link>
+        <header className="mt-3 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="eyebrow">Alerts · push</p>
+            <h1 className="t-title mt-2">What Turnout told {merchant.name}</h1>
+            <p className="mt-4 text-base text-[var(--muted)]">
+              {every > 0 ? `Every ${every} minutes` : "When asked"}, Turnout scans the radar, drafts the campaign for the strongest new moment and sends this message.{" "}
+              {live ? "WhatsApp is connected: messages go to the demo number." : "WhatsApp is not connected yet, so messages are recorded here instead of sent."}
+            </p>
+          </div>
+          <form action="/api/scan" method="post">
+            <input type="hidden" name="merchant" value={merchant.id} />
+            <button className="btn btn-accent">Run the scan now</button>
+          </form>
+        </header>
 
-      {alerts.length === 0 && (
-        <p className="card-flat mt-8 p-5 text-sm" style={{ color: "var(--muted)" }}>
-          No alert yet. Run the scan: if a moment worth a campaign is coming in the next two days, the campaign is drafted and the alert appears here.
-        </p>
-      )}
+        {alerts.length === 0 && (
+          <div className="empty stack-block"><p className="empty-title">No alert yet</p><p>Run the scan: if a moment worth a campaign is coming in the next two days, the campaign is drafted and the alert appears here.</p></div>
+        )}
 
-      <section className="mt-8 space-y-4">
-        {alerts.map((a) => (
-          <article key={a.id} className="card p-5" style={a.status === "sent" ? { borderColor: "var(--accent)" } : undefined}>
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <p className="mono text-sm" style={{ color: "var(--ink)" }}>{fmt.format(new Date(a.created_at.endsWith("Z") ? a.created_at : a.created_at.replace(" ", "T") + "Z"))}</p>
-              <p className="text-xs font-semibold" style={{ color: a.status === "failed" ? "var(--danger)" : a.status === "sent" ? "var(--ok)" : "var(--muted)" }}>
-                {statusLabel[a.status] ?? a.status}{a.status === "failed" && a.to_ref ? ` · ${a.to_ref}` : ""}
-              </p>
-            </div>
-            <div className="mt-3 max-w-md p-4 text-sm leading-relaxed" style={{ background: "var(--paper)", whiteSpace: "pre-wrap", color: "var(--text)" }}>
-              {a.message}
-            </div>
-            {a.campaign_id && (
-              <Link href={`/campaigns/${a.campaign_id}`} className="mt-3 inline-flex text-sm font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>
-                Open the campaign
-              </Link>
-            )}
-          </article>
-        ))}
-      </section>
+        <section className="stack-block space-y-16">
+          {alerts.map((a, i) => (
+            <article key={a.id} className={i === 0 ? "tone" : undefined}>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="t-clock text-[var(--ink)]">{fmt.format(new Date(a.created_at.endsWith("Z") ? a.created_at : a.created_at.replace(" ", "T") + "Z"))}</p>
+                <p className={a.status === "failed" ? "text-sm text-[var(--danger)]" : "text-sm text-[var(--muted)]"}>
+                  {statusLabel[a.status] ?? a.status}{a.status === "failed" && a.to_ref ? ` · ${a.to_ref}` : ""}
+                </p>
+              </div>
+              <div className="mt-4 max-w-[60ch] whitespace-pre-wrap text-base text-[var(--text)]">
+                {a.message.replace(/\nReview and approve:[\s\S]*$/, "")}
+              </div>
+              {a.campaign_id && (
+                <Link href={`/campaigns/${a.campaign_id}`} className="link mt-4 inline-flex text-base">
+                  Open the campaign
+                </Link>
+              )}
+            </article>
+          ))}
+        </section>
+      </div>
     </main>
   );
 }

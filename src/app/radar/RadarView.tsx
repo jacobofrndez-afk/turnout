@@ -39,7 +39,6 @@ type Props = {
 const H = 3_600_000;
 const Q = 15 * 60_000;
 type Crowd = ViewItem;
-const KIND_LABEL: Record<string, string> = { venue: "", wave: "Several shows at once", tv: "A game on TV", street: "In the street", calendar: "A city night" };
 // Moments with a real place of their own go on the map; TV games and city nights are everywhere around you.
 const ON_MAP = new Set(["venue", "street"]);
 
@@ -90,6 +89,8 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const placed = useRef(false);
+  const [edge, setEdge] = useState<{ cursor: boolean; left: Set<string> }>({ cursor: false, left: new Set() });
 
   useEffect(() => setRadius(merchant.radiusM), [merchant.radiusM]);
 
@@ -97,6 +98,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
   const hotMembers = useMemo(() => new Set(all.filter((c) => c.interesting && c.kind === "wave").flatMap((c) => c.members)), [all]);
   const selWave = all.find((c) => c.id === selected && c.kind === "wave");
   const isHot = (c: Crowd) => c.interesting || hotMembers.has(c.id);
+  const isTonight = (c: Crowd) => isHot(c) && fmtDayKey.format(new Date(c.w.start)) === todayKey && c.w.leave > now;
   const hotList = all.filter((c) => c.interesting);
   const nextHot = hotList.find((c) => c.w.start - H > cursor + 5 * 60_000);
   const prevHot = [...hotList].reverse().find((c) => c.w.start - H < cursor - 5 * 60_000);
@@ -123,7 +125,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
     return { n, hot, other, max };
   }, [inView, t0, span, radius, hotMembers]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Square columns per 15-minute slot: other crowds in cold grey, the hot window in solid raspberry on top.
+  // Square columns per 15-minute slot: other crowds in grey, the window worth a campaign in plum on top.
   const columns = useMemo(() => {
     const { n, hot, other, max } = curve;
     const h = (v: number) => (v / max) * 94;
@@ -187,8 +189,32 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
     const el = scrollRef.current;
     if (!el || el.scrollWidth <= el.clientWidth) return;
     const x = ((cursor - t0) / span) * el.scrollWidth;
-    if (x < el.scrollLeft + el.clientWidth * 0.15 || x > el.scrollLeft + el.clientWidth * 0.75) el.scrollTo({ left: Math.max(0, x - el.clientWidth * 0.35), behavior: "smooth" });
+    if (!placed.current) {
+      placed.current = true;
+      el.scrollLeft = Math.max(0, x - el.clientWidth * 0.3);
+      return;
+    }
+    if (x < el.scrollLeft + el.clientWidth * 0.15 || x > el.scrollLeft + el.clientWidth * 0.75) el.scrollTo({ left: Math.max(0, x - el.clientWidth * 0.3), behavior: "smooth" });
   }, [cursor, zoom, full]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A label that would run past the visible edge of the scroller goes to the left of its line or dot.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const check = () => {
+      const right = el.scrollLeft + el.clientWidth - 8;
+      const lbl = el.querySelector<HTMLElement>(".tm-cursor i");
+      const cursorOut = ((cursor - t0) / span) * el.scrollWidth + 8 + (lbl?.offsetWidth ?? 0) > right;
+      const left = new Set<string>();
+      for (const b of el.querySelectorAll<HTMLElement>(".tm-ev.lbl")) {
+        if ((parseFloat(b.style.left) / 100) * el.scrollWidth + b.offsetWidth > right) left.add(b.dataset.id ?? "");
+      }
+      setEdge((p) => (p.cursor === cursorOut && p.left.size === left.size && [...left].every((k) => p.left.has(k)) ? p : { cursor: cursorOut, left }));
+    };
+    check();
+    el.addEventListener("scroll", check, { passive: true });
+    return () => el.removeEventListener("scroll", check);
+  }, [cursor, zoom, full, cursorPeople, markers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function setFromPointer(clientX: number) {
     const r = trackRef.current?.getBoundingClientRect();
@@ -278,6 +304,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
         lat: rep.lat,
         lon: rep.lon,
         hot: cs.some(isHot),
+        tonight: cs.some(isTonight),
         active: cs.some(isActive),
         selected: cs.some(inSel),
       };
@@ -326,7 +353,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
       <div className="tm-body">
         <div className="tm-maparea">
           <RadarMap merchant={{ name: merchant.name, lat: merchant.lat, lon: merchant.lon, radiusM: radius }} points={points} onSelect={(id) => selectCrowd(id)} onRadiusChange={changeRadius} />
-          <p className="tm-maphint">{saving ? "Updating your radius…" : <>Drag the white handle to change your radius · <span className="tm-mono">{fmtKm(radius)}, {walkMin(radius)} min</span> walk</>}</p>
+          <p className="tm-maphint">{saving ? "Updating your radius…" : <>Drag the white handle to change your radius&nbsp;· <span className="tm-mono">{fmtKm(radius)}, {walkMin(radius)}&nbsp;min</span> walk</>}</p>
           <button type="button" className="tm-fs" onClick={toggleFull} aria-label={full ? "Exit full screen" : "Full screen"} title={full ? "Exit full screen" : "Full screen"}>
             {full ? "Exit full screen" : "Full screen"}
           </button>
@@ -356,9 +383,6 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
               }}
             >
               <div className="tm-days" aria-hidden="true">
-                {nights.map((n, i) => (
-                  <span key={`n${i}`} className="tm-night" style={{ left: `${n.left}%`, width: `${n.right - n.left}%` }} />
-                ))}
                 {days.map((d, i) => (
                   <span key={`d${i}`} className={`tm-day${i % 2 ? " alt" : ""}`} style={{ left: `${d.left}%`, width: `${d.right - d.left}%` }}>
                     {d.right - d.left > 5 && <b>{dayLabel(d.start + 1)}</b>}
@@ -366,7 +390,6 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
                 ))}
                 {ticks.map((t, i) => (
                   <span key={`t${i}`}>
-                    <span className={`tm-tickline${t.major ? " major" : ""}`} style={{ left: `${t.left}%` }} />
                     <span className="tm-tick" style={{ left: `${t.left}%` }}>
                       {t.label}
                     </span>
@@ -385,7 +408,8 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
                 <button
                   key={c.id}
                   type="button"
-                  className={`tm-ev${isHot(c) ? " hot" : ""}${c.kind !== "venue" ? " moment" : ""}${selected === c.id || (selWave?.members.includes(c.id) ?? false) ? " sel" : ""}${lane >= 0 ? " lbl" : ""}`}
+                  data-id={c.id}
+                  className={`tm-ev${isTonight(c) ? " hot" : isHot(c) ? " later" : ""}${c.kind !== "venue" ? " moment" : ""}${selected === c.id || (selWave?.members.includes(c.id) ?? false) ? " sel" : ""}${lane >= 0 ? " lbl" : ""}${edge.left.has(c.id) ? " left" : ""}`}
                   style={{ left: `${pct(c.w.start)}%`, top: lane >= 0 ? 118 + lane * 24 : 196, ["--s" as string]: `${size}px` }}
                   title={`${c.headliner} · ${c.kind === "venue" ? c.venue : (c.blurb ?? c.venue)} · ${fmtTime.format(new Date(c.w.start))} · ~${c.capacity.toLocaleString("en-US")} people · could bring ~${c.guests} guests`}
                   onClick={() => selectCrowd(c.id)}
@@ -397,60 +421,51 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
               <span className="tm-now" style={{ left: `${pct(now)}%` }} aria-hidden="true">
                 <i>Now</i>
               </span>
-              <span className={`tm-cursor${cursorPct > 80 ? " flip" : ""}`} style={{ left: `${cursorPct}%` }} aria-hidden="true">
-                <i>{cursorLabel} · {cursorPeople > 0 ? `${cursorPeople.toLocaleString("en-US")} people around` : "quiet"}</i>
+              <span className={`tm-cursor${edge.cursor ? " flip" : ""}`} style={{ left: `${cursorPct}%` }} aria-hidden="true">
+                <i>{cursorLabel} · {cursorPeople > 0 ? <>{cursorPeople.toLocaleString("en-US")} <span className="tm-wide">people </span>around</> : "quiet"}</i>
               </span>
             </div>
           </div>
-          <p className="tm-legend">
-            <span>
-              <i style={{ background: "var(--accent)" }} />
-              crowds worth a campaign
-            </span>
-            <span>
-              <i style={{ background: "var(--line-strong)" }} />
-              other events
-            </span>
-          </p>
         </section>
 
         <aside className="tm-list">
-          <p className="eyebrow">{onlyWorth ? "Crowds worth a campaign" : "Every event nearby"}</p>
-          {groups.size === 0 && <p className="text-sm" style={{ color: "var(--muted)" }}>No crowd worth a campaign in the next {hours} hours. Switch to All to see smaller events.</p>}
+          <h2 className="t-heading">{onlyWorth ? "Crowds worth a campaign" : "Every event nearby"}</h2>
+          {groups.size === 0 && <div className="empty"><p className="empty-title">Nothing worth a campaign yet</p><p>No crowd big enough for your {merchant.seats} seats in the next {hours} hours. Show every event nearby to see the smaller ones.</p></div>}
           {[...groups.entries()].map(([day, list]) => (
             <div key={day} className="tm-daygroup">
               <h3>{day}</h3>
               {list.map((it) => {
                 const isSel = selected === it.id;
                 return (
-                  <div key={it.id} className={`${it.interesting ? (isSel ? "card card-live" : "card") : "card-flat"} p-4${isSel ? " tm-card-sel" : ""}`} style={it.interesting && !isSel ? { ["--score-on" as string]: "var(--map-cold)" } : undefined}>
+                  <div key={it.id} className={isSel ? "tone tm-card-sel" : undefined}>
                     <div className="flex items-start justify-between gap-4">
                       <button type="button" className="tm-item min-w-0" onClick={() => selectCrowd(it.id)} aria-pressed={isSel}>
-                        <p className="text-sm" style={{ color: "var(--ink)" }}>
-                          <span className="tm-mono">{fmtTime.format(new Date(it.w.start))}</span> <span style={{ color: "var(--muted)" }}>· crowd from <span className="tm-mono">{fmtTime.format(new Date(it.w.arrive))}</span> to <span className="tm-mono">{fmtTime.format(new Date(it.w.leave))}</span></span>
+                        <p className="text-sm text-[var(--ink)]">
+                          <span className="tm-mono">{fmtTime.format(new Date(it.w.start))}</span>&nbsp;<span className="text-[var(--muted)]">· crowd from <span className="tm-mono">{fmtTime.format(new Date(it.w.arrive))}</span> to <span className="tm-mono">{fmtTime.format(new Date(it.w.leave))}</span></span>
                         </p>
-                        {KIND_LABEL[it.kind] && <p className="text-xs font-medium" style={{ color: "var(--muted)" }}>{KIND_LABEL[it.kind]}</p>}
-                        <p className="truncate font-display text-lg">{it.headliner}</p>
-                        <p className="truncate text-sm" style={{ color: "var(--muted)" }}>
-                          {it.kind === "venue" ? it.venue : (it.blurb ?? it.venue)}{it.kind === "venue" || it.kind === "street" ? <> · <span className="tm-mono">{it.distanceKm.toFixed(1)} km</span></> : null} · ~<span className="tm-mono">{it.capacity.toLocaleString("en-US")}</span> people{it.kind === "venue" || it.kind === "wave" ? "" : " (estimate)"}
+                        <p className="t-name mt-1 text-balance">{it.headliner}</p>
+                        <p className="mt-1 line-clamp-2 text-sm text-[var(--muted)]">
+                          {it.kind === "venue" || it.kind === "street" ? <><span className="tm-mono">{it.distanceKm.toFixed(1)}&nbsp;km</span>&nbsp;· </> : null}~<span className="tm-mono">{it.capacity.toLocaleString("en-US")}</span>&nbsp;people{it.kind === "venue" || it.kind === "wave" ? "" : " (estimate)"}&nbsp;· {it.kind === "venue" ? it.venue : (it.blurb ?? it.venue)}
                         </p>
                         {it.interesting && (
-                          <p className="text-sm" style={{ color: "var(--text)" }}>
+                          <p className="mt-2 text-base">
                             Could bring about {it.guests} guests{it.guests >= merchant.seats ? `, enough to fill your ${merchant.seats} seats` : `, ${Math.round((it.guests / merchant.seats) * 100)}% of your ${merchant.seats} seats`}
                           </p>
                         )}
-                        {it.weather && (
-                          <p className="mt-1 text-xs font-semibold" style={{ color: ["rain", "storm", "snow", "cold"].includes(it.weather.kind) ? "var(--warn)" : "var(--ok)" }}>
+                        {isSel && it.weather && (
+                          <p className="mt-3 text-sm text-[var(--muted)]">
                             Weather at your door: {it.weather.label}
                           </p>
                         )}
                       </button>
-                      <div className="score-ring shrink-0" style={{ ["--p" as string]: it.score }} title={`Could fill about ${it.score}% of your room`}>
-                        <span>{it.score}</span>
-                      </div>
+                      {isSel && (
+                        <div className="score-ring shrink-0" style={{ ["--p" as string]: it.score }} title={`Could fill about ${it.score}% of your room`}>
+                          <span>{it.score}</span>
+                        </div>
+                      )}
                     </div>
-                    {it.interesting && (
-                      <Link href={`/campaigns/new?merchant=${merchant.id}&event=${it.id}`} className={isSel ? "btn btn-accent mt-3" : "tm-link mt-3 inline-flex"}>
+                    {isSel && it.interesting && (
+                      <Link href={`/campaigns/new?merchant=${merchant.id}&event=${it.id}`} className="btn btn-accent mt-6">
                         See who is coming, with Qloo
                       </Link>
                     )}

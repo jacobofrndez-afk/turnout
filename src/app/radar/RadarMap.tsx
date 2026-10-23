@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 // Vector map in the spirit of the global search prototype: MapLibre on OpenFreeMap "positron" (free, no key),
 // a short flight in from the globe on first open, venues drawn as map layers (size = crowd), a peek card on the
 // selected crowd, radar rings with walking times, and a draggable handle to widen or narrow the merchant's radius.
-// Brand rules (Marquise): merchant in ink as a square, hot crowds solid raspberry with a sign label, others cold grey, no blue, no pulsing.
+// Velours: your place an aubergine square, hot crowds wine discs with a sign, cold ones hollow rings, no blue, no pulsing.
 
 export type MapPoint = {
   key: string;
@@ -18,6 +18,7 @@ export type MapPoint = {
   lat: number;
   lon: number;
   hot: boolean;
+  tonight: boolean;
   active: boolean;
   selected: boolean;
 };
@@ -37,7 +38,7 @@ const FONT = ["Noto Sans Regular"];
 const FONT_BOLD = ["Noto Sans Bold"];
 // MapLibre paint cannot read CSS variables: resolve the design tokens to concrete colours once, at map load,
 // so a new identity in globals.css restyles the map too. A canvas pixel handles any CSS colour syntax.
-type Palette = { ink: string; accent: string; neutral: string; ring: string; lineStrong: string; muted: string; panel: string; paper: string; sky: string };
+type Palette = { ink: string; accent: string; neutral: string; ring: string; lineStrong: string; muted: string; panel: string; paper: string; sky: string; coldRing: string; bar: string };
 function resolveColor(css: string, fallback: string, under?: string, alpha = 1): string {
   try {
     const c = document.createElement("canvas");
@@ -61,25 +62,58 @@ function resolveColor(css: string, fallback: string, under?: string, alpha = 1):
 function palette(): Palette {
   const css = getComputedStyle(document.documentElement);
   const tok = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
-  const ink = tok("--ink", "#111114");
-  const muted = tok("--muted", "#62646B");
+  const ink = tok("--ink", "#1D1424");
+  const muted = tok("--muted", "#635C6D");
   const panel = tok("--panel", "#FFFFFF");
   // Map-specific tokens win when the identity defines them (--map-land, --map-cold, --map-hot); otherwise the
   // colours derive from the shared tokens.
-  const mapCold = tok("--map-cold", "#7C8794");
-  const mapHot = tok("--map-hot", tok("--accent", "#E0115F"));
-  const mapLand = tok("--map-land", tok("--paper", "#ECEDEC"));
+  const mapCold = tok("--map-cold", "#BDB6C5");
+  const mapHot = tok("--map-hot", tok("--accent", "#84204D"));
+  const mapLand = tok("--map-land", tok("--paper", "#F4F2F5"));
   return {
-    ink: resolveColor(ink, "#111114"),
-    accent: resolveColor(mapHot, "#E0115F"),
-    neutral: resolveColor(mapCold, "#7C8794"),
-    ring: resolveColor(ink, "#111114"),
-    lineStrong: resolveColor(tok("--line-strong", "#C9CBCD"), "#C9CBCD"),
-    muted: resolveColor(muted, "#62646B"),
+    ink: resolveColor(ink, "#1D1424"),
+    accent: resolveColor(mapHot, "#84204D"),
+    neutral: resolveColor(mapCold, "#BDB6C5"),
+    ring: resolveColor(ink, "#1D1424"),
+    lineStrong: resolveColor(tok("--line-strong", "#E4DFE8"), "#E4DFE8"),
+    muted: resolveColor(muted, "#635C6D"),
     panel: resolveColor(panel, "#FFFFFF"),
-    paper: resolveColor(mapLand, "#ECEDEC"),
-    sky: resolveColor(tok("--line", "#E3E4E4"), "#E3E4E4", panel, 0.6),
+    paper: resolveColor(mapLand, "#F4F2F5"),
+    sky: resolveColor(tok("--line", "#F6F3F7"), "#F6F3F7", panel, 0.6),
+    coldRing: resolveColor(tok("--map-cold-ring", "#8E8598"), "#8E8598"),
+    bar: resolveColor(tok("--bar-hot", "#6A4874"), "#6A4874"),
   };
+}
+// Velours base map: the positron style recoloured once at load, no CSS filter. Land is --map-land; the rest are
+// aubergine tints of it. Street labels in --muted (5.75 on land), place labels #4A4252 (8.61).
+function velours(style: ML, P: Palette): ML {
+  const C = { land: P.paper, park: "#EEEAF0", water: "#E4DEE8", building: "#ECE8EF", edge: P.lineStrong, road: "#FFFFFF", minor: "#FAF9FB", casing: P.lineStrong, rail: "#DDD7E1", dash: "#F8F6F9", boundary: "#C9C1CF", label: P.muted, place: "#4A4252" };
+  for (const l of style.layers ?? []) {
+    const id: string = l.id, p = (l.paint = l.paint ?? {});
+    if (l.type === "background") p["background-color"] = C.land;
+    else if (l.type === "fill") {
+      if (id === "water") p["fill-color"] = C.water;
+      else if (id === "park" || id === "landcover_wood") p["fill-color"] = C.park;
+      else if (id === "building") { p["fill-color"] = C.building; p["fill-outline-color"] = C.edge; }
+      else if (id.startsWith("aeroway")) p["fill-color"] = C.minor;
+      else p["fill-color"] = C.land;
+    } else if (l.type === "line") {
+      if (id === "waterway") p["line-color"] = C.water;
+      else if (id.includes("casing") || id.endsWith("_subtle")) p["line-color"] = C.casing;
+      else if (id.includes("dashline")) p["line-color"] = C.dash;
+      else if (id.startsWith("railway")) p["line-color"] = C.rail;
+      else if (id.startsWith("boundary")) p["line-color"] = C.boundary;
+      else if (id === "highway_minor" || id === "highway_path") p["line-color"] = C.minor;
+      else if (id === "road_pier") p["line-color"] = C.land;
+      else p["line-color"] = C.road;
+    } else if (l.type === "symbol" && l.layout?.["text-field"]) {
+      p["text-color"] = id.startsWith("label_") ? C.place : C.label;
+      p["text-halo-color"] = C.land;
+      p["text-halo-width"] = 1.4;
+      p["text-halo-blur"] = 0;
+    }
+  }
+  return style;
 }
 const MIN_R = 300;
 const MAX_R = 5000;
@@ -116,6 +150,7 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
       let style: ML = STYLE_URL;
       try {
         style = await (await fetch(STYLE_URL)).json();
+        style = velours(style, palette());
         style.projection = { type: "globe" };
         const pal = palette();
         style.sky = { "sky-color": pal.sky, "horizon-color": pal.paper, "fog-color": pal.paper, "sky-horizon-blend": 0.7, "horizon-fog-blend": 0.8, "fog-ground-blend": 0.9, "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 0.8, 4, 0.5, 6.5, 0] };
@@ -207,34 +242,39 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
   useEffect(() => {
     const m = map.current;
     if (!ready || !m) return;
-    const src = m.getSource("venues");
-    src?.setData({
-      type: "FeatureCollection",
-      features: points.map((p) => ({
-        type: "Feature",
-        geometry: { type: "Point", coordinates: [p.lon, p.lat] },
-        properties: { eventId: p.eventId, label: p.label, cap: p.capacity, hot: p.hot ? 1 : 0, active: p.active ? 1 : 0, selected: p.selected ? 1 : 0, labelled: p.hot || p.active || p.selected ? 1 : 0 },
-      })),
-    });
+    const labelData = () => {
+      const signed = points.filter((q) => q.hot && q.tonight && !q.selected).map((q) => m.project([q.lon, q.lat]));
+      const nearSign = (p: MapPoint) => { const a = m.project([p.lon, p.lat]); return signed.some((b) => Math.hypot(a.x - b.x, a.y - b.y) < 80); };
+      m.getSource("venues")?.setData({
+        type: "FeatureCollection",
+        features: points.map((p) => ({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [p.lon, p.lat] },
+          properties: { eventId: p.eventId, label: p.label, cap: p.capacity, hot: p.hot ? 1 : 0, tonight: p.tonight ? 1 : 0, active: p.active ? 1 : 0, selected: p.selected ? 1 : 0, labelled: p.active && !p.selected && !(p.hot && p.tonight) && !nearSign(p) ? 1 : 0 },
+        })),
+      });
+    };
+    labelData();
+    m.on("zoomend", labelData);
     const ml = (window as unknown as { maplibregl: ML }).maplibregl;
     // Hot venues carry a solid sign label (an HTML marker); cold venues keep the map's own text layer.
     for (const sgn of signs.current) sgn.remove();
     signs.current = points
-      .filter((p) => p.hot && !p.selected)
+      .filter((p) => p.hot && p.tonight && !p.selected)
       .sort((a, b) => b.capacity - a.capacity)
       .map((p) => {
         const el = document.createElement("div");
         el.className = "tm-sign";
         el.textContent = p.label;
-        return new ml.Marker({ element: el, anchor: "left", offset: [13, 0] }).setLngLat([p.lon, p.lat]).addTo(m);
+        return new ml.Marker({ element: el, anchor: "center" }).setLngLat([p.lon, p.lat]).addTo(m);
       });
     const sel = points.find((p) => p.selected);
     card.current?.remove();
     card.current = null;
-    if (sel) {
+    if (sel && window.matchMedia("(min-width: 640px)").matches) {
       const el = document.createElement("div");
       el.className = `tm-peek${sel.hot ? " hot" : ""}`;
-      el.innerHTML = `<p class="tm-peek-k">${escapeHtml(sel.time)}${sel.active ? ` · <span class="on">around you now on the timeline</span>` : ""}</p><p class="tm-peek-t">${escapeHtml(sel.label)}</p><p class="tm-peek-s">${escapeHtml(sel.venue)} · ~<span class="mono">${sel.capacity.toLocaleString("en-US")}</span> people · <span class="mono">${walkMin(sel.distanceKm * 1000)} min</span> walk</p>${sel.href && sel.hot ? `<a class="tm-peek-a" href="${sel.href}">See who is coming, with Qloo</a>` : ""}`;
+      el.innerHTML = `<p class="tm-peek-k">${escapeHtml(sel.time)}${sel.active ? ` · <span class="on">on the timeline</span>` : ""}</p><p class="tm-peek-t">${escapeHtml(sel.label)}</p><p class="tm-peek-s">~<span class="mono">${sel.capacity.toLocaleString("en-US")}</span>&nbsp;people · <span class="mono">${walkMin(sel.distanceKm * 1000)}&nbsp;min</span> walk · ${escapeHtml(sel.venue)}</p>${sel.href && sel.hot ? `<a class="tm-peek-a" href="${sel.href}">See who is coming, with Qloo</a>` : ""}`;
       // Anchored at the centre; the placement pass below moves it to the free side of the venue.
       card.current = new ml.Marker({ element: el, anchor: "center", offset: [0, 0] }).setLngLat([sel.lon, sel.lat]).addTo(m);
     }
@@ -245,6 +285,13 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
     declutter.current = () => {
       const mapRect = mapEl.current?.getBoundingClientRect();
       if (!mapRect) return;
+      // A sign sits right of its dot, or left of it when it would run past the map's right edge; the radius label too.
+      for (const sgn of signs.current) {
+        const el = sgn.getElement() as HTMLElement, x = m.project(sgn.getLngLat()).x, w = el.offsetWidth;
+        sgn.setOffset(x + 13 + w > mapRect.width - 8 ? [-(13 + w / 2), 0] : [13 + w / 2, 0]);
+      }
+      const hEl = handle.current?.getElement() as HTMLElement | undefined;
+      if (hEl && handle.current) hEl.classList.toggle("flip", m.project(handle.current.getLngLat()).x > mapRect.width - 120);
       const hits = (a: DOMRect, b: DOMRect, pad = 4) => a.left < b.right + pad && a.right > b.left - pad && a.top < b.bottom + pad && a.bottom > b.top - pad;
       const obstacles: DOMRect[] = [];
       for (const q of [".tm-me", ".tm-chip-me"]) {
@@ -274,6 +321,11 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
         // Each side slides along the map edge to stay inside, then is tested against the obstacles.
         const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
         const sides: [number, number][] = [[0, h / 2 + gap], [0, -(h / 2 + gap)], [-(w / 2 + gap), 0], [w / 2 + gap, 0]];
+        // Try first the side facing away from the crowds (the centroid of the signs), then the farthest corners.
+        const sp = signs.current.map((s) => m.project(s.getLngLat()));
+        const gx = sp.length ? sp.reduce((a, p) => a + p.x, 0) / sp.length : pt.x;
+        const gy = sp.length ? sp.reduce((a, p) => a + p.y, 0) / sp.length : pt.y;
+        sides.sort((a, b) => b[0] * (pt.x - gx) + b[1] * (pt.y - gy) - (a[0] * (pt.x - gx) + a[1] * (pt.y - gy)));
         // Then the four corners of the map (narrow screens often leave no free side next to the venue).
         const corners: [number, number][] = [
           [mapRect.left + 6 + w / 2, mapRect.top + 6 + h / 2],
@@ -281,6 +333,7 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
           [mapRect.left + 6 + w / 2, mapRect.bottom - 6 - h / 2],
           [mapRect.right - 6 - w / 2, mapRect.bottom - 6 - h / 2],
         ];
+        corners.sort((a, b) => Math.hypot(b[0] - mapRect.left - gx, b[1] - mapRect.top - gy) - Math.hypot(a[0] - mapRect.left - gx, a[1] - mapRect.top - gy));
         const candidates: [number, number][] = [
           ...sides.map(([dx, dy]): [number, number] => [clamp(cx + dx, mapRect.left + 6 + w / 2, mapRect.right - 6 - w / 2), clamp(cy + dy, mapRect.top + 6 + h / 2, mapRect.bottom - 6 - h / 2)]),
           ...corners,
@@ -313,7 +366,7 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
     requestAnimationFrame(() => declutter.current());
     // The fly to the selected crowd lasts 1.1 s; place the board once more when it has landed.
     const settle = setTimeout(() => declutter.current(), 1400);
-    return () => clearTimeout(settle);
+    return () => { clearTimeout(settle); m.off("zoomend", labelData); };
   }, [points, ready]);
 
   // Fly to a newly selected crowd.
@@ -359,20 +412,19 @@ function addLayers(m: ML, P: Palette) {
   m.addLayer({ id: "ring-fill", type: "fill", source: "rings", filter: ["==", ["get", "main"], 1], paint: { "fill-color": P.ink, "fill-opacity": 0.025 } });
   m.addLayer({ id: "ring-line", type: "line", source: "rings", filter: ["==", ["geometry-type"], "Polygon"], paint: { "line-color": ["case", ["==", ["get", "main"], 1], P.ink, P.lineStrong], "line-width": ["case", ["==", ["get", "main"], 1], 1.5, 0.8], "line-dasharray": ["case", ["==", ["get", "main"], 1], ["literal", [3, 2.5]], ["literal", [1]]] } });
   m.addSource("ring-labels", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-  m.addLayer({ id: "ring-label", type: "symbol", source: "ring-labels", layout: { "text-field": ["get", "label"], "text-font": FONT, "text-size": 10.5, "text-anchor": "bottom", "text-offset": [0, -0.2], "text-allow-overlap": true }, paint: { "text-color": P.muted, "text-halo-color": P.panel, "text-halo-width": 1.6 } });
+  m.addLayer({ id: "ring-label", type: "symbol", source: "ring-labels", layout: { "text-field": ["get", "label"], "text-font": FONT, "text-size": 15, "text-anchor": "bottom", "text-offset": [0, -0.2], "text-allow-overlap": true }, paint: { "text-color": P.muted, "text-halo-color": P.panel, "text-halo-width": 1.6 } });
   m.addSource("venues", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
   // crowd mass: radius grows with the square root of the crowd
   m.addLayer({
     id: "venue-mass",
     type: "circle",
     source: "venues",
+    filter: ["all", ["==", ["get", "tonight"], 1], ["==", ["get", "active"], 1]],
     paint: {
       "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, ["*", 0.12, ["sqrt", ["get", "cap"]]], 16, ["*", 0.34, ["sqrt", ["get", "cap"]]]],
-      "circle-color": ["case", ["==", ["get", "hot"], 1], P.accent, P.neutral],
-      "circle-opacity": ["case", ["==", ["get", "active"], 1], 0.14, 0.05],
-      "circle-stroke-color": ["case", ["==", ["get", "hot"], 1], P.accent, P.neutral],
-      "circle-stroke-width": ["case", ["==", ["get", "active"], 1], 1, 0],
-      "circle-stroke-opacity": 0.6,
+      "circle-color": P.bar,
+      "circle-opacity": 0.08,
+      "circle-stroke-width": 0,
     },
   });
   m.addLayer({
@@ -381,19 +433,19 @@ function addLayers(m: ML, P: Palette) {
     source: "venues",
     layout: { "circle-sort-key": ["+", ["get", "hot"], ["*", 2, ["get", "selected"]]] },
     paint: {
-      "circle-radius": ["case", ["==", ["get", "hot"], 1], 7, 5],
-      "circle-color": ["case", ["==", ["get", "hot"], 1], P.accent, P.neutral],
+      "circle-radius": ["case", ["==", ["get", "tonight"], 1], 7, ["==", ["get", "hot"], 1], 6, 4.5],
+      "circle-color": ["case", ["==", ["get", "tonight"], 1], P.accent, ["==", ["get", "hot"], 1], P.bar, P.panel],
       "circle-opacity": 1,
-      "circle-stroke-color": ["case", ["==", ["get", "selected"], 1], P.ink, P.panel],
-      "circle-stroke-width": ["case", ["==", ["get", "selected"], 1], 2.5, 1.8],
+      "circle-stroke-color": ["case", ["==", ["get", "selected"], 1], P.ink, ["==", ["get", "hot"], 1], P.panel, P.coldRing],
+      "circle-stroke-width": ["case", ["==", ["get", "selected"], 1], 2.5, ["==", ["get", "hot"], 1], 1.8, 1.5],
     },
   });
   m.addLayer({
     id: "venue-label",
     type: "symbol",
     source: "venues",
-    filter: ["all", ["==", ["get", "labelled"], 1], ["==", ["get", "selected"], 0], ["==", ["get", "hot"], 0]],
-    layout: { "text-field": ["get", "label"], "text-font": FONT_BOLD, "text-size": 12, "text-anchor": "left", "text-offset": [0.9, 0], "text-max-width": 12, "text-padding": 4 },
+    filter: ["==", ["get", "labelled"], 1],
+    layout: { "text-field": ["get", "label"], "text-font": FONT_BOLD, "text-size": 13, "text-variable-anchor": ["left", "right", "top", "bottom"], "text-radial-offset": 0.9, "text-justify": "auto", "text-max-width": 9, "text-padding": 4 },
     paint: { "text-color": P.muted, "text-halo-color": P.panel, "text-halo-width": 1.8 },
   });
 }
@@ -404,7 +456,7 @@ function drawRings(m: ML, c: { lat: number; lon: number }, r: number) {
   m.getSource("rings")?.setData({ type: "FeatureCollection", features: rings.map((x) => ({ type: "Feature", properties: { main: x.main }, geometry: { type: "Polygon", coordinates: [circle(c, x.r)] } })) });
   m.getSource("ring-labels")?.setData({
     type: "FeatureCollection",
-    features: rings.map((x) => ({ type: "Feature", properties: { label: `${fmtKm(x.r)} · ${walkMin(x.r)} min walk` }, geometry: { type: "Point", coordinates: northOf(c, x.r) } })),
+    features: rings.map((x) => ({ type: "Feature", properties: { label: `${fmtKm(x.r)} · ${walkMin(x.r)}\u00A0min walk` }, geometry: { type: "Point", coordinates: northOf(c, x.r) } })),
   });
 }
 
@@ -429,7 +481,7 @@ function metersBetween(c: { lat: number; lon: number }, p: { lat: number; lng: n
   return Math.hypot(dx, dy);
 }
 const clampR = (r: number) => Math.min(MAX_R, Math.max(MIN_R, r));
-export const fmtKm = (m: number) => (m < 1000 ? `${Math.round(m / 50) * 50} m` : `${(Math.round(m / 100) / 10).toLocaleString("en-US")} km`);
+export const fmtKm = (m: number) => (m < 1000 ? `${Math.round(m / 50) * 50}\u00A0m` : `${(Math.round(m / 100) / 10).toLocaleString("en-US")}\u00A0km`);
 function zoomFor(r: number) {
   return Math.max(11.5, Math.min(15.6, 14.6 - Math.log2(r / 1500)));
 }

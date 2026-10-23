@@ -15,8 +15,8 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
     return (
       <main className="mx-auto max-w-3xl px-5 py-16">
         <h1 className="text-3xl">No place yet</h1>
-        <p className="mt-2" style={{ color: "var(--muted)" }}>
-          <Link href="/start" className="underline">Set up your place</Link> or run <code>npm run seed</code> for the demo merchants.
+        <p className="mt-2 text-[var(--muted)]">
+          <Link href="/start" className="link">Set up your place</Link> or run <code>npm run seed</code> for the demo merchants.
         </p>
       </main>
     );
@@ -69,31 +69,31 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
   });
 
   return (
-    <main className="mx-auto max-w-[1200px] px-5 py-10">
+    <main className="mx-auto max-w-6xl px-5 py-10">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">Radar · next 3 days</p>
-          <h1 className="mt-1 text-4xl">{merchant.name}</h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
-            {merchant.address} · {merchant.seats ?? 60} seats · watching {merchant.radius_m >= 1000 ? `${(merchant.radius_m / 1000).toLocaleString("en-US")} km` : `${merchant.radius_m} m`} around you
+          <h1 className="t-title mt-2">{merchant.name}</h1>
+          <p className="mt-3 text-base text-[var(--muted)]">
+            {merchant.address}&nbsp;· {merchant.seats ?? 60} seats&nbsp;· watching {merchant.radius_m >= 1000 ? `${(merchant.radius_m / 1000).toLocaleString("en-US")}\u00A0km` : `${merchant.radius_m}\u00A0m`} around you
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3 text-sm">
-          <Link href={`/today?merchant=${merchant.id}`} className="font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+          <MerchantSwitch current={merchant.id} options={merchants.map((m) => ({ id: m.id, label: `${m.name}, ${m.city}` }))} />
+          <Link href={`/today?merchant=${merchant.id}`} className="link text-base">
             Today
           </Link>
-          <MerchantSwitch current={merchant.id} options={merchants.map((m) => ({ id: m.id, label: `${m.name}, ${m.city}` }))} />
-          <Link href={`/alerts?merchant=${merchant.id}`} className="font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>
+          <Link href={`/alerts?merchant=${merchant.id}`} className="link text-base">
             Alerts
           </Link>
-          <Link href={`/pulse?merchant=${merchant.id}`} className="font-semibold underline underline-offset-4 decoration-[1.5px]" style={{ color: "var(--ink)" }}>
+          <Link href={`/pulse?merchant=${merchant.id}`} className="link text-base">
             Weekly pulse
           </Link>
         </div>
       </header>
 
       {error && (
-        <p className="mt-6 p-3 text-sm" style={{ background: "var(--danger-soft)", color: "var(--danger)" }}>
+        <p className="mt-6 bg-[var(--danger-soft)] px-5 py-4 text-base text-[var(--danger)]">
           Could not load events: {error}
         </p>
       )}
@@ -138,9 +138,9 @@ function blurbOf(e: RadarItem["event"], memberNames: string[]): string | undefin
       return memberNames.length ? `${memberNames.slice(0, 3).join(", ")}${count > 3 ? ` and ${count - 3} more` : ""}` : undefined;
     }
     case "tv":
-      return [meta.league, meta.side === "away" ? "away game" : "home game across town", meta.tv, meta.fandom ? `Qloo local fandom ${meta.fandom.rank.toFixed(2)}, ${meta.fandom.band}` : undefined].filter(Boolean).join(" · ");
+      return [meta.league, meta.side === "away" ? "away game" : "home game across town", meta.tv, meta.fandom ? `Qloo local fandom ${meta.fandom.rank.toFixed(2)}, ${meta.fandom.band}` : undefined].filter(Boolean).join("\u00A0· ");
     case "street":
-      return [meta.type, e.venue.name].filter(Boolean).join(" · ");
+      return [meta.type, e.venue.name].filter(Boolean).join("\u00A0· ");
     case "calendar":
       return "A night the whole city goes out";
     default:

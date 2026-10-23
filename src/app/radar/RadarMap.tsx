@@ -260,7 +260,7 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
     const m = map.current;
     if (!ready || !m) return;
     const labelData = () => {
-      const signed = points.filter((q) => q.hot && q.tonight).map((q) => m.project([q.lon, q.lat]));
+      const signed = points.filter((q) => (q.hot && q.tonight) || q.selected).map((q) => m.project([q.lon, q.lat]));
       const nearSign = (p: MapPoint) => { const a = m.project([p.lon, p.lat]); return signed.some((b) => Math.hypot(a.x - b.x, a.y - b.y) < 80); };
       m.getSource("venues")?.setData({
         type: "FeatureCollection",
@@ -274,14 +274,16 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
     labelData();
     m.on("zoomend", labelData);
     const ml = (window as unknown as { maplibregl: ML }).maplibregl;
-    // Hot venues carry a solid sign label (an HTML marker); cold venues keep the map's own text layer.
+    // Hot venues carry a solid sign label (an HTML marker); the chosen crowd keeps one too, since the peek board is
+    // hidden beside the list from 1024 px up. Cold venues keep the map's own text layer.
+    // Priority: your place, then the chosen crowd's sign (always shown), then the biggest crowds.
     for (const sgn of signs.current) sgn.remove();
     signs.current = points
-      .filter((p) => p.hot && p.tonight && !p.selected)
-      .sort((a, b) => b.capacity - a.capacity)
+      .filter((p) => (p.hot && p.tonight) || p.selected)
+      .sort((a, b) => Number(b.selected) - Number(a.selected) || b.capacity - a.capacity)
       .map((p) => {
         const el = document.createElement("div");
-        el.className = "tm-sign";
+        el.className = p.selected ? "tm-sign sel" : "tm-sign";
         el.textContent = p.label;
         return new ml.Marker({ element: el, anchor: "center" }).setLngLat([p.lon, p.lat]).addTo(m);
       });
@@ -298,7 +300,8 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
     // Placement and declutter, re-run on every map move:
     // 1. the peek board takes the first free side of its venue (below, above, left, right) that stays inside the map
     //    and covers neither your place, nor the biggest crowd's marker and sign, nor the full screen button;
-    // 2. the biggest crowd's sign is always shown; any other sign that overlaps the board or a bigger sign is hidden.
+    // 2. the first sign (the chosen crowd's, else the biggest crowd's) is always shown; any other sign that overlaps
+    //    the board or a higher sign is hidden.
     declutter.current = () => {
       const mapRect = mapEl.current?.getBoundingClientRect();
       if (!mapRect) return;
@@ -504,7 +507,7 @@ function addLayers(m: ML, P: Palette) {
     type: "symbol",
     source: "venues",
     filter: ["==", ["get", "labelled"], 1],
-    layout: { "text-field": ["get", "label"], "text-font": FONT_BOLD, "text-size": 13, "text-variable-anchor": ["left", "right", "top", "bottom"], "text-radial-offset": 0.9, "text-justify": "auto", "text-max-width": 9, "text-padding": 2 },
+    layout: { "text-field": ["get", "label"], "text-font": FONT_BOLD, "text-size": 14, "text-variable-anchor": ["left", "right", "top", "bottom"], "text-radial-offset": 0.9, "text-justify": "auto", "text-max-width": 9, "text-padding": 2 },
     paint: { "text-color": P.muted, "text-halo-color": P.panel, "text-halo-width": 1.8 },
   });
   // Venue names avoid every venue dot (circle layers take no part in label collision): an empty 14 px icon per venue,
@@ -528,10 +531,15 @@ function keepOut(m: ML, fs?: DOMRect) {
   const c = m.getCanvas(), W = c.clientWidth, H = c.clientHeight, P = 100, g = 6, r = c.getBoundingClientRect();
   const boxes = [[W, -P, P, H + 2 * P], [-P, -P, P, H + 2 * P], [0, -P, W, P], [0, H, W, P]];
   if (fs) boxes.push([fs.left - r.left - g, fs.top - r.top - g, fs.width + 2 * g, fs.height + 2 * g]);
-  const features = boxes.map(([x, y, w, h], i) => {
+  // A box 100 px outside the canvas has no latitude while the fly-in is zoomed far out (MapLibre throws past 90°):
+  // that box is skipped for this move and placed again on the next one.
+  const at = (x: number, y: number): number[] | null => { try { return m.unproject([x, y]).toArray(); } catch { return null; } };
+  const features = boxes.flatMap(([x, y, w, h], i) => {
+    const coordinates = at(x, y);
+    if (!coordinates) return [];
     const iw = Math.ceil(w), ih = Math.ceil(h), img = `keepout-${i}-${iw}x${ih}`;
     if (!m.hasImage(img)) m.addImage(img, { width: iw, height: ih, data: new Uint8Array(iw * ih * 4) });
-    return { type: "Feature", properties: { img }, geometry: { type: "Point", coordinates: m.unproject([x, y]).toArray() } };
+    return [{ type: "Feature", properties: { img }, geometry: { type: "Point", coordinates } }];
   });
   m.getSource("keepout")?.setData({ type: "FeatureCollection", features });
 }

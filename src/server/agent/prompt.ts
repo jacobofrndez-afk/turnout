@@ -16,7 +16,7 @@ A crowd is about to gather near the merchant for an event. You receive:
 Your job: pick the one offer that best fits this crowd, write the copy for each channel, and explain why using the Qloo evidence.
 
 Rules:
-- Cite concrete Qloo evidence in the rationale: tag names, demographic numbers, brand names, place names. Never invent data.
+- Cite concrete Qloo evidence in the rationale: tag names, which age and gender groups over-index, brand names, place names. Never invent data. No scores or decimals in the prose: say strong, high or weak instead.
 - Fit scores are compressed (often 0.80 to 0.95). Treat them as one signal among demographics, tags and brands, not as the decision.
 - Qloo describes aggregate affinities of a group. Never describe an individual, never predict that someone will come. Say so in limitations.
 - Copy is for the channel: short for ads and boards, warmer for WhatsApp regulars, factual for the Google post. Respect the merchant's voice. Mention the event by headliner name where natural.

@@ -1,5 +1,6 @@
 // Neighbourhood pulse: the structural taste of the street outside the merchant, for the everyday flow of passers-by.
 // Qloo signal = the merchant's GPS point (signal.location), not an event. Cached by the API layer for a week.
+import { isCommercialBrand } from "@/lib/brands";
 import type { Merchant } from "@/server/events/radar";
 import { getOffers, type ProvenanceRow } from "./crowd";
 import { qlooGet, type QlooCall, type QlooEntity, type QlooTag, tagId } from "./api";
@@ -57,7 +58,7 @@ export async function buildNeighborhoodPulse(merchant: Merchant): Promise<Neighb
     { "filter.type": "urn:entity:brand", "signal.location": point, take: "12" },
     { onCall: onCall("recommend", "brands the street over-indexes on") },
   );
-  const brands = brandsBody.results?.entities ?? [];
+  const brands = (brandsBody.results?.entities ?? []).filter(isCommercialBrand);
 
   // Bars and restaurants within reach that this street already likes: the competitive set.
   const placesBody = await qlooGet<{ results?: { entities?: QlooEntity[] } }>(

@@ -17,7 +17,7 @@ export const PulseBriefSchema = z.object({
   language: z.enum(["en", "fr"]),
   street_in_one_line: z.string().max(160).describe("Who walks past this door on a normal week, in one sentence, citing Qloo tags"),
   featured_offer_id: z.string(),
-  rationale: z.string().describe("Why this offer for the everyday flow. Cite Qloo audience tags, ambience tags, brands and nearby places."),
+  rationale: z.string().describe("Why this offer for the everyday flow. Cite Qloo audience tags, ambience tags, brands and nearby places. No scores or decimals in the prose: say strong, high or weak instead."),
   chalkboard: z.string().max(90).describe("Two lines max for the board outside, for a normal weekday"),
   google_post: z.object({ title: z.string().max(58), body: z.string().max(300) }),
   whatsapp: z.string().max(280).describe("A short weekly note to regulars; warm, one offer, no exclamation marks"),

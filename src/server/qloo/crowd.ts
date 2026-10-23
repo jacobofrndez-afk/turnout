@@ -1,5 +1,6 @@
 // Crowd profile: who is coming to this event, culturally, and which of the merchant's offers fits them.
 // Fixed, cached Qloo recipe. The LLM never picks UUIDs: resolution is deterministic or asks the merchant.
+import { isCommercialBrand } from "@/lib/brands";
 import { getDb, newId } from "@/server/db/client";
 import type { Merchant } from "@/server/events/radar";
 import { headliner as pickHeadliner } from "@/server/events/concentration";
@@ -121,7 +122,8 @@ export async function buildCrowdProfile(merchant: Merchant, event: EventRow, pic
   if (profile.tags.length < 5) profile.tags = await tasteTags(id, { take: 30 }, { onCall: onCall("entity_tags", "general taste tags (no place tags)") });
   profile.demographics = await demographics(id, { onCall: onCall("audience_demographics") }).catch(() => undefined);
   profile.places = await recommend("place", { ...signalOf(id), location: { lat: merchant.lat, lon: merchant.lon, radiusM: merchant.radius_m }, filterTags: [BAR_OR_RESTAURANT[0]], take: 12, explain: true }, { onCall: onCall("recommend", `bars within ${merchant.radius_m} m`) });
-  profile.brands = await recommend("brand", { ...signalOf(id), take: 12 }, { onCall: onCall("recommend", "brands this crowd over-indexes on") });
+  // Causes and charities are not brands a bar can speak to: filtered the same way as on the pulse.
+  profile.brands = (await recommend("brand", { ...signalOf(id), take: 12 }, { onCall: onCall("recommend", "brands this crowd over-indexes on") })).filter(isCommercialBrand);
 
   // 3. Offer fit: for each offer, how strongly does this crowd like places with the offer's tags around the merchant?
   for (const offer of getOffers(merchant.id)) {
@@ -182,7 +184,7 @@ async function momentSignal(event: EventRow, profile: CrowdProfile, onCall: (w: 
     const words = event.name.replace(/[^\p{L}\p{N} ]/gu, " ").split(/\s+/).filter((w) => w.length > 3).slice(0, 3).join(" ");
     const tag = words ? (await findTags(words, 3, { onCall: onCall("find_tags", `tag for "${words}"`) }))[0] : undefined;
     if (tag) {
-      profile.signal.tags.push({ id: tagId(tag), name: tag.name, type: "tag", note: "closest Qloo tag to the event's name" });
+      profile.signal.tags.push({ id: tagId(tag), name: tag.name, type: "tag", note: "the closest taste to the event's name" });
       return;
     }
   }
@@ -204,7 +206,7 @@ async function momentSignal(event: EventRow, profile: CrowdProfile, onCall: (w: 
     const name = m.name.replace(/\s*\([^)]*\)\s*$/, "").replace(/\s+-\s+(broadway|on broadway|the musical)$/i, "").trim();
     const results = await searchEntities(name, how.types, { onCall: onCall("describe", `wave member "${name}"`) });
     const hit = results.find((r) => norm(r.name) === norm(name) && (r.popularity ?? 0) >= how.minPopularity);
-    if (hit) profile.signal.entities.push({ id: hit.entity_id, name: hit.name, type: hit.subtype?.replace("urn:entity:", "") ?? "", note: `${m.venue}, ~${m.capacity.toLocaleString("en-US")} people${/movie|tv_show/.test(hit.subtype ?? "") ? ", read through its screen adaptation" : ""}` });
+    if (hit) profile.signal.entities.push({ id: hit.entity_id, name: hit.name, type: hit.subtype?.replace("urn:entity:", "") ?? "", note: `${m.venue}, about ${m.capacity.toLocaleString("en-US")} seats` });
     profile.candidates.push({ id: hit?.entity_id ?? "", name: m.name, type: hit?.subtype ?? "not in Qloo", description: m.venue });
   }
   // The wave's dominant kind of show, by people: theatre and comedy waves also carry their genre tag.
@@ -214,7 +216,7 @@ async function momentSignal(event: EventRow, profile: CrowdProfile, onCall: (w: 
   if (profile.signal.entities.length === 0 || /theatre|arts|comedy/i.test(dominant)) {
     const q = SEGMENT_TAG_QUERY[dominant] ?? "nightlife";
     const tag = (await findTags(q, 3, { onCall: onCall("find_tags", `fallback taste tag "${q}"`) }))[0];
-    if (tag) profile.signal.tags.push({ id: tagId(tag), name: tag.name, type: "tag", note: profile.signal.entities.length ? `the wave is mostly ${dominant.toLowerCase()}` : "no show in this wave is known to Qloo by name" });
+    if (tag) profile.signal.tags.push({ id: tagId(tag), name: tag.name, type: "tag", note: profile.signal.entities.length ? `most of tonight's shows are ${/comedy/i.test(dominant) ? "comedy" : "theatre"}` : "no show in this wave is known to Qloo by name" });
   }
 }
 

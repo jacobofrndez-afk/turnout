@@ -283,6 +283,28 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
       document.removeEventListener("keydown", onKey);
     };
   }, []);
+  // While full screen is on, everything outside the overlay is inert: Tab stays inside the radar and the rest of
+  // the page leaves the accessibility tree. Focus lands on the Exit button and goes back where it was on exit.
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!full || !root) return;
+    const prev = document.activeElement;
+    const made: Element[] = [];
+    for (let a: Element | null = root; a && a !== document.body; a = a.parentElement) {
+      for (const s of a.parentElement?.children ?? []) {
+        if (s !== a && !s.hasAttribute("inert")) {
+          s.setAttribute("inert", "");
+          made.push(s);
+        }
+      }
+    }
+    root.querySelector<HTMLElement>(".tm-fs")?.focus();
+    return () => {
+      for (const s of made) s.removeAttribute("inert");
+      const back = prev instanceof HTMLElement && prev !== document.body ? prev : root.querySelector<HTMLElement>(".tm-fs");
+      back?.focus();
+    };
+  }, [full]);
   function toggleFull() {
     const next = !full;
     setFull(next);
@@ -467,7 +489,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
                           <span className="tm-mono">{fmtTime.format(new Date(it.w.start))}</span>&nbsp;<span className="text-[var(--muted)]">· crowd from <span className="tm-mono">{fmtTime.format(new Date(it.w.arrive))}</span> to <span className="tm-mono">{fmtTime.format(new Date(it.w.leave))}</span></span>
                         </p>
                         <p className="t-name mt-1 text-balance">{it.headliner}</p>
-                        <p className="mt-1 line-clamp-2 text-sm text-[var(--muted)]">
+                        <p className="mt-1 text-sm text-[var(--muted)]">
                           {it.kind === "venue" || it.kind === "street" ? <><span className="tm-mono">{it.distanceKm.toFixed(1)}&nbsp;km</span>&nbsp;· </> : null}~<span className="tm-mono">{it.capacity.toLocaleString("en-US")}</span>&nbsp;people{it.kind === "venue" || it.kind === "wave" ? "" : " (estimate)"}&nbsp;· {it.kind === "venue" ? it.venue : (it.blurb ?? it.venue)}
                         </p>
                         {it.interesting && (

@@ -1,3 +1,4 @@
+import { isCommercialBrand } from "@/lib/brands";
 import Link from "next/link";
 import { getMerchant } from "@/server/events/radar";
 import { tagId } from "@/server/qloo/api";
@@ -5,6 +6,11 @@ import { buildCrowdProfile, describeDemographics, getEvent, hasSignal } from "@/
 import { nb } from "@/lib/nbsp";
 
 export const dynamic = "force-dynamic";
+
+// What Qloo read each signal through, in a merchant's words. Unknown types are not shown.
+const READ_THROUGH: Record<string, string> = { tv_show: "its TV series", movie: "its film", artist: "the act", tag: "a taste", brand: "the brand", place: "the place", book: "the book", videogame: "the game" };
+// Offer fit as a word, from the gap to the best offer. Decimals in the same band meant nothing to a merchant.
+const fitWord = (affinity: number, top: number, index: number) => (index === 0 ? "Strongest fit" : top - affinity <= 0.02 ? "Close" : top - affinity <= 0.06 ? "Further" : "Weak");
 
 export default async function NewCampaignPage({ searchParams }: { searchParams: Promise<{ merchant?: string; event?: string; pick?: string }> }) {
   const sp = await searchParams;
@@ -58,7 +64,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
           <p className="eyebrow">The crowd, through Qloo</p>
           <h1 className="t-title mt-2">{profile.headlinerName}</h1>
           <p className="mt-3 text-base text-[var(--muted)]">
-            {event.name} · {event.venue_name} · {fmt.format(new Date(event.starts_at))} · for {merchant.name}
+            {event.name.toLowerCase().includes(profile.headlinerName.toLowerCase()) ? "" : `${event.name} · `}{event.venue_name} · {fmt.format(new Date(event.starts_at))} · for {merchant.name}
           </p>
         </div>
         {hasSignal(profile) && (
@@ -110,8 +116,8 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
                 <ul className="mt-2 space-y-1.5 text-base">
                   {[...profile.signal.entities, ...profile.signal.tags].map((x) => (
                     <li key={x.id}>
-                      <span className="font-semibold text-[var(--ink)]">{x.name}</span>&nbsp;
-                      <span className="text-[var(--muted)]">· {x.type}{x.note ? ` · ${x.note}` : ""}</span>
+                      <span className="font-semibold text-[var(--ink)]">{x.name}</span>
+                      <span className="text-[var(--muted)]">{x.type === "tag" ? `, a taste Qloo knows${x.note ? `: ${x.note}` : ""}` : `${x.note ? `, ${x.note}` : ""}${READ_THROUGH[x.type] ? `, read through ${READ_THROUGH[x.type]}` : ""}`}.</span>
                     </li>
                   ))}
                 </ul>
@@ -131,7 +137,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
             </div>
             <div>
               <p className="eyebrow">Brands this crowd likes</p>
-              <p className="mt-2 text-base leading-relaxed">{profile.brands.slice(0, 8).map((b) => b.name).join(" · ") || "—"}</p>
+              <p className="mt-2 text-base leading-relaxed">{profile.brands.filter(isCommercialBrand).slice(0, 8).map((b) => b.name).join(" · ") || "—"}</p>
             </div>
           </section>
 
@@ -158,12 +164,11 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
               <p className="mt-4 text-base">{shownTags.map((t) => t.name).join(" · ")}</p>
             </div>
             <div>
-              <p className="eyebrow">Bars within <span className="mono">{merchant.radius_m >= 1000 ? `${(merchant.radius_m / 1000).toLocaleString("en-US")} km` : `${merchant.radius_m} m`}</span> this crowd already likes</p>
+              <p className="eyebrow">Bars within <span className="mono">{merchant.radius_m >= 1000 ? `${(merchant.radius_m / 1000).toLocaleString("en-US")} km` : `${merchant.radius_m} m`}</span> this crowd already likes, in order of affinity</p>
               <ol className="mt-4 space-y-2 text-base">
                 {profile.places.slice(0, 8).map((p) => (
-                  <li key={p.entity_id} className="flex items-baseline justify-between gap-6">
-                    <span className="truncate">{p.name} <span className="text-sm text-[var(--muted)]">{(p.properties?.geocode as { name?: string } | undefined)?.name}</span></span>
-                    <span className="t-figure text-2xl">{(p.query?.affinity ?? 0).toFixed(2)}</span>
+                  <li key={p.entity_id} className="truncate">
+                    {p.name} <span className="text-sm text-[var(--muted)]">{(p.properties?.geocode as { name?: string } | undefined)?.name}</span>
                   </li>
                 ))}
               </ol>
@@ -175,12 +180,12 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
             <p className="measure mt-3 text-base text-[var(--muted)]">Affinity of places carrying each offer's tags, near you, for this crowd. Higher means the crowd already seeks this kind of place around here. One signal among several; the agent decides with the demographics and brands too.</p>
             <table className="data mt-6 w-full text-base">
               <tbody>
-                {profile.offerFits.map((f) => (
+                {profile.offerFits.map((f, i) => (
                   <tr key={f.offerId}>
                     <td className="font-semibold text-[var(--ink)]">{f.title}<span className="mt-1 block text-sm font-normal text-[var(--muted)] md:hidden">{f.tagNames.join(", ")}. e.g. {f.topPlaces.join(", ")}</span></td>
                     <td className="hidden text-sm text-[var(--muted)] md:table-cell">{f.tagNames.join(", ")}</td>
                     <td className="hidden text-sm text-[var(--muted)] md:table-cell">e.g. {f.topPlaces.join(", ")}</td>
-                    <td className="t-figure text-right text-2xl">{f.affinity.toFixed(2)}</td>
+                    {f.matches === 0 || f.affinity === 0 ? <td className="text-right text-sm text-[var(--muted)]">no match nearby</td> : <td className="text-right font-semibold text-[var(--ink)]">{fitWord(f.affinity, profile.offerFits[0].affinity, i)}</td>}
                   </tr>
                 ))}
               </tbody>

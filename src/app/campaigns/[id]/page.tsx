@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCampaign, getDraft, getProvenance, pollOperatorDraft, provider, INBOX } from "@/server/agent/run";
+import { getCampaign, getDraft, getProvenance, pollOperatorDraft } from "@/server/agent/run";
+import { campaignWindows } from "@/server/agent/prompt";
 import { getMerchant } from "@/server/events/radar";
 import { getEvent, getOffers } from "@/server/qloo/crowd";
-import { relative } from "node:path";
+import { RefreshEvery } from "@/app/today/RefreshEvery";
 import { getSends, CHANNEL_LABEL, type ChannelId } from "@/server/channels";
 import { nb } from "@/lib/nbsp";
 import { firstSentences, noScores } from "@/lib/text";
@@ -34,6 +35,10 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   const sends = getSends(campaign.id);
   const weatherByWindow = new Map(prov.filter((p) => p.kind === "weather").map((p) => [String(JSON.parse(p.input_json).window ?? ""), { kind: p.envelope_status, label: (p.note ?? "").split(": ").slice(1).join(": ") }]));
   const fmt = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: merchant.timezone });
+  // The night is over once every window has closed (instants, compared in UTC). A draft then has nothing left to publish.
+  const lastWindowEnd = Math.max(...campaignWindows(event).map((w) => w.end));
+  const nightOver = campaign.status === "drafted" && lastWindowEnd < Date.now();
+  const fmtDay = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: merchant.timezone });
   const statusLabel: Record<string, string> = { drafted: "Draft ready", awaiting_operator: "Agent working", needs_input: "Needs your pick", approved: "Approved", sent: "Published", failed: "Failed" };
 
   return (
@@ -49,12 +54,12 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
       </header>
 
       {campaign.status === "awaiting_operator" && (
-        <section className="tone stack-block">
-          <h2 className="t-heading">The agent is working on it</h2>
-          <p className="mt-3 text-base text-[var(--muted)]">
-            Provider <code>{provider()}</code>. The brief was written to <code>{relative(process.cwd(), INBOX())}/{campaign.id}.prompt.md</code>. The draft will appear here as <code>{campaign.id}.draft.json</code>; reload to check.
-          </p>
-          <div className="mt-8 max-w-2xl" aria-hidden="true"><span className="skeleton skeleton-title" /><span className="skeleton skeleton-line mt-6" /><span className="skeleton skeleton-line" /><span className="skeleton skeleton-line" /></div>
+        <section className="tone stack-block" aria-busy="true">
+          <p className="eyebrow">Your campaign</p>
+          <h2 className="t-title mt-2">Turnout is writing this campaign.</h2>
+          <p className="t-body mt-3">It reads the crowd through Qloo and drafts every channel. A few minutes; this page refreshes on its own.</p>
+          <div className="mt-8 max-w-2xl" aria-hidden="true"><span className="skeleton skeleton-title" /><span className="skeleton skeleton-line mt-6" /><span className="skeleton skeleton-line" /><span className="skeleton skeleton-line" /><span className="skeleton skeleton-block mt-8" /></div>
+          <RefreshEvery seconds={20} />
         </section>
       )}
       {campaign.status === "needs_input" && (
@@ -106,7 +111,13 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                 <p className="t-heading mt-4">{offer?.title ?? draft.chosen_offer_id}</p>
                 <p className="mt-3 text-lg text-[var(--muted)]">{nb(`${offer?.description ?? ""}. ${offer?.price ?? ""}.`)}</p>
                 <p className="mt-6 text-sm text-[var(--muted)] tnum">Confidence {(draft.confidence * 100).toFixed(0)}%</p>
-                {campaign.status === "drafted" && (<form action={`/api/campaigns/${campaign.id}/approve`} method="post" className="mt-10"><button className="btn btn-accent btn-lg">Publish it now</button></form>)}
+                {campaign.status === "drafted" && !nightOver && (<form action={`/api/campaigns/${campaign.id}/approve`} method="post" className="mt-10"><button className="btn btn-accent btn-lg">Publish it now</button></form>)}
+                {nightOver && (
+                  <div className="mt-10">
+                    <p className="eyebrow">This night has passed</p>
+                    <p className="t-body mt-3">The windows closed on {fmtDay.format(new Date(lastWindowEnd))}. Draft a new campaign from <Link href={`/radar?merchant=${merchant.id}`} className="link">the radar</Link> for the next crowd.</p>
+                  </div>
+                )}
               </div>
               <p className="eyebrow mt-12">Why, according to Qloo</p>
               <p className="t-body mt-3">{nb(whyLead)}</p>
@@ -158,7 +169,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
           </section>
           <section className="stack-block">
             <p className="eyebrow">What this does not establish</p>
-            <p className="t-body mt-3">{nb(draft.limitations)}</p>
+            <p className="t-body mt-3">{nb(noScores(draft.limitations))}</p>
           </section>
         </>
       )}

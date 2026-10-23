@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { nb } from "@/lib/nbsp";
+import { firstSentences, noScores } from "@/lib/text";
 import { getMerchant, listMerchants } from "@/server/events/radar";
 import { buildNeighborhoodPulse, type NeighborhoodPulse } from "@/server/qloo/neighborhood";
 import { getBrief, latestPulse } from "@/server/agent/pulse";
@@ -24,6 +25,9 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
   const brief = getBrief(row);
   const offers = getOffers(merchant.id);
   const featured = offers.find((o) => o.id === brief?.featured_offer_id);
+  const why = brief ? noScores(brief.rationale) : "";
+  const whyLead = firstSentences(why, 320);
+  const whyRest = why.startsWith(whyLead) ? why.slice(whyLead.length).trim() : "";
   const evenings = await eveningsThisWeek(merchant.lat, merchant.lon, merchant.timezone).catch(() => []);
 
   return (
@@ -59,15 +63,18 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
           <div className="plate">
             <p className="eyebrow">This week</p>
             <p className="t-heading mt-4">{featured?.title ?? brief.featured_offer_id}</p>
-            <p className="mt-3 text-lg text-[var(--muted)]">{nb(brief.street_in_one_line)}</p>
-            <p className="eyebrow mt-10">Why, according to Qloo</p>
-            <p className="t-body mt-3">{nb(brief.rationale)}</p>
+            <p className="mt-3 text-lg text-[var(--muted)]">{nb(noScores(brief.street_in_one_line))}</p>
+          </div>
+          <div className="stack-block">
+            <p className="eyebrow">Why, according to Qloo</p>
+            <p className="t-body measure mt-3">{nb(whyLead)}</p>
+            {whyRest && (<details className="mt-4"><summary className="link w-fit text-base">The rest of the reasoning</summary><p className="t-body measure mt-3">{nb(whyRest)}</p></details>)}
           </div>
           <div className="stack-block grid gap-x-16 gap-y-16 md:grid-cols-2">
             <Block title="Chalkboard" tag="every weekday"><p className="t-name whitespace-pre-wrap">{nb(brief.chalkboard)}</p></Block>
             <Block title="Google Business post" tag="this week"><p className="t-name">{nb(brief.google_post.title)}</p><p className="text-base">{nb(brief.google_post.body)}</p></Block>
             <Block title="Note to regulars" tag="WhatsApp"><p className="text-base">{nb(brief.whatsapp)}</p></Block>
-            <Block title={`Always-on ad · ${brief.always_on_ad.radius_m}\u00A0m · $${brief.always_on_ad.daily_budget_usd}/day`} tag={adSlot(pulse.rhythm)}>
+            <Block title={<>Always-on ad · <span className="mono">{nb(`${brief.always_on_ad.radius_m} m`)}</span> · ${brief.always_on_ad.daily_budget_usd}/day</>} tag={adSlot(pulse.rhythm)}>
               <p className="t-name">{nb(brief.always_on_ad.headline)}</p>
               <p className="text-base">{nb(brief.always_on_ad.body)}</p>
               <p className="mt-3 text-sm text-[var(--muted)]">Interests: {brief.always_on_ad.interests.join(" · ")}</p>
@@ -75,7 +82,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
           </div>
           <div className="stack-block">
             <p className="eyebrow">What this does not establish</p>
-            <p className="t-body mt-3">{nb(brief.limitations)}</p>
+            <p className="t-body mt-3">{nb(noScores(brief.limitations))}</p>
           </div>
         </section>
       )}
@@ -206,17 +213,17 @@ function dayRange(days: number[]): string {
   if (k === "6,0" || k === "0,6") return "Sat and Sun";
   return days.map((d) => DAY[d]).join(", ");
 }
-function adSlot(r: NeighborhoodPulse["rhythm"]): string {
+function adSlot(r: NeighborhoodPulse["rhythm"]): React.ReactNode {
   const a = r?.moments.find((m) => m.id === "afterwork");
-  return a ? `${dayRange(a.days)} ${a.from} to ${a.to}` : "weekdays 17:00 to 19:00";
+  return a ? <>{dayRange(a.days)} <span className="mono">{nb(`${a.from} to ${a.to}`)}</span></> : <>weekdays <span className="mono">17:00 to 19:00</span></>;
 }
 
-function Block({ title, tag, children }: { title: string; tag: string; children: React.ReactNode }) {
+function Block({ title, tag, children }: { title: React.ReactNode; tag: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
       <div className="flex items-baseline justify-between gap-2">
         <p className="eyebrow">{title}</p>
-        <span className="t-meta">{tag}</span>
+        <span className="text-base text-[var(--muted)]">{tag}</span>
       </div>
       <div className="mt-4 space-y-2">{children}</div>
     </div>

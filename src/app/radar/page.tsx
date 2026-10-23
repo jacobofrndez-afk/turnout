@@ -4,6 +4,7 @@ import RadarView, { type ViewItem } from "./RadarView";
 import MerchantSwitch from "./MerchantSwitch";
 import { weatherWindow, type WeatherSummary } from "@/server/weather/openmeteo";
 import { presenceWindow } from "@/server/events/concentration";
+import { memberSummary } from "@/lib/summary";
 
 export const dynamic = "force-dynamic";
 
@@ -135,7 +136,7 @@ function blurbOf(e: RadarItem["event"], memberNames: string[]): string | undefin
   switch (e.origin) {
     case "wave": {
       const count = Number(meta.count ?? memberNames.length);
-      return memberNames.length ? `${memberNames.slice(0, 3).join(", ")}${count > 3 ? ` and ${count - 3} more` : ""}` : undefined;
+      return memberNames.length ? memberSummary(memberNames, 60, "shows", count) : undefined;
     }
     case "tv":
       return [meta.league, meta.side === "away" ? "away game" : "home game across town", meta.tv, meta.fandom ? `Qloo local fandom: ${meta.fandom.band}` : undefined].filter(Boolean).join("\u00A0· ");

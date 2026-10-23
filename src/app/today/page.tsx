@@ -224,7 +224,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           {brief ? (
             <>
               <p className="t-name mt-4">{weekOffer?.title ?? brief.featured_offer_id}</p>
-              <p className="mt-2 text-base">{nb(brief.street_in_one_line)}</p>
+              <p className="mt-2 text-base">{nb(noScores(brief.street_in_one_line))}</p>
               <p className="t-name mt-6 whitespace-pre-wrap">{nb(brief.chalkboard)}</p>
               <p className="mt-2 text-sm" style={{ color: "var(--muted)" }}>Your chalkboard line for a normal weekday.</p>
             </>

@@ -4,14 +4,38 @@
     {
       "name": "crowd-to-campaign",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "3210"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "3210"
+      ],
       "port": 3210
     },
     {
       "name": "turnout-alt",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "3211"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "3211"
+      ],
       "port": 3211
+    },
+    {
+      "name": "design-static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8765",
+        "--directory",
+        "."
+      ],
+      "port": 8765
     }
   ]
 }

@@ -1170,6 +1170,13 @@ body .maplibregl-map,
 .maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button:hover { background-color: var(--tone); }
 .maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-inner a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; box-shadow: none; }
+/* While the radar's peek board holds the bottom-right corner, RadarMap moves the credit to the bottom-left one: mirrored. */
+.maplibregl-map .maplibregl-ctrl-bottom-left .maplibregl-ctrl.maplibregl-ctrl-attrib,
+.maplibregl-map .maplibregl-ctrl-bottom-left .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact,
+.maplibregl-map .maplibregl-ctrl-bottom-left .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact.maplibregl-compact-show { margin: 0 0 12px 12px; padding: 0 0 0 28px; }
+.maplibregl-map .maplibregl-ctrl-bottom-left .maplibregl-ctrl.maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button,
+.maplibregl-map .maplibregl-ctrl-bottom-left .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-button,
+.maplibregl-map .maplibregl-ctrl-bottom-left .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact-show .maplibregl-ctrl-attrib-button { right: auto; left: 0; }
 @media (max-width: 640px) {
   .maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-inner {
     width: min(232px, calc(100vw - 112px));

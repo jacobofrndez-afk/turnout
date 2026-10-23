@@ -97,9 +97,9 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
       {pulse.rhythm && pulse.rhythm.moments.length > 0 && (
         <section className="stack-section">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <p className="eyebrow">The rhythm of your street · when the everyday flow peaks, according to Qloo</p>
+            <p className="eyebrow">The rhythm of your street</p>
             <p className="text-sm text-[var(--muted)]">
-              Read from {pulse.rhythm.placesRead} places Qloo knows around your door, {pulse.rhythm.hospitality} of them bars and restaurants, {pulse.rhythm.withHours} with opening hours
+              When the everyday flow peaks, read by Qloo from {pulse.rhythm.placesRead} places around your door, {pulse.rhythm.hospitality} of them bars and restaurants, {pulse.rhythm.withHours} with opening hours
             </p>
           </div>
           <div className="stack-block grid gap-x-16 gap-y-12 md:grid-cols-3">
@@ -169,11 +169,11 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
           <p className="eyebrow">Your offers against the street</p>
           <table className="data mt-2 w-full text-base">
             <tbody>
-              {pulse.offerFits.map((f, i) => (
+              {pulse.offerFits.map((f) => (
                 <tr key={f.offerId}>
-                  <td className="font-semibold text-[var(--ink)]">{f.title}{i === 0 && <span className="ml-3 text-sm font-medium text-[var(--muted)]">best fit</span>}</td>
-                  <td className="text-sm text-[var(--muted)]">{f.tagNames.join(", ")}</td>
-                  <td className="t-figure text-right text-2xl">{f.affinity.toFixed(2)}</td>
+                  <td className="font-semibold text-[var(--ink)]">{f.title}<span className="mt-1 block text-sm font-normal text-[var(--muted)] md:hidden">{f.tagNames.join(", ")}</span></td>
+                  <td className="hidden text-sm text-[var(--muted)] md:table-cell">{f.tagNames.join(", ")}</td>
+                  <td className="t-figure text-right text-2xl">{f.matches > 0 ? f.affinity.toFixed(2) : <span className="font-sans whitespace-nowrap text-sm font-medium text-[var(--muted)]">no match</span>}</td>
                 </tr>
               ))}
             </tbody>

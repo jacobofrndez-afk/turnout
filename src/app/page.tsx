@@ -55,18 +55,15 @@ export default async function Home() {
         {/* Live card */}
         <div className="plate">
           <p className="eyebrow flex items-center gap-3">{live && <span className="live-dot" aria-hidden="true" />}{live ? `Live · next crowd near ${live.merchant.name}` : "Example · near Penn & Pour"}</p>
-          <p className="t-name mt-4">{live ? `${live.item.headliner.name} · ${live.item.event.venue.name}` : "Harry Styles · Madison Square Garden"}</p>
+          <p className="t-name mt-4">{live ? (live.item.event.origin === "wave" ? live.item.headliner.name : `${live.item.headliner.name} · ${live.item.event.venue.name}`).replace(/(\d) /g, "$1\u00A0") : "Harry Styles · Madison Square Garden"}</p>
           <dl className="mt-10 flex flex-wrap gap-x-12 gap-y-6">
             <div><dt className="eyebrow">Crowd</dt><dd className="t-figure mt-2 whitespace-nowrap text-4xl md:text-5xl">{(live?.item.capacity ?? 20000).toLocaleString("en-US")}</dd></div>
             <div><dt className="eyebrow">Walk</dt><dd className="t-figure mt-2 whitespace-nowrap text-4xl md:text-5xl">{live ? Math.max(1, Math.round(live.item.distanceKm * 12)) : 4}&nbsp;<span className="text-base font-medium text-[var(--muted)]">min</span></dd></div>
           </dl>
           <div className="mt-12">
-            <p className="eyebrow">An example: what Turnout wrote for Harry Styles night, two blocks away</p>
+            <p className="eyebrow">An example from Harry Styles night</p>
             <p className="t-name mt-3">Two cocktails before Harry</p>
             <p className="mt-2 text-base">Penn &amp; Pour, two blocks from MSG. Two cocktails for $16 until 7&nbsp;pm, then we keep the kitchen open until 1&nbsp;am.</p>
-            <p className="mt-4 text-sm">
-              Why cocktails, not the pitcher: fans of Harry Styles over-index on women 25 to 29 (+0.75), on rooftop cocktail bars like Igloo Bar and 230 Fifth, and on Gucci and Dior. Every number comes from Qloo and is shown with the draft.
-            </p>
           </div>
           {live && (
             <Link href={`/campaigns/new?merchant=${live.merchant.id}&event=${live.item.event.id}`} className="link mt-8 inline-flex text-base">

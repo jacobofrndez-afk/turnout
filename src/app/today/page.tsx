@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { nb } from "@/lib/nbsp";
+import { firstSentences, noScores } from "@/lib/text";
 import { getMerchant, listMerchants, radarFor, type RadarItem } from "@/server/events/radar";
 import { presenceWindow } from "@/server/events/concentration";
 import { getDb } from "@/server/db/client";
@@ -68,6 +69,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     }
   }
   const draft = campaign ? getDraft(campaign) : undefined;
+  const fresh = campaign?.status === "awaiting_operator" && now - Date.parse(campaign.created_at.replace(" ", "T") + "Z") < 15 * 60_000;
   const offer = draft ? offers.find((o) => o.id === draft.chosen_offer_id) : undefined;
   const brief = getBrief(latestPulse(merchant.id));
   const weekOffer = brief ? offers.find((o) => o.id === brief.featured_offer_id) : undefined;
@@ -79,7 +81,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const crowdLine = (withName: boolean) => next && w0 ? (
     <>
       {dayOf(w0.start)} from <span className="mono">{fmtTime.format(new Date(w0.arrive))}</span> to <span className="mono">{fmtTime.format(new Date(w0.leave))}</span>{withName ? `, ${next.event.name.charAt(0).toLowerCase() + next.event.name.slice(1)}:` : ":"} about {next.capacity.toLocaleString("en-US")} people
-      {next.event.origin === "tv" || next.event.origin === "calendar" ? " around you" : ` ${next.distanceKm.toFixed(1)}\u00A0km from your door`}. Turnout expects <b style={{ color: "var(--ink)" }}>about {next.potentialGuests} extra guests</b>, {Math.min(100, Math.round(next.fill * 100))}% of your {seats} seats.{weather ? ` ${weather} at your door.` : ""}
+      {next.event.origin === "tv" || next.event.origin === "calendar" ? " around you" : ` ${next.distanceKm.toFixed(1)}\u00A0km from your door`}. Turnout expects <b style={{ color: "var(--ink)" }}>about {next.potentialGuests} extra guests</b>, {next.fill >= 1 ? `enough to fill your ${seats} seats` : `${Math.round(next.fill * 100)}% of your ${seats} seats`}.{weather ? ` ${weather} at your door.` : ""}
     </>
   ) : null;
 
@@ -130,7 +132,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
               <p className="t-body mt-4 whitespace-pre-wrap">{nb(draft.whatsapp.message)}</p>
             </div>
             <div>
-              <p className="eyebrow">To strangers, {draft.geofenced_ad.radius_m}&nbsp;m around the venue</p>
+              <p className="eyebrow">To strangers, <span className="mono">{draft.geofenced_ad.radius_m}&nbsp;m</span> around the venue</p>
               <p className="t-name mt-4">{nb(draft.geofenced_ad.headline)}</p>
               <p className="t-body mt-3">{nb(draft.geofenced_ad.body)}</p>
               <p className="mt-4 text-sm text-[var(--muted)] tnum">{draft.windows.map((w) => `${w.label}, ${w.start_local} to ${w.end_local}`).join(" · ")} · ${draft.geofenced_ad.daily_budget_usd} a day</p>
@@ -140,7 +142,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           <div className="stack-section max-w-3xl">
             <p className="eyebrow">Why this, why now</p>
             <p className="t-lead mt-4">{crowdLine(true)}</p>
-            <p className="t-body mt-4 text-[var(--muted)]">{nb(firstSentences(draft.rationale, 320))}</p>
+            <p className="t-body mt-4 text-[var(--muted)]">{nb(firstSentences(noScores(draft.rationale), 320))}</p>
           </div>
         </section>
       ) : next && w0 ? (
@@ -158,12 +160,16 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
               ) : campaign?.status === "awaiting_operator" ? (
                 <>
                   <p className="t-name">Writing your campaign</p>
-                  <div className="mt-4 max-w-2xl" aria-hidden="true"><span className="skeleton skeleton-line" /><span className="skeleton skeleton-line" /></div>
+                  {fresh ? (
+                    <div className="mt-4 max-w-2xl" aria-hidden="true"><span className="skeleton skeleton-line" /><span className="skeleton skeleton-line" /></div>
+                  ) : (
+                    <p className="mt-2 max-w-2xl text-base">The crowd read is ready. The offer and the words come with the draft.</p>
+                  )}
                   <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4">
                     <Link href={`/campaigns/new?merchant=${merchant.id}&event=${next.event.id}`} className="btn btn-accent btn-lg">See who is coming</Link>
                     <Link href={`/campaigns/${campaign.id}`} className="text-base link">Follow the draft</Link>
                   </div>
-                  {now - Date.parse(campaign.created_at.replace(" ", "T") + "Z") < 15 * 60_000 && <RefreshEvery seconds={15} />}
+                  {fresh && <RefreshEvery seconds={15} />}
                 </>
               ) : campaign?.status === "needs_input" ? (
                 <>
@@ -205,7 +211,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
                     {dayOf(w.start)} <span className="mono">{fmtTime.format(new Date(w.arrive))}</span> to <span className="mono">{fmtTime.format(new Date(w.leave))}</span>
                   </p>
                   <p className="t-name mt-2">{it.event.name}</p>
-                  <p className="mt-1 text-base">About {it.potentialGuests} extra guests, {Math.min(100, Math.round(it.fill * 100))}% of your seats</p>
+                  <p className="mt-1 text-base">About {it.potentialGuests} extra guests, {it.fill >= 1 ? "enough to fill your seats" : `${Math.round(it.fill * 100)}% of your seats`}</p>
                 </li>
               );
             })}
@@ -251,26 +257,4 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
       </section>
     </main>
   );
-}
-
-// Whole sentences only, up to about `max` characters: a cut mid-word reads as a bug. A full stop counts as a
-// sentence end only when a space and a capital letter follow it, so "0.92" or "5 to 7 pm. The" behave.
-function firstSentences(text: string, max: number): string {
-  if (text.length <= max) return text;
-  let out = "";
-  let start = 0;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (c !== "." && c !== "!" && c !== "?") continue;
-    const atEnd = i === text.length - 1;
-    const next = text[i + 1];
-    const after = text[i + 2];
-    const capital = !!after && after !== after.toLowerCase();
-    if (!atEnd && !(next === " " && capital)) continue;
-    const sentence = text.slice(start, i + 1);
-    if ((out + sentence).length > max) break;
-    out += sentence + " ";
-    start = i + 2;
-  }
-  return out.trim() || `${text.slice(0, max - 1).trim()}…`;
 }

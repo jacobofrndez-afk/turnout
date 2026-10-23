@@ -138,7 +138,7 @@ function blurbOf(e: RadarItem["event"], memberNames: string[]): string | undefin
       return memberNames.length ? `${memberNames.slice(0, 3).join(", ")}${count > 3 ? ` and ${count - 3} more` : ""}` : undefined;
     }
     case "tv":
-      return [meta.league, meta.side === "away" ? "away game" : "home game across town", meta.tv, meta.fandom ? `Qloo local fandom ${meta.fandom.rank.toFixed(2)}, ${meta.fandom.band}` : undefined].filter(Boolean).join("\u00A0· ");
+      return [meta.league, meta.side === "away" ? "away game" : "home game across town", meta.tv, meta.fandom ? `Qloo local fandom: ${meta.fandom.band}` : undefined].filter(Boolean).join("\u00A0· ");
     case "street":
       return [meta.type, e.venue.name].filter(Boolean).join("\u00A0· ");
     case "calendar":

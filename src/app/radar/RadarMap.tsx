@@ -260,7 +260,7 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
     const m = map.current;
     if (!ready || !m) return;
     const labelData = () => {
-      const signed = points.filter((q) => q.hot && q.tonight && !q.selected).map((q) => m.project([q.lon, q.lat]));
+      const signed = points.filter((q) => q.hot && q.tonight).map((q) => m.project([q.lon, q.lat]));
       const nearSign = (p: MapPoint) => { const a = m.project([p.lon, p.lat]); return signed.some((b) => Math.hypot(a.x - b.x, a.y - b.y) < 80); };
       m.getSource("venues")?.setData({
         type: "FeatureCollection",
@@ -408,6 +408,12 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
         c.setOffset(chosen);
         obstacles.push(el.getBoundingClientRect());
       }
+      // The map credit never sits inside the board: it takes the bottom-left corner while the board holds the bottom-right one.
+      const creditBR = new DOMRect(mapRect.right - 40, mapRect.bottom - 40, 28, 28);
+      const boardBR = !!c && hits((c.getElement() as HTMLElement).getBoundingClientRect(), creditBR);
+      const credit = wrapRef.current?.querySelector(".maplibregl-ctrl-attrib");
+      const corner = wrapRef.current?.querySelector(boardBR ? ".maplibregl-ctrl-bottom-left" : ".maplibregl-ctrl-bottom-right");
+      if (credit && corner && credit.parentElement !== corner) corner.appendChild(credit);
       for (const sgn of signs.current.slice(1)) {
         const el = sgn.getElement() as HTMLElement;
         el.style.visibility = "visible";
@@ -465,7 +471,7 @@ function addLayers(m: ML, P: Palette) {
   m.addLayer({ id: "ring-fill", type: "fill", source: "rings", filter: ["==", ["get", "main"], 1], paint: { "fill-color": P.ink, "fill-opacity": 0.025 } });
   m.addLayer({ id: "ring-line", type: "line", source: "rings", filter: ["==", ["geometry-type"], "Polygon"], paint: { "line-color": ["case", ["==", ["get", "main"], 1], P.ink, P.lineStrong], "line-width": ["case", ["==", ["get", "main"], 1], 1.5, 0.8], "line-dasharray": ["case", ["==", ["get", "main"], 1], ["literal", [3, 2.5]], ["literal", [1]]] } });
   m.addSource("ring-labels", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-  m.addLayer({ id: "ring-label", type: "symbol", source: "ring-labels", layout: { "text-field": ["get", "label"], "text-font": FONT, "text-size": 15, "text-anchor": "bottom", "text-offset": [0, -0.2], "text-allow-overlap": true }, paint: { "text-color": P.muted, "text-halo-color": P.panel, "text-halo-width": 1.6 } });
+  m.addLayer({ id: "ring-label", type: "symbol", source: "ring-labels", layout: { "text-field": ["get", "label"], "text-font": FONT, "text-size": 15, "text-variable-anchor": ["bottom", "bottom-right", "bottom-left"], "text-offset": [0, -0.2], "text-allow-overlap": true }, paint: { "text-color": P.muted, "text-halo-color": P.panel, "text-halo-width": 1.6 } });
   m.addSource("venues", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
   // crowd mass: radius grows with the square root of the crowd
   m.addLayer({
@@ -498,15 +504,24 @@ function addLayers(m: ML, P: Palette) {
     type: "symbol",
     source: "venues",
     filter: ["==", ["get", "labelled"], 1],
-    layout: { "text-field": ["get", "label"], "text-font": FONT_BOLD, "text-size": 13, "text-variable-anchor": ["left", "right", "top", "bottom"], "text-radial-offset": 0.9, "text-justify": "auto", "text-max-width": 9, "text-padding": 4 },
+    layout: { "text-field": ["get", "label"], "text-font": FONT_BOLD, "text-size": 13, "text-variable-anchor": ["left", "right", "top", "bottom"], "text-radial-offset": 0.9, "text-justify": "auto", "text-max-width": 9, "text-padding": 2 },
     paint: { "text-color": P.muted, "text-halo-color": P.panel, "text-halo-width": 1.8 },
   });
+  // Venue names avoid every venue dot (circle layers take no part in label collision): an empty 14 px icon per venue,
+  // placed before the names, so a name takes its next free anchor or drops out instead of printing over a dot.
+  if (!m.hasImage("dotbox")) m.addImage("dotbox", { width: 14, height: 14, data: new Uint8Array(14 * 14 * 4) });
+  m.addLayer({ id: "venue-dotbox", type: "symbol", source: "venues", layout: { "icon-image": "dotbox", "icon-allow-overlap": true, "icon-ignore-placement": false } });
   // Keep-out: invisible icons that take room in label placement (this layer is placed first), so no label runs
   // past the map's edges or under the Full screen button; a label takes its next free anchor instead.
   m.addSource("keepout", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
   m.addLayer({ id: "keepout", type: "symbol", source: "keepout", layout: { "icon-image": ["get", "img"], "icon-anchor": "top-left", "icon-allow-overlap": true, "icon-ignore-placement": false } });
-  // ring labels place first (top symbol layer); venue labels then collide with them instead of drawing over them
-  m.moveLayer("ring-label");
+  // Wine-dot cores take room in label placement too (invisible 14 px icons), so ring labels slide off the chosen crowd.
+  if (!m.hasImage("dot-block")) m.addImage("dot-block", { width: 14, height: 14, data: new Uint8Array(14 * 14 * 4) });
+  m.addLayer({ id: "dot-block", type: "symbol", source: "venues", filter: ["==", ["get", "tonight"], 1], layout: { "icon-image": "dot-block", "icon-allow-overlap": true } });
+  // Placement runs top layer first: keepout, dot-block, ring labels, then venue labels, which collide with all three.
+  // Dots stay under all text. A ring label takes its next free anchor and overlaps only when none is free.
+  m.moveLayer("ring-label", "dot-block");
+  m.moveLayer("keepout");
 }
 
 function keepOut(m: ML, fs?: DOMRect) {
@@ -527,7 +542,7 @@ function drawRings(m: ML, c: { lat: number; lon: number }, r: number) {
   m.getSource("rings")?.setData({ type: "FeatureCollection", features: rings.map((x) => ({ type: "Feature", properties: { main: x.main }, geometry: { type: "Polygon", coordinates: [circle(c, x.r)] } })) });
   m.getSource("ring-labels")?.setData({
     type: "FeatureCollection",
-    features: rings.map((x) => ({ type: "Feature", properties: { label: `${fmtKm(x.r)} · ${walkMin(x.r)}\u00A0min walk` }, geometry: { type: "Point", coordinates: northOf(c, x.r) } })),
+    features: rings.filter((x) => x.main || window.matchMedia("(min-width: 640px)").matches).map((x) => ({ type: "Feature", properties: { label: `${fmtKm(x.r)} · ${walkMin(x.r)}\u00A0min walk` }, geometry: { type: "Point", coordinates: northOf(c, x.r) } })),
   });
 }
 

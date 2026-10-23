@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getMerchant } from "@/server/events/radar";
+import { tagId } from "@/server/qloo/api";
 import { buildCrowdProfile, describeDemographics, getEvent, hasSignal } from "@/server/qloo/crowd";
 import { nb } from "@/lib/nbsp";
 
@@ -36,16 +37,38 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
   const demo = describeDemographics(profile.demographics);
   const fmt = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: merchant.timezone });
   const ageLabel = (k: string) => k.replace("24_and_younger", "<25").replace("55_and_older", "55+").replace("_to_", "‑");
+  const placeTags = profile.tags.filter((t) => tagId(t).startsWith("urn:tag:genre:place:restaurant"));
+  const placesKnown = placeTags.length >= 4;
+  // "Musical Theater", "Musical Theatre" and "Musical Theatre Performances" are one idea for a merchant: keep the first spelling.
+  const seenTag = new Set<string>();
+  const shownTags = (placesKnown ? placeTags : profile.tags)
+    .filter((t) => {
+      const k = t.name.toLowerCase().replace(/theater/g, "theatre").replace(/[^a-z]/g, "").replace(/(performances?|s)$/, "");
+      if (seenTag.has(k)) return false;
+      seenTag.add(k);
+      return true;
+    })
+    .slice(0, 8);
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-10">
       <Link href={`/radar?merchant=${merchant.id}`} className="link text-sm">Back to the radar</Link>
-      <header className="mt-3">
-        <p className="eyebrow">The crowd, through Qloo</p>
-        <h1 className="t-title mt-2">{profile.headlinerName}</h1>
-        <p className="mt-3 text-base text-[var(--muted)]">
-          {event.name} · {event.venue_name} · {fmt.format(new Date(event.starts_at))} · for {merchant.name}
-        </p>
+      <header className="mt-3 flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <p className="eyebrow">The crowd, through Qloo</p>
+          <h1 className="t-title mt-2">{profile.headlinerName}</h1>
+          <p className="mt-3 text-base text-[var(--muted)]">
+            {event.name} · {event.venue_name} · {fmt.format(new Date(event.starts_at))} · for {merchant.name}
+          </p>
+        </div>
+        {hasSignal(profile) && (
+          <form action="/api/campaigns" method="post">
+            <input type="hidden" name="merchant" value={merchant.id} />
+            <input type="hidden" name="event" value={event.id} />
+            {sp.pick && <input type="hidden" name="pick" value={sp.pick} />}
+            <button className="btn btn-accent btn-lg">Write my campaign</button>
+          </form>
+        )}
       </header>
 
       {profile.status === "needs_input" && (
@@ -77,9 +100,9 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
           <section className="stack-block grid gap-x-16 gap-y-12 md:grid-cols-3">
             {profile.entity ? (
               <div>
-                <p className="eyebrow">Resolved entity</p>
+                <p className="eyebrow">The act</p>
                 <p className="t-name mt-3">{profile.entity.name}</p>
-                <p className="mt-2 text-sm text-[var(--muted)]">{profile.entity.subtype?.replace("urn:entity:", "")} · popularity {((profile.entity.popularity ?? 0) * 100).toFixed(1)}% · {profile.status === "auto" ? "matched automatically" : "picked by you"}</p>
+                <p className="mt-2 text-base text-[var(--muted)]">{profile.entity.subtype?.replace("urn:entity:", "")} · {profile.status === "auto" ? "found by Qloo" : "picked by you"}</p>
               </div>
             ) : (
               <div>
@@ -96,11 +119,11 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
               </div>
             )}
             <div>
-              <p className="eyebrow">Who over-indexes</p>
+              <p className="eyebrow">Who is coming</p>
               {demo ? (
                 <>
-                  <p className="t-name mt-3">{nb(demo.ageTop.join(", ")) || "no strong age skew"}</p>
-                  <p className="mt-2 text-sm text-[var(--muted)]">{nb(`${demo.gender}${demo.ageLow.length ? ` · under-indexes: ${demo.ageLow.join(", ")}` : ""}`)}</p>
+                  <p className="t-name mt-3">{nb(demo.ageTop.map((a) => a.replace(/\s*\([^)]*\)/g, "")).join(" and ")) || "every age"}</p>
+                  <p className="mt-2 text-base text-[var(--muted)]">{nb(demo.gender.replace(/\s*\([^)]*\)/g, ""))}</p>
                 </>
               ) : (
                 <p className="mt-2 text-base text-[var(--muted)]">No demographic data for this entity.</p>
@@ -114,12 +137,13 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
 
           {profile.demographics && (
             <section className="stack-block">
-              <p className="eyebrow">Age affinity · relative to average, positive means over-index</p>
-              <div className="mt-8 grid grid-cols-6 gap-3 text-center text-sm">
+              <p className="eyebrow">Age affinity</p>
+              <p className="measure mt-3 text-base text-[var(--muted)]">Against the average: a bar that rises means this age over-indexes, a bar that hangs means it under-indexes.</p>
+              <div className="mt-8 grid max-w-2xl grid-cols-6 gap-3 text-center text-sm">
                 {Object.entries(profile.demographics.age).map(([k, v]) => (
                   <div key={k}>
-                    <div className="mx-auto flex h-14 w-full items-end justify-center">{v >= 0 && <div className="w-10" style={{ height: `${Math.max(4, Math.min(100, v * 100))}%`, background: "var(--bar-hot)" }} />}</div>
-                    <div className="mx-auto flex h-14 w-full items-start justify-center">{v < 0 && <div className="w-10" style={{ height: `${Math.max(4, Math.min(100, -v * 100))}%`, background: "var(--bar-other)" }} />}</div>
+                    <div className="mx-auto flex h-14 w-full items-end justify-center">{v >= 0 && <div className="w-12" style={{ height: `${Math.max(4, Math.min(100, v * 100))}%`, background: "var(--bar-hot)" }} />}</div>
+                    <div className="mx-auto flex h-14 w-full items-start justify-center">{v < 0 && <div className="w-12" style={{ height: `${Math.max(4, Math.min(100, -v * 100))}%`, background: "var(--muted)" }} />}</div>
                     <p className="mt-1.5 font-semibold text-[var(--ink)]">{ageLabel(k)}</p>
                     <p className="tnum text-[var(--muted)]">{v >= 0 ? "+" : "−"}{Math.abs(v).toFixed(2)}</p>
                   </div>
@@ -130,11 +154,11 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
 
           <section className="stack-block grid gap-x-24 gap-y-16 lg:grid-cols-2">
             <div>
-              <p className="eyebrow">Taste tags · places</p>
-              <p className="mt-4 text-base">{profile.tags.slice(0, 24).map((t) => t.name).join(" · ")}</p>
+              <p className="eyebrow">{placesKnown ? "Kinds of places this crowd likes" : "What this crowd likes"}</p>
+              <p className="mt-4 text-base">{shownTags.map((t) => t.name).join(" · ")}</p>
             </div>
             <div>
-              <p className="eyebrow">Bars within {merchant.radius_m}&nbsp;m this crowd already likes</p>
+              <p className="eyebrow">Bars within <span className="mono">{merchant.radius_m >= 1000 ? `${(merchant.radius_m / 1000).toLocaleString("en-US")} km` : `${merchant.radius_m} m`}</span> this crowd already likes</p>
               <ol className="mt-4 space-y-2 text-base">
                 {profile.places.slice(0, 8).map((p) => (
                   <li key={p.entity_id} className="flex items-baseline justify-between gap-6">
@@ -151,9 +175,9 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
             <p className="measure mt-3 text-base text-[var(--muted)]">Affinity of places carrying each offer's tags, near you, for this crowd. Higher means the crowd already seeks this kind of place around here. One signal among several; the agent decides with the demographics and brands too.</p>
             <table className="data mt-6 w-full text-base">
               <tbody>
-                {profile.offerFits.map((f, i) => (
+                {profile.offerFits.map((f) => (
                   <tr key={f.offerId}>
-                    <td className="font-semibold text-[var(--ink)]">{f.title}{i === 0 && <span className="ml-3 text-sm font-medium text-[var(--muted)]">best fit</span>}<span className="mt-1 block text-sm font-normal text-[var(--muted)] md:hidden">{f.tagNames.join(", ")}. e.g. {f.topPlaces.join(", ")}</span></td>
+                    <td className="font-semibold text-[var(--ink)]">{f.title}<span className="mt-1 block text-sm font-normal text-[var(--muted)] md:hidden">{f.tagNames.join(", ")}. e.g. {f.topPlaces.join(", ")}</span></td>
                     <td className="hidden text-sm text-[var(--muted)] md:table-cell">{f.tagNames.join(", ")}</td>
                     <td className="hidden text-sm text-[var(--muted)] md:table-cell">e.g. {f.topPlaces.join(", ")}</td>
                     <td className="t-figure text-right text-2xl">{f.affinity.toFixed(2)}</td>
@@ -161,15 +185,6 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
                 ))}
               </tbody>
             </table>
-          </section>
-
-          <section className="stack-block flex flex-wrap items-center gap-x-8 gap-y-4">
-            <form action="/api/campaigns" method="post">
-              <input type="hidden" name="merchant" value={merchant.id} />
-              <input type="hidden" name="event" value={event.id} />
-              {sp.pick && <input type="hidden" name="pick" value={sp.pick} />}
-              <button className="btn btn-accent btn-lg">Write my campaign</button>
-            </form>
           </section>
         </>
       )}

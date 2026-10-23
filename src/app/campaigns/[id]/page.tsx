@@ -6,10 +6,13 @@ import { getEvent, getOffers } from "@/server/qloo/crowd";
 import { relative } from "node:path";
 import { getSends, CHANNEL_LABEL, type ChannelId } from "@/server/channels";
 import { nb } from "@/lib/nbsp";
+import { firstSentences, noScores } from "@/lib/text";
 
 const SIMULATED_NOTE: Partial<Record<ChannelId, string>> = {
   geofenced_ad: "Ready for Snapchat, word for word. It goes out once your ad account is connected.",
   google_post: "Ready for your Google listing. It goes out once the listing is verified.",
+  whatsapp: "It goes out once WhatsApp is connected.",
+  dooh: "Ready for the screens nearest the venue. It goes out once a screen network is connected.",
 };
 
 export const dynamic = "force-dynamic";
@@ -22,6 +25,9 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   const merchant = getMerchant(campaign.merchant_id)!;
   const event = getEvent(campaign.event_id)!;
   const draft = getDraft(campaign);
+  const why = draft ? noScores(draft.rationale) : "";
+  const whyLead = firstSentences(why, 320);
+  const whyRest = why.startsWith(whyLead) ? why.slice(whyLead.length).trim() : "";
   const offers = getOffers(merchant.id);
   const offer = offers.find((o) => o.id === draft?.chosen_offer_id);
   const prov = getProvenance(campaign);
@@ -39,7 +45,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
           <h1 className="t-title mt-2">{event.name}</h1>
           <p className="mt-3 text-base text-[var(--muted)]">{event.venue_name} · {fmt.format(new Date(event.starts_at))} · for {merchant.name}</p>
         </div>
-        {(campaign.status === "approved" || campaign.status === "sent") && <span className="chip">Published · {sends.length} channels</span>}
+        {(campaign.status === "approved" || campaign.status === "sent") && <span className="chip">{sends.some((s) => s.simulated) ? `Ready on ${sends.length} channels` : `Published · ${sends.length} channels`}</span>}
       </header>
 
       {campaign.status === "awaiting_operator" && (
@@ -64,7 +70,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
 
       {sends.length > 0 && (
         <section className="stack-block">
-          <p className="eyebrow">{sends.some((s) => s.simulated) ? "Published · simulated in the demo" : "Published"}</p>
+          <p className="eyebrow">{sends.some((s) => s.simulated) ? "Where it goes · simulated in the demo" : "Where it went"}</p>
           <ul className="mt-6 grid gap-x-16 gap-y-8 sm:grid-cols-2">
             {sends.map((s) => {
               const payload = s.payload_json ? (JSON.parse(s.payload_json) as Record<string, unknown>) : {};
@@ -76,7 +82,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                     {!s.simulated && <span className="chip">{real ? "Sent" : s.status}</span>}
                   </div>
                   <p className="mt-2 text-sm text-[var(--muted)]">
-                    {typeof payload.to === "string" ? `To ${payload.to}. ` : ""}
+                    {typeof payload.to === "string" ? `To ${payload.to.replace(/ \(fictional list\)$/, "")}. ` : ""}
                     {s.simulated && SIMULATED_NOTE[s.channel as ChannelId] ? SIMULATED_NOTE[s.channel as ChannelId] : typeof payload.status_note === "string" ? payload.status_note : ""}
                     {s.provider_sid ? ` · ${s.provider_sid}` : ""}
                   </p>
@@ -103,12 +109,13 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                 {campaign.status === "drafted" && (<form action={`/api/campaigns/${campaign.id}/approve`} method="post" className="mt-10"><button className="btn btn-accent btn-lg">Publish it now</button></form>)}
               </div>
               <p className="eyebrow mt-12">Why, according to Qloo</p>
-              <p className="t-body mt-3">{nb(draft.rationale)}</p>
+              <p className="t-body mt-3">{nb(whyLead)}</p>
+              {whyRest && (<details className="mt-4"><summary className="link w-fit text-base">The rest of the reasoning</summary><p className="t-body mt-3">{nb(whyRest)}</p></details>)}
             </div>
             <div className="space-y-12">
               <div>
                 <p className="eyebrow">Audience</p>
-                <p className="t-body mt-3">{nb(draft.audience_summary)}</p>
+                <p className="t-body mt-3">{nb(noScores(draft.audience_summary))}</p>
               </div>
               <div>
                 <p className="eyebrow">When the crowd is outside, {merchant.timezone.split("/").pop()!.replace(/_/g, " ")} time</p>
@@ -117,7 +124,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                     <li key={w.label}>
                       <span className="font-semibold text-[var(--ink)]">{w.label}</span> <span className="tnum">{w.start_local} to {w.end_local}</span>
                       {weatherByWindow.get(w.label) && <span className="ml-2 text-sm text-[var(--muted)]">· {weatherByWindow.get(w.label)!.label}</span>}
-                      <span className="mt-1 block text-sm text-[var(--muted)]">{nb(w.why)}</span>
+                      <span className="mt-1 block text-base text-[var(--muted)]">{nb(w.why)}</span>
                     </li>
                   ))}
                 </ul>
@@ -148,10 +155,10 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
               <p className="t-name">{nb(draft.dooh.headline)}</p>
               <p className="text-base">{nb(draft.dooh.body)}</p>
             </Channel>
-            <div>
-              <p className="eyebrow">What this does not establish</p>
-              <p className="t-body mt-3">{nb(draft.limitations)}</p>
-            </div>
+          </section>
+          <section className="stack-block">
+            <p className="eyebrow">What this does not establish</p>
+            <p className="t-body mt-3">{nb(draft.limitations)}</p>
           </section>
         </>
       )}
@@ -177,10 +184,8 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
 function Channel({ title, tag, children }: { title: string; tag: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="flex items-baseline justify-between gap-2">
-        <p className="eyebrow text-sm tnum">{title}</p>
-        <span className="t-meta">{tag}</span>
-      </div>
+      <p className="eyebrow text-sm tnum">{title}</p>
+      <p className="t-meta mt-1">{tag}</p>
       <div className="mt-4 space-y-2">{children}</div>
     </div>
   );

@@ -49,7 +49,7 @@ export async function publishCampaign(campaignId: string, merchant: Merchant, dr
             record("whatsapp", `failed: ${String((e as Error).message).slice(0, 120)}`, false, { message: draft.whatsapp.message });
           }
         } else {
-          record("whatsapp", "simulated", true, { to: `${contacts.length} opted-in regulars (fictional list)`, message: draft.whatsapp.message, window: draft.windows[0] });
+          record("whatsapp", "simulated", true, { to: `${contacts.length} opted-in regulars`, message: draft.whatsapp.message, window: draft.windows[0] });
         }
         break;
       }

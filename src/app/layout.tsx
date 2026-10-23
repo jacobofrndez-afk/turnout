@@ -29,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <span className="hidden sm:inline">Set up your place</span>
                 <span className="sm:hidden">Set up</span>
               </Link>
-              <a href="https://github.com/qloo/qloo-hackathon-kit" target="_blank" rel="noreferrer" className="ml-2 hidden min-h-11 items-center whitespace-nowrap pl-3 text-xs font-medium text-[var(--muted)] transition-colors hover:text-[var(--plum)] md:inline-flex">
+              <a href="https://github.com/qloo/qloo-hackathon-kit" target="_blank" rel="noreferrer" className="ml-2 -mr-3 hidden min-h-11 items-center whitespace-nowrap px-3 text-xs font-medium text-[var(--muted)] transition-colors hover:text-[var(--plum)] md:inline-flex">
                 Powered by Qloo
               </a>
             </nav>

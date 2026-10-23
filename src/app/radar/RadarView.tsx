@@ -444,11 +444,11 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
         </section>
 
         <div className="tm-maparea">
-          <RadarMap merchant={{ name: merchant.name, lat: merchant.lat, lon: merchant.lon, radiusM: radius }} points={points} onSelect={(id) => selectCrowd(id)} onRadiusChange={changeRadius} />
-          <p className="tm-maphint">{saving ? "Updating your radius…" : <>Drag the white handle to change your radius&nbsp;· <span className="tm-mono">{fmtKm(radius)}, {walkMin(radius)}&nbsp;min</span> walk</>}</p>
           <button type="button" className="tm-fs" onClick={toggleFull} aria-label={full ? "Exit full screen" : "Full screen"} title={full ? "Exit full screen" : "Full screen"}>
             {full ? "Exit full screen" : "Full screen"}
           </button>
+          <RadarMap merchant={{ name: merchant.name, lat: merchant.lat, lon: merchant.lon, radiusM: radius }} points={points} onSelect={(id) => selectCrowd(id)} onRadiusChange={changeRadius} />
+          <p className="tm-maphint">{saving ? "Updating your radius…" : <>Drag the white handle to change your radius&nbsp;· <span className="tm-mono">{fmtKm(radius)}, {walkMin(radius)}&nbsp;min</span> walk</>}</p>
         </div>
 
         <aside className="tm-list">

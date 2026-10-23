@@ -121,7 +121,7 @@ export function composeAlert(merchant: Merchant, it: RadarItem, campaign?: Campa
   const lines = [
     `Turnout for ${merchant.name}`,
     `${day} ${fmtTime.format(new Date(w.start))}: ${it.event.name}${origin === "ticketmaster" ? ` at ${it.event.venue.name}` : ""}, about ${it.capacity.toLocaleString("en-US")} people ${where}, from ${fmtTime.format(new Date(w.arrive))} to ${fmtTime.format(new Date(w.leave))}.`,
-    `Could bring about ${it.potentialGuests} guests, ${Math.min(100, Math.round(it.fill * 100))}% of your ${seats} seats.`,
+    `Could bring about ${it.potentialGuests} guests, ${it.fill >= 1 ? `enough to fill your ${seats} seats` : `${Math.round(it.fill * 100)}% of your ${seats} seats`}.`,
   ];
   if (campaign) {
     const draft = getDraft(campaign);

@@ -53,28 +53,38 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
         <section className="stack-block space-y-16">
           {alerts.map((a, i) => {
             const at = new Date(a.created_at.endsWith("Z") ? a.created_at : a.created_at.replace(" ", "T") + "Z");
+            const clean = a.message
+              .replace(/\n(Review and approve|See it on your radar):[\s\S]*$/, "")
+              .replace(/^Turnout for [^\n]*\n/, "")
+              .replace(/\nThe agent is writing the campaign now\./, "")
+              .replace(/, 100% of your (\d+) seats\./, ", enough to fill your $1 seats.");
+            const text = dayKey.format(at) === todayKey ? clean : clean.replace(/^Today /, `${weekday.format(at)} `);
+            const [first = "", ...rest] = text.split("\n");
+            const when = first.split(": ")[0];
+            const what = first.slice(when.length + 2).split(", about ")[0];
+            const tail = what ? first.slice(when.length + 2 + what.length + 2) : first;
+            const href = a.campaign_id ? `/campaigns/${a.campaign_id}` : `/radar?merchant=${merchant.id}`;
             return (
               <article key={a.id} className={i === 0 ? "tone" : undefined}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="t-clock text-[var(--ink)]">{fmt.format(at)}</p>
+                  <p className="t-clock text-[var(--muted)]">{fmt.format(at)}</p>
                   {a.status !== sentAs && (
                     <p className={a.status === "failed" ? "text-sm text-[var(--danger)]" : "text-sm text-[var(--muted)]"}>
                       {statusLabel[a.status] ?? a.status}{a.status === "failed" && a.to_ref ? ` · ${a.to_ref}` : ""}
                     </p>
                   )}
                 </div>
-                <div className="measure mt-4 whitespace-pre-wrap text-base text-[var(--text)]">
-                  {(() => {
-                    const text = a.message
-                      .replace(/\nReview and approve:[\s\S]*$/, "")
-                      .replace(/^Turnout for [^\n]*\n/, "")
-                      .replace(/\nThe agent is writing the campaign now\./, "");
-                    return dayKey.format(at) === todayKey ? text : text.replace(/^Today /, `${weekday.format(at)} `);
-                  })()}
-                </div>
-                {a.campaign_id && (
-                  <Link href={`/campaigns/${a.campaign_id}`} className="link mt-4 inline-flex text-base">
-                    Open the campaign
+                {what && (
+                  <h2 className="t-name mt-3">
+                    {i === 0 ? what : <Link href={href} className="hover:text-[var(--link-hover)]">{what}</Link>}
+                  </h2>
+                )}
+                <p className="mt-2 text-base text-[var(--text)]">
+                  {what ? `${when} · ${tail}` : tail} {rest.join(" ")}
+                </p>
+                {i === 0 && (
+                  <Link href={href} className="link mt-4 inline-flex text-base">
+                    {a.campaign_id ? "Open the campaign" : "See it on the radar"}
                   </Link>
                 )}
               </article>

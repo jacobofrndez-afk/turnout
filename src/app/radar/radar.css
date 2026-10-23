@@ -11,7 +11,7 @@
 .tm-sign.maplibregl-marker { z-index: 1; }
 .tm-handle.maplibregl-marker { z-index: 3; } /* the radius handle is a control: above the signs; the peek board steps around it */
 .tm-peek.maplibregl-marker { z-index: 4; }
-.tm-mapwrap .maplibregl-ctrl-bottom-right { z-index: 5; } /* the map credit stays above the board when the board takes the bottom-right corner */
+.tm-mapwrap :is(.maplibregl-ctrl-bottom-right, .maplibregl-ctrl-bottom-left) { z-index: 5; } /* the map credit, in either bottom corner, opens above the board */
 .tm-me { position: absolute; left: -7px; top: -7px; width: 14px; height: 14px; }
 .tm-chip { position: absolute; white-space: nowrap; }
 .tm-chip-me { left: -14px; top: 12px; transform: translateX(-100%); }
@@ -36,7 +36,10 @@
 .tm-tl { grid-area: tl; min-width: 0; }
 .tm-list { grid-area: list; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-content: start; min-width: 0; }
 @media (max-width: 1023px) { .tm-body { grid-template-columns: minmax(0, 1fr); grid-template-areas: "tl" "map" "list"; } }
-@media (min-width: 1024px) { .tm-root:not(.is-full):not(:fullscreen) .tm-maparea { position: sticky; top: 100px; } }
+@media (min-width: 1024px) {
+  .tm-root:not(.is-full):not(:fullscreen) .tm-maparea { position: sticky; top: 100px; }
+  .tm-root:not(.is-full):not(:fullscreen) .tm-peek { display: none; } /* the chosen moment's card sits beside the map: one board, one "See who is coming" */
+}
 
 /* full screen: map and timeline only; landscape puts the timeline under the map, portrait gives it more room */
 .tm-root.is-full { position: fixed; inset: 0; z-index: 60; background: var(--paper); padding: max(12px, env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px)); grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }

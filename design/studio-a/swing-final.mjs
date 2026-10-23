@@ -12,8 +12,9 @@
 // from 32 px up, so mark and word (Big Shoulders 500) carry the same weight.
 // Run: node design/studio-a/swing-final.mjs
 //   -> marks/01-swing-final-{16,20,32,48,hero,hero-large,hero-large-2x,hero-large-256,hero-large-512,180,mono,
-//      mono-256,mono-512,mono-16,reverse,reverse-256,reverse-512,180-reverse}.svg
-//      01-swing-final.svg (home hero lockup: hero-large 128, 128 px word), 01-swing-final-lockup-header.svg (the app
+//      mono-256,mono-512,mono-16,reverse,reverse-2x,reverse-256,reverse-512,180-reverse}.svg
+//      01-swing-final.svg (home hero lockup: hero-large 128 with its 2x wall, the true curve, so the file, which is also
+//      public/logo.svg, holds as an <img> at any devicePixelRatio; 128 px word), 01-swing-final-lockup-header.svg (the app
 //      header lockup: 48 master, 44 px word), 01-swing-final-og.svg (source of src/app/opengraph-image.png),
 //      swing-final.html (design sheet), ../../src/components/Logo.tsx, ../../src/app/icon.svg, ../../public/logo.svg
 //      (src/app/apple-icon.png and opengraph-image.png are rasterised from the 180 reverse master and the OG card by
@@ -35,6 +36,9 @@
 // 180). A hinted joint is right at devicePixelRatio 1 only (doubled, its 1 px steps become 2 px nubs), so the 128 and
 // the 256 name a retina twin with the true curve (the hero-large 128 at 2x, native 256; the hero-large 512), and the
 // component draws the twin's wall at 1.5 dppx and up. Below 128 px the pixel feet have no clearance either.
+// Motion: while the needle turns, a hub master keeps its whole collar still (the master's own path, painted after the
+// turning needle as at rest) and a notch square at the hub's top-left, so the wall band shows no page in any frame and
+// at 0 degrees the motion layer is the master path for path (the hand-over at DUR - 1 ms changes no pixel).
 // Arc rule: from 32 px up the outer arc is full ink, two thirds of the walls' weight rounded to whole device pixels and
 // never wider than the needle's top: 1 of the 32 grid at 64 px and up (2 px at 64, 4 px at 128, 8 px at 256), 2 px at
 // 48, 1 px at 32, 5 px on the 180 grid. At 20 and 16 px, where walls and needle are 1 px, it is 1 device px of ink at
@@ -136,21 +140,22 @@ const AW32 = 1;
 const M = {
   // The hero-large family shares one geometry (viewBox 32, arc 1 in full ink, hub r 0.75, no ring) in every tone: flush
   // inlay (c = 0), the wall end cut concentric to the hub at exactly r 0.75, dropping square to the floor at x 4.75
-  // (whole pixels at 128, 256, 384, 512, 768 and 1024), hidden collar 0.5 wide (2 px at 128). The masters differ only
-  // in the wall: hinted to the 128 and the 256 grid, the true curve at 512 and in the 2x twin.
+  // (whole pixels at 128, 256, 384, 512, 768 and 1024), hidden collar 0.5 wide (2 px at 128); for the motion only, a
+  // notch square 0.25 (1 px at 128) at the hub's top-left. The masters differ only in the wall: hinted to the 128 and
+  // the 256 grid, the true curve at 512 and in the 2x twin.
   // Native 128 (4 px per unit): the home hero lockup. The cut hinted to the 128 grid. Retina twin: heroL2x.
   heroL: { ...G32, native: 128, mult: [128], size: 128, aw: AW32, tone: 1, ring: null, poly: 0.5,
-    needle: HUB32, foot: { type: 'hub', c: 0, cutX: 4.75, collar: 0.5, snap: 128 }, retina: 'heroL2x' },
+    needle: HUB32, foot: { type: 'hub', c: 0, cutX: 4.75, collar: 0.5, notch: 0.25, snap: 128 }, retina: 'heroL2x' },
   // The hero-large 128 at devicePixelRatio 2 and 3 (256 and 384 device px): the same mark, the cut a true curve.
   heroL2x: { ...G32, native: 256, mult: [256, 384], size: 256, aw: AW32, tone: 1, ring: null, poly: 0.5, twin: [2, 3],
-    needle: HUB32, foot: { type: 'hub', c: 0, cutX: 4.75, collar: 0.5 } },
+    needle: HUB32, foot: { type: 'hub', c: 0, cutX: 4.75, collar: 0.5, notch: 0.25 } },
   // Native 256 (8 px per unit): the Open Graph card. The cut hinted to the 256 grid. Retina twin: heroL512.
   heroL256: { ...G32, native: 256, mult: [256], size: 256, aw: AW32, tone: 1, ring: null, poly: 0.5,
-    needle: HUB32, foot: { type: 'hub', c: 0, cutX: 4.75, collar: 0.5, snap: 256 }, retina: 'heroL512' },
+    needle: HUB32, foot: { type: 'hub', c: 0, cutX: 4.75, collar: 0.5, notch: 0.25, snap: 256 }, retina: 'heroL512' },
   // Native 512 (16 px per unit) and its whole multiples, also the hero-large 256 at devicePixelRatio 2 and 3: the true
   // curve.
   heroL512: { ...G32, native: 512, mult: [512, 768, 1024], size: 512, aw: AW32, tone: 1, ring: null, poly: 0.5,
-    needle: HUB32, foot: { type: 'hub', c: 0, cutX: 4.75, collar: 0.5 } },
+    needle: HUB32, foot: { type: 'hub', c: 0, cutX: 4.75, collar: 0.5, notch: 0.25 } },
   // Native 64 (2 px per unit). Arc 1 = 2 px full ink, walls 3 px, pixel foot 3 x 3 px.
   hero: { ...G32, native: 64, mult: [64], size: 64, aw: AW32, tone: 1, ring: null, poly: 0.5,
     needle: HUB32, foot: { type: 'pix', box: [4.5, 26, 6, 27.5], rr: 0.5, flow: true, under: 0.25, inset: 0.125 } },
@@ -281,9 +286,18 @@ function build(id, g) {
       const cpoly = orient([XLu, XLi, TLi, P, B, Ob, ...outer], 1);
       // mutation (collarIn): the collar as a second sub-path of the needle, as first drawn
       if (F.collarIn) needleSubs.push(cpoly);
-      // the motion keeps the collar still round the hub only: the strip along the needle's left edge would show in
-      // the notch the needle leaves while it turns
-      q.collar = { u, w, Ru, TLu, XLu, TLi, XLi, Ob, B, poly: cpoly, d: F.collarIn ? null : dPoly(cpoly), still: dPoly(orient([TL, P, B, Ob, ...outer], 1)) };
+      q.collar = { u, w, Ru, TLu, XLu, TLi, XLi, Ob, B, poly: cpoly, d: F.collarIn ? null : dPoly(cpoly) };
+      // mutation (stillHub): the motion's still collar cut back to the part round the hub, as da1d0cb drew it (the
+      // strip along the needle's left edge dropped, so the page showed in the wall band while the needle turned)
+      if (F.stillHub) q.collar.stillHub = dPoly(orient([TL, P, B, Ob, ...outer], 1));
+      // the notch square (motion only): `notch` wide, at the hub's top-left, from the datum down, ending on the hub's
+      // centre column. While the needle turns, its left edge leaves the corner between the wall's cut, the datum and the
+      // hub; the collar's strip fills that corner but for a sliver under the hub's top, and this square closes it. At
+      // rest it lies inside the needle, on whole pixels, so it adds nothing to a pixel the needle does not already fill
+      if (F.notch) {
+        const s = F.notch, x0 = r4(P[0] - s), x1 = r4(P[0]), y1 = r4(py + s);
+        q.notch = { s, box: [x0, py, x1, y1], d: `M${x0} ${py}H${x1}V${y1}H${x0}Z` };
+      }
     }
     if (sock) wallL = `M${hx - L} ${py}H${r4(XLc[0])}${Lp(sock)}H${hx - L}Z`;
   } else {
@@ -325,9 +339,12 @@ function build(id, g) {
     swing = {
       P, deg: r4(theta),
       // a hub master turns its needle (the collar is its own path; closed, it would leave the wall band) and keeps the
-      // collar's part round the hub still, under the wall
+      // whole collar still, the master's own path, painted after the needle as at rest, plus the notch square: the wall
+      // band shows no page while the needle turns, and at 0 degrees the motion layer is the master, path for path. All
+      // of it lies inside the wall band, left of the jamb: no still wine above the datum or in the doorway
       turn: F.type === 'hub' ? dPoly(needleSubs[0]) : dPoly(hull),
-      still: F.type === 'hub' ? (q.collar ? q.collar.still : null) : `M${F.box[0]} ${F.box[1]}H${F.box[2]}V${r4(P[1])}H${r4(P[0])}V${F.box[3]}H${F.box[0]}Z`,
+      still: F.type === 'hub' ? (q.collar ? q.collar.stillHub || q.collar.d : null) : `M${F.box[0]} ${F.box[1]}H${F.box[2]}V${r4(P[1])}H${r4(P[0])}V${F.box[3]}H${F.box[0]}Z`,
+      ...(q.notch ? { notch: q.notch.d } : {}),
       sector: dPoly([P, at(P, Rs, theta - 80), ...arcPts(P, Rs, theta - 80, theta, 1).map(v => v.p)]),
       clip: dPoly([at(A, rmid, 0), ...arcPts(A, rmid, 0, 180, 1).map(v => v.p)]),
     };
@@ -518,6 +535,17 @@ function guards(q, out, opt = {}) {
     const convex = nPolys.length === 1 && (turns.every(t => t >= -1e-9) || turns.every(t => t <= 1e-9));
     ok(!!cp && !!q.collarD && convex && n > 100 && out <= 0.002 * n && cp.every(p => p[1] >= py - 1e-9 && p[1] <= pyB + 1e-9) && cl.u * kMin >= Math.SQRT2 + 0.5 - 1e-9 && cl.TLu[1] > py && cl.Ob[0] > hx - L, '(a) collar:',
       `hidden collar, its own path after the needle, ${cl ? cl.u : 0} wide outside the hub (${cl ? sizes.map(m => r4(cl.u * m / q.vb)).join(', ') : 0} px at ${sizes.join(', ')}, at least a pixel diagonal and a half), from the datum down the needle's left edge and round the hub to the floor at x ${cl ? r4(cl.Ob[0]) : '?'}: ${n} samples, ${vis} not under the wall or the needle, ${out} of them outside the joint (more than ${s.snap ? '1 px' : 'a polyline chord'} left of the cut); inside the band y ${py}..${pyB}; the needle path one convex outline (${nPolys.length} contour${nPolys.length > 1 ? 's' : ''}), so it rasterises exactly as before`);
+    // the notch square of the motion: on whole pixels at every size drawn, in the wall band left of the jamb, ending on
+    // the hub's centre column, and at rest wholly inside the needle in every row it spans (so the motion layer at 0
+    // degrees adds nothing to a pixel the needle does not already fill)
+    if (q.notch) {
+      const [nx0, ny0, nx1, ny1] = q.notch.box;
+      let held = 0; const NS = 32;
+      for (let i = 0; i < NS; i++) { const y = ny0 + (ny1 - ny0) * (i + 0.5) / NS; if (section([main], y).some(([a, b]) => a <= nx0 + 1e-9 && b >= nx1 - 1e-9)) held++; }
+      const onAll = sizes.every(m => [nx0, ny0, nx1, ny1].every(v => onPx(v, m / q.vb)));
+      ok(onAll && held === NS && ny0 === py && ny1 <= pyB && nx1 === P[0] && nx1 <= hx, '(a) notch square:',
+        `the motion's notch square x ${nx0}..${nx1}, y ${ny0}..${ny1} (${sizes.map(m => r4(q.notch.s * m / q.vb)).join(', ')} px at ${sizes.join(', ')}): on whole pixels at every size drawn, in the wall band left of the jamb x ${hx}, ending on the hub's centre column x ${P[0]}; at rest the needle holds it in ${held} of ${NS} sampled rows, so at 0 degrees it adds nothing to the master`);
+    }
   } else {
     const f = q.foot, [x0, y0, x1, y1] = f.box;
     const boxOn = [x0, y0, x1, y1].every(v => onPx(v)) && (!f.rr || onPx(f.rr, 2 * k)); // the corner radius on whole pixels at 2x
@@ -881,8 +909,83 @@ function nubCheck(Q, n, dpr, out, override) {
   const qw = Q[w.wallId] || q, hinted = !!qw.socket.snap && qw.socket.snap === dev, lim = hinted ? HINT_DEV : FLUSH_DEV;
   const f = cutDev(qw, s, dev), okf = hinted ? f.worst <= lim + 1e-6 : f.worst < lim;
   const what = w.wallId === w.id ? `the ${LABEL[w.id] || w.id} wall` : `the retina twin's wall (${LABEL[w.wallId] || w.wallId}, the true curve)`;
-  out.push(`${okf ? 'ok  ' : 'FAIL'} ${tag}: no nub: drawn at ${n} CSS px, devicePixelRatio ${dpr} (${dev} device px) the component draws ${what}, ${hinted ? `hinted to this very grid` : qw.socket.snap ? `hinted to the ${qw.socket.snap} grid, here scaled` : 'a true curve'}; the drawn wall end stays within ${r4(f.worst)} px of the exact cut in every device row ${s.rows[0]}..${s.rows[1]}${f.worst > 0.01 ? ` (row ${f.at})` : ''}, limit ${hinted ? `${lim} px (whole pixels, the nearest to the curve)` : `under ${lim} px`}; largest row step ${r4(s.worst)} px`);
+  out.push(`${okf ? 'ok  ' : 'FAIL'} ${tag}: no nub: drawn at ${n} CSS px, devicePixelRatio ${dpr} (${dev} device px) ${(override && override.who) || 'the component'} draws ${what}, ${hinted ? `hinted to this very grid` : qw.socket.snap ? `hinted to the ${qw.socket.snap} grid, here scaled` : 'a true curve'}; the drawn wall end stays within ${r4(f.worst)} px of the exact cut in every device row ${s.rows[0]}..${s.rows[1]}${f.worst > 0.01 ? ` (row ${f.at})` : ''}, limit ${hinted ? `${lim} px (whole pixels, the nearest to the curve)` : `under ${lim} px`}; largest row step ${r4(s.worst)} px`);
   return okf;
+}
+
+/* ================================================================ the motion layer on the device grid
+   The component's motion layer (turnout-mv), composited as the browser does, in its paint order: the afterglow sector
+   turned about P and clipped to the half disc above the datum, the turning needle, then what stays still (a hub
+   master's whole collar and its notch square), the arc, and the ink the component draws at that devicePixelRatio (a
+   hinted master's retina twin's wall at 1.5 dppx and up). At 0 degrees (turnout-mv on, turnout-rs off) it must composite
+   identically to the master, so the hand-over at DUR - 1 ms changes no pixel; in frozen frames of the swing the joint
+   band (the wall band from the left wall's outer end to the hub's centre line: the wall, the collar and the hub's left
+   half, as jointChecks reads it) must show no page over MV_PAGE. The column right of the centre line, the hub's own
+   round edge against the page, is reported beside it. */
+const MV_T = [0, 150, 300, 600, 895], MV_PAGE = 0.06;
+const pc1 = v => `${(v * 100).toFixed(1)} %`;
+// the swing's progress at a fraction x of DUR: the CSS cubic-bezier EASE, solved for x by bisection
+function easeAt(x) {
+  const [x1, y1, x2, y2] = EASE, bz = (t, a, b) => 3 * (1 - t) * (1 - t) * t * a + 3 * (1 - t) * t * t * b + t * t * t;
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 64; i++) { const m = (lo + hi) / 2; if (bz(m, x1, x2) < x) lo = m; else hi = m; }
+  return bz((lo + hi) / 2, y1, y2);
+}
+// rotate about P by deg (CSS rotate: clockwise on screen, y down), full precision
+const rotAbout = (P, deg, p) => { const a = rad(deg), dx = p[0] - P[0], dy = p[1] - P[1]; return [P[0] + dx * Math.cos(a) - dy * Math.sin(a), P[1] + dx * Math.sin(a) + dy * Math.cos(a)]; };
+const dRaw = poly => `M${poly.map(p => `${p[0]} ${p[1]}`).join('L')}Z`;
+// Sutherland-Hodgman: a polygon clipped to a convex one (the clip path of the turning afterglow)
+function clipConvex(subject, clip) {
+  const sg = Math.sign(area(clip));
+  let res = subject;
+  for (let i = 0; i < clip.length && res.length; i++) {
+    const A = clip[i], B = clip[(i + 1) % clip.length], inp = res;
+    const cr = p => sg * ((B[0] - A[0]) * (p[1] - A[1]) - (B[1] - A[1]) * (p[0] - A[0]));
+    res = [];
+    for (let j = 0; j < inp.length; j++) {
+      const p = inp[j], p2 = inp[(j + 1) % inp.length], c1 = cr(p), c2 = cr(p2);
+      if (c1 >= 0) res.push(p);
+      if ((c1 >= 0) !== (c2 >= 0)) { const t = c1 / (c1 - c2); res.push([p[0] + (p2[0] - p[0]) * t, p[1] + (p2[1] - p[1]) * t]); }
+    }
+  }
+  return res;
+}
+function mvLayers(q, mode, inkD, ang) {
+  const k = MODES[mode], sw = q.swing;
+  const turn = ang ? polygons(sw.turn).map(poly => dRaw(poly.map(p => rotAbout(sw.P, ang, p)))).join('') : sw.turn;
+  const glow = clipConvex(polygons(sw.sector)[0].map(p => (ang ? rotAbout(sw.P, ang, p) : p)), polygons(sw.clip)[0]);
+  return [
+    ...(glow.length > 2 ? [{ ds: [dRaw(glow)], col: k.glow }] : []),
+    { ds: [turn], col: k.acc },
+    ...(sw.still ? [{ ds: [sw.still], col: k.acc }] : []),
+    ...(sw.notch ? [{ ds: [sw.notch], col: k.acc }] : []),
+    ...(q.arc ? [{ ds: [q.arc], col: arcColour(q, mode) }] : []),
+    { ds: [inkD], col: k.line },
+  ];
+}
+// the master as the component draws it at rest (turnout-rs), with the ink it draws at that devicePixelRatio
+const restLayers = (q, mode, inkD) => layersOf(q, false, mode).map((l, i, a) => (i === a.length - 1 ? { ...l, ds: [inkD] } : l));
+function motionChecks(q, n, dpr, inkD, out, opt = {}) {
+  const mode = opt.mode || 'color', md = MODES[mode], N = Math.round(n * dpr), k = N / q.vb, sw = q.swing;
+  const tag = `${opt.tag || q.id}${mode !== 'color' ? ' ' + mode : ''}@${n}${dpr > 1 ? ` x${dpr}` : ''}`;
+  const ok = (c, m) => { out.push(`${c ? 'ok  ' : 'FAIL'} ${tag}: motion ${m}`); return c; };
+  const R = L => raster(L, N, q.vb, md.page, md.line, md.acc).browser;
+  const wallTxt = opt.wall && opt.wall !== q.id ? `the ${LABEL[opt.wall] || opt.wall} wall` : 'its own wall';
+  if (!opt.times) {
+    const rest = R(restLayers(q, mode, inkD)), zero = R(mvLayers(q, mode, inkD, 0));
+    let worst = 0, wi = 0;
+    for (const f of ['ink', 'amb', 'pap']) for (let i = 0; i < N * N; i++) { const d = Math.abs(rest[f][i] - zero[f][i]); if (d > worst) { worst = d; wi = i; } }
+    ok(worst <= 1e-9, `at 0 degrees: the motion layer (turnout-mv on, turnout-rs off, no rotation: the afterglow sector clipped to the half disc, the needle, the still collar${sw.notch ? ' and the notch square' : ''}, ${q.arc ? 'the arc, ' : ''}${wallTxt}) composites identically to the master at ${N} device px: largest difference ${worst <= 1e-9 ? `0, so the hand-over at ${DUR - 1} ms changes no pixel` : `${pc1(worst)} at (${wi % N}, ${Math.floor(wi / N)}): the hand-over at ${DUR - 1} ms pops`}`);
+  }
+  const y0 = Math.round(q.py * k), y1 = Math.round(q.pyB * k), x0 = Math.round((q.hx - q.L) * k), xP = Math.floor(q.P[0] * k + 1e-9);
+  const bandMax = F => {
+    let w = 0, at = null, wc = 0;
+    for (let y = y0; y < y1; y++) { for (let x = x0; x < xP; x++) { const v = F.pap[y * N + x]; if (v > w) { w = v; at = [x, y]; } } wc = Math.max(wc, F.pap[y * N + xP]); }
+    return { w, at, wc };
+  };
+  const res = (opt.times || MV_T).map(t => { const ang = sw.deg * (1 - easeAt(t / DUR)); return { t, ang, ...bandMax(R(mvLayers(q, mode, inkD, ang))) }; });
+  const rest = opt.times ? null : bandMax(R(restLayers(q, mode, inkD)));
+  ok(res.every(r => r.w <= MV_PAGE), `frozen frames: in the joint band (rows ${y0}..${y1 - 1}, columns ${x0}..${xP - 1}: the left wall, the collar and the hub's left half) no page over ${pc1(MV_PAGE)}: ${res.map(r => `${r.t} ms (${r.ang.toFixed(2)} deg) ${pc1(r.w)}${r.w > 0.005 ? ` at (${r.at.join(', ')})` : ''}`).join(', ')}${rest ? `, at rest ${pc1(rest.w)}` : ''}; column ${xP}, right of the hub's centre line (its own round edge against the page), at most ${pc1(Math.max(...res.map(r => r.wc)))}${rest ? ` (at rest ${pc1(rest.wc)})` : ''}`);
 }
 
 /* ================================================================ wordmark outlines */
@@ -925,9 +1028,11 @@ function runBox(key, x0, y0, size) {
    size, as in the app (Wordmark). */
 const markOrigin = (q, x, y) => `<svg x="${x}" y="${y}" width="${q.native}" height="${q.native}" viewBox="0 0 ${q.vb} ${q.vb}">`;
 // home hero lockup: hero-large 128 + Turnout at 128 px (cap 102.4: the mark, 90 px arc top to floor, is 0.88 of it),
-// gap 24, transparent; the hub inlaid flush, the same drawing on 2x screens
+// gap 24, transparent; the hub inlaid flush. wall: the master whose ink (walls and arc) is drawn instead of q's: the file
+// takes the retina twin's, the joint as the true curve, so it holds as an <img> at any devicePixelRatio (an image
+// ignores the resolution query a hinted wall would need: on a 2x screen it would draw the 1x staircase doubled)
 const LOCK = { pad: 16, F: 128, gap: 24, key: 'wordmark-128' };
-function heroLockup(q, { id, bg = null, ink2x = null } = {}) {
+function heroLockup(q, { id, bg = null, wall = null } = {}) {
   const { pad, F, gap, key } = LOCK, s = q.native / q.vb;
   const mx = pad, my = pad, base = my + q.pyB * s, tx = mx + q.native + gap;
   const box = runBox(key, tx, base, F), visL = mx + (q.hx - q.L) * s;
@@ -936,7 +1041,7 @@ function heroLockup(q, { id, bg = null, ink2x = null } = {}) {
     W, H, mx, my, base, tx, F, box,
     svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Turnout">` +
       (bg ? `<rect width="${W}" height="${H}" fill="${bg}"/>` : '') +
-      `${markOrigin(q, mx, my)}${body(q, 'color', { id: id || 'turnout-glow-lockup', ink2x })}</svg>` +
+      `${markOrigin(q, mx, my)}${body(wall ? { ...q, ink: wall.ink } : q, 'color', { id: id || 'turnout-glow-lockup' })}</svg>` +
       `<path d="${runPath(key, tx, base, F)}" fill="${INK}"/></svg>`,
   };
 }
@@ -1063,12 +1168,9 @@ function main() {
     ok(Math.min(...cy) >= q.py - 1e-6 && Math.max(...cy) <= q.pyB + 1e-6 && reach > q.xr && reach < q.xr + q.L,
       `closed: turned ${sw.deg} deg about the hub P (${P2(sw.P)}), the needle lies in the wall band, y ${r4(Math.min(...cy))} to ${r4(Math.max(...cy))} within the walls' ${q.py} and ${q.pyB}, across the doorway; its top ends at x ${r4(reach)}, under the right wall`);
     if (q.kind === 'hub' || !sw.still) ok(sw.turn === q.needle, 'rest: the turning needle is the master needle, byte for byte');
-    if (q.kind === 'hub' && q.collar && q.native <= 256) {
-      const n = q.native, lay = ds => raster([{ ds, col: ACC }, ...(q.arc ? [{ ds: [q.arc], col: arcColour(q, 'color') }] : []), { ds: [q.ink], col: INK }], n, q.vb);
-      const A0 = lay([q.needle, q.collarD]), B0 = lay([sw.still, sw.turn]);
-      let worst = 0, wi = 0; for (let i = 0; i < n * n; i++) { const d = Math.abs(A0.browser.amb[i] - B0.browser.amb[i]); if (d > worst) { worst = d; wi = i; } }
-      ok(worst <= 0.5, `rest: the still collar round the hub plus the turning needle against the master's needle and collar at ${n} px, largest difference ${pct(worst)} wine in one pixel (${wi % n}, ${Math.floor(wi / n)}): the collar's strip along the needle's left edge, which the master adds at the hand-over`);
-    } else if (sw.still && q.kind !== 'hub' && q.native <= 128) {
+    if (q.kind === 'hub') {
+      ok(!!sw.still && sw.still === q.collarD && (q.notch ? sw.notch === q.notch.d : !sw.notch), `rest: what stays still while the needle turns is the master's whole collar, byte for byte (its strip along the needle's left edge included), painted after the turning needle as the collar is painted after the needle at rest${q.notch ? `, then the notch square ${q.notch.d}` : ''}: at 0 degrees the motion layer is the master's own paths`);
+    } else if (sw.still && q.native <= 128) {
       const n = q.native, lay = ds => raster([{ ds, col: ACC }, ...(q.arc ? [{ ds: [q.arc], col: arcColour(q, 'color') }] : []), { ds: [q.ink], col: INK }], n, q.vb);
       const A0 = lay([q.needle]), B0 = lay([sw.still, sw.turn]);
       let worst = 0, wi = 0; for (let i = 0; i < n * n; i++) { const d = Math.abs(A0.browser.amb[i] - B0.browser.amb[i]); if (d > worst) { worst = d; wi = i; } }
@@ -1078,6 +1180,12 @@ function main() {
     let inR = 0, miss = 0; const G = 240;
     for (let i = 0; i < G; i++) for (let j = 0; j < G; j++) { const p = [(i + 0.5) * q.vb / G, (j + 0.5) * q.vb / G], a1 = inside(rg, p), b1 = inside(sc, p) && inside(cl, p); if (a1) inR++; if (a1 !== b1) miss++; }
     ok(miss <= 0.004 * inR, `rest: the turning afterglow, clipped, covers the master's afterglow region (${miss} of ${inR} samples differ, on the polygon edges)`);
+  }
+  // the motion layer on the device grid, as the component draws the hero-large family (the home hero swings the 128):
+  // identical to the master at 0 degrees, and no page in the joint band in frozen frames of the swing
+  for (const mode of ['color', 'reverse']) for (const [n, dpr] of [[128, 1], [128, 2], [256, 1], [256, 2]]) {
+    const w = drawnWall(Q, n, dpr);
+    motionChecks(Q[w.id], n, dpr, Q[w.wallId].ink, checks, { mode, wall: w.wallId });
   }
   // mutation self-tests: undo one joint at a time; the same checks must object
   const mutants = [
@@ -1108,6 +1216,11 @@ function main() {
       (q, res) => nubCheck({ mutant: q }, 128, 2, res, { id: 'mutant', wallId: 'mutant', d: q.wallL, tag: 'mutant' })],
     ['hero-large 512 scaled up from the 128 staircase', 'heroL', {}, [], /no nub/,
       (q, res) => nubCheck({ mutant: q }, 512, 1, res, { id: 'mutant', wallId: 'mutant', d: q.wallL, tag: 'mutant' })],
+    // the motion layer: da1d0cb's still collar (round the hub only), and the notch square left out
+    ['the motion\'s still collar cut back to the part round the hub (the page in the wall band while the needle turns, a pop at the hand-over)', 'heroL', { foot: { ...M.heroL.foot, stillHub: 1 } }, [], /motion (at 0 degrees|frozen frames)/,
+      (q, res) => motionChecks(q, 128, 1, q.ink, res, { tag: 'mutant' })],
+    ['the motion without its notch square (a sliver of page under the hub\'s top while the needle is far from rest)', 'heroL256', { foot: { ...M.heroL256.foot, notch: 0 } }, [], /motion frozen frames/,
+      (q, res) => motionChecks(q, 256, 2, Q.heroL512.ink, res, { tag: 'mutant', times: [0, 150] })],
     ['a ring put back, 0.35 at 64 px (0.7 px band)', 'hero', { ring: { ri: 12, w: 0.35, op: 0.5 } }, [], /ring band/, (q, res) => guards(q, res)],
     ['the hairline arc put back at 128 (0.25 of the grid, 1 px against 6 px walls)', 'heroL', { aw: 0.25 }, [], /arc rule/, (q, res) => guards(q, res)],
   ];
@@ -1121,13 +1234,29 @@ function main() {
     checks.push(`${hit.length ? 'ok  ' : 'FAIL'} guard self-test: ${name} is rejected${hit.length ? ': ' + hit[0].slice(5).replace('mutant', LABEL[base]) : ' (NOT caught)'}`);
   }
 
+  // the files: built from Q; if a broken master makes that throw, the checks above are still printed, with the error
+  try { files(Q, checks); }
+  catch (e) {
+    checks.push(`FAIL files: not written, building them threw ${e && e.name}: ${e && e.message} (the FAIL lines above say which master is broken)`);
+    const fails = checks.filter(c => c.startsWith('FAIL'));
+    console.log(checks.join('\n'));
+    console.log(`${checks.filter(c => c.startsWith('ok')).length} ok, ${fails.length} FAIL`);
+    console.error(fails.join('\n'));
+    process.exitCode = 1;
+  }
+}
+
+function files(Q, checks) {
   /* ---------------------------------------------------------------- files */
+  // a broken master (a mutation, a reverted joint) may lack a collar or a hinted socket: its text says so, it never throws
+  const cu = q => (q.collar ? q.collar.u : 'none'), cRu = q => (q.collar ? q.collar.Ru : q.R);
+  const rowsW = (q, sep) => (q.socket && q.socket.rows ? q.socket.rows.map(r => r.w).join(sep) : 'none (not hinted)');
   const hL = Q.heroL, hL2x = Q.heroL2x, hL256 = Q.heroL256, hL512 = Q.heroL512, h = Q.hero, q48 = Q.m48, q32 = Q.m32, q20 = Q.m20, q16 = Q.m16, q180 = Q.m180;
   const ringTxt = q => q.ring ? `ring r ${q.ring.ri} to ${q.ring.ro} at ${q.ring.op * 100} %` : 'no ring';
   const arcTxt = q => `arc r ${q.rin} to ${q.rout} (${r4(q.aw * q.native / q.vb)} px, ${q.tone >= 1 ? 'full ink' : `ink at 65 %: solid ${ARC_PAPER} on paper, ${ARC_WHITE} on white`})`;
   const hubTxt = q => q.kind === 'hub'
     ? (q.socket.c === 0
-      ? `Pivot encastré, flush inlay: the needle ends in a round hub P (${P2(q.P)}), r ${q.R}, inlaid in the left wall's end with no reveal: the wall end follows the hub's own circle, from the datum down the needle's left edge and round the hub, then drops square to the floor at x ${q.socket.E[0]}, so the lower lip ends in a face; ${q.socket.snap ? `hinted to the ${q.socket.snap} px grid, the wall ink ends on the whole pixel nearest the curve in every row (device px ${q.socket.rows.map(r => r.w).join(' / ')}), so each pixel of the joint is wine or ink, never a blend` : 'the true curve'}. A hidden collar of wine ${q.collar.u} wide, its own path under the ink, fills what the cut leaves, so the page never shows between hub and wall. The hub is tangent to the wall top, the wall bottom and the jamb x ${q.hx}.`
+      ? `Pivot encastré, flush inlay: the needle ends in a round hub P (${P2(q.P)}), r ${q.R}, inlaid in the left wall's end with no reveal: the wall end follows the hub's own circle, from the datum down the needle's left edge and round the hub, then drops square to the floor at x ${q.socket.E[0]}, so the lower lip ends in a face; ${q.socket.snap ? `hinted to the ${q.socket.snap} px grid, the wall ink ends on the whole pixel nearest the curve in every row (device px ${rowsW(q, ' / ')}), so each pixel of the joint is wine or ink, never a blend` : 'the true curve'}. ${q.collar ? `A hidden collar of wine ${q.collar.u} wide, its own path under the ink, fills what the cut leaves, so the page never shows between hub and wall.` : 'No collar: the page can show in the joint.'} The hub is tangent to the wall top, the wall bottom and the jamb x ${q.hx}.`
       : `Pivot encastré with a background reveal ${q.socket.c} (${r4(q.socket.c * q.native / q.vb)} px) round the hub, a joint Velours no longer draws.`)
     : q.foot.flow ? `Pivot encastré, pixel foot: the needle's foot is the wall's last ${r4((q.foot.box[2] - q.foot.box[0]) * q.native / q.vb)} px (x ${q.foot.box[0]} to ${q.foot.box[2]}), outer bottom corner rounded ${q.foot.rr}, no reveal; the needle's edges are tangent to the hub circle (P (${P2(q.P)}), r ${q.R}).`
       : `Pivot encastré, pixel foot: the needle (${q.nd.lw} wide) stands on the foot box x ${q.foot.box[0]} to ${q.foot.box[2]}, y ${q.foot.box[1]} to ${q.foot.box[3]}${q.foot.rr ? `, outer bottom corner rounded ${q.foot.rr}` : ''}.`;
@@ -1151,7 +1280,8 @@ function main() {
     mono256: `one colour, the hero-large 256 master. Native size 256 px (8 px per unit); draw it at 256 CSS px. ${hubTxt(hL256)} Needle and collar in ink; ${glowTxt('mono')}; the joint closes in one colour. ${arcTxt(hL256)}.`,
     mono512: `one colour, the hero-large 512 master. Native size 512 px (16 px per unit); draw it at 512 CSS px or a whole multiple. ${hubTxt(hL512)} Needle and collar in ink; ${glowTxt('mono')}; the joint closes in one colour. ${arcTxt(hL512)}.`,
     mono16: `one colour, 16 px master geometry (native size 16 px; draw it only at 16 CSS px): needle in ink, ${glowTxt('mono')}, arc ${ARC_PAPER}.`,
-    reverse: `reverse on the aubergine plate, the hero-large 128 master. Native size 128 px; draw it only at 128 CSS px at devicePixelRatio 1 (256 and 512 have their own reverse files). ${dpr1('01-swing-final-hero-large-2x.svg in these colours', 'the joint the true curve')} ${hubTxt(hL)} ${revTxt}.`,
+    reverse: `reverse on the aubergine plate, the hero-large 128 master. Native size 128 px; draw it only at 128 CSS px at devicePixelRatio 1 (256 and 512 have their own reverse files). ${dpr1('01-swing-final-reverse-2x.svg', 'the same mark reversed, the joint the true curve')} ${hubTxt(hL)} ${revTxt}.`,
+    reverse2x: `reverse on the aubergine plate, the hero-large 128 for 2x screens. Native size 256 device px: draw it at 128 CSS px at devicePixelRatio 2 (or 3); at devicePixelRatio 1 draw 01-swing-final-reverse.svg. ${hubTxt(hL2x)} Otherwise the reverse hero-large 128 exactly: ${arcTxt(hL)}. ${revTxt}.`,
     reverse256: `reverse on the aubergine plate, the hero-large 256 master. Native size 256 px (8 px per unit); draw it only at 256 CSS px at devicePixelRatio 1. ${dpr1('01-swing-final-reverse-512.svg', 'the joint the true curve')} ${hubTxt(hL256)} ${revTxt}.`,
     reverse512: `reverse on the aubergine plate, the hero-large 512 master. Native size 512 px (16 px per unit); draw it at 512 CSS px or a whole multiple, or at 256 CSS px on a 2x screen. ${hubTxt(hL512)} ${revTxt}.`,
   };
@@ -1166,16 +1296,22 @@ function main() {
     ['marks/01-swing-final-mono-256.svg', 'mono256', hL256, 256, 'mono'], ['marks/01-swing-final-mono-512.svg', 'mono512', hL512, 512, 'mono'],
     ['marks/01-swing-final-mono-16.svg', 'mono16', q16, 16, 'mono'], ['marks/01-swing-final-reverse.svg', 'reverse', hL, 128, 'reverse'],
     ['marks/01-swing-final-reverse-256.svg', 'reverse256', hL256, 256, 'reverse'], ['marks/01-swing-final-reverse-512.svg', 'reverse512', hL512, 512, 'reverse'],
-    // the 128 for 2x screens: drawn at 128 CSS px, its native grid is 256 device px
-    ['marks/01-swing-final-hero-large-2x.svg', 'heroL2x', hL2x, 128, 'color', 2],
+    // the 128 for 2x screens: drawn at 128 CSS px, its native grid is 256 device px; in colour and reversed
+    ['marks/01-swing-final-hero-large-2x.svg', 'heroL2x', hL2x, 128, 'color', 2], ['marks/01-swing-final-reverse-2x.svg', 'reverse2x', hL2x, 128, 'reverse', 2],
     // the apple-touch icon: the 180 master reversed on the plate
     ['marks/01-swing-final-180-reverse.svg', 'm180reverse', q180, 180, 'reverse'],
   ];
   for (const [rel, key, q, n, mode] of MF) out[rel] = master(key, svg(q, n, mode));
-  const lock = heroLockup(hL, { ink2x: hL2x.ink }), hdr = headerLockup(q48), og = ogCard(hL256);
-  out['01-swing-final.svg'] = `<?xml version="1.0" encoding="UTF-8"?>\n<!-- Turnout, Studio A, Swing final, identity Velours. Home hero lockup, transparent, ${lock.W} x ${lock.H}: the hero-large 128 master at its native 128 px on the integer origin (${lock.mx}, ${lock.my}), its floor (wall bottom) on the word's baseline y ${lock.base}; the hub inlaid flush, the joint hinted to the 128 grid, and on 2x screens the true curve (the hero-large 128 at 2x wall), as the component draws it. Word "Turnout": Big Shoulders 500, opsz 72, ${LOCK.F} px, tracking 0, outlined, ${INK}; pen origin x ${lock.tx} (gap ${LOCK.gap} from the mark's box). Draw it at ${lock.W} x ${lock.H} CSS px or a whole multiple. -->\n${lock.svg}\n`;
+  const lock = heroLockup(hL, { wall: hL2x }), hdr = headerLockup(q48), og = ogCard(hL256);
+  out['01-swing-final.svg'] = `<?xml version="1.0" encoding="UTF-8"?>\n<!-- Turnout, Studio A, Swing final, identity Velours. Home hero lockup, transparent, ${lock.W} x ${lock.H}: the hero-large 128 master at its native 128 px on the integer origin (${lock.mx}, ${lock.my}), its floor (wall bottom) on the word's baseline y ${lock.base}; the hub inlaid flush, the wall cut as the true curve (the hero-large 128 at 2x wall, 01-swing-final-hero-large-2x.svg), not the 1x hinted staircase: an image ignores resolution media queries, so the file draws one wall that holds at every devicePixelRatio (at 1x the collar keeps the page out of the joint; at 2x and 3x no 2 px nub). Word "Turnout": Big Shoulders 500, opsz 72, ${LOCK.F} px, tracking 0, outlined, ${INK}; pen origin x ${lock.tx} (gap ${LOCK.gap} from the mark's box). Draw it at ${lock.W} x ${lock.H} CSS px or a whole multiple. -->\n${lock.svg}\n`;
   out['01-swing-final-lockup-header.svg'] = `<?xml version="1.0" encoding="UTF-8"?>\n<!-- Turnout, Studio A, Swing final, identity Velours. App header lockup, as src/app/layout.tsx draws it on wide screens (Wordmark size 44), ${hdr.W} x ${hdr.H}, transparent: the 48 master at its native 48 px on the integer origin (0, ${hdr.my}), its floor (wall bottom) on the text baseline y ${hdr.base}. "Turnout" Big Shoulders 500, opsz ${HDR.F}, ${HDR.F} px, tracking 0, ${INK}, pen x ${hdr.tx} (gap ${HDR.gap}), caps from y ${r4(hdr.wb[1])}. No descriptor. All text outlined. Draw it at ${hdr.W} x ${hdr.H} CSS px on an integer position. -->\n${hdr.svg}\n`;
   out['01-swing-final-og.svg'] = `<?xml version="1.0" encoding="UTF-8"?>\n<!-- Turnout, Studio A, Swing final, identity Velours. Open Graph card ${OG.W} x ${OG.H}, the source of src/app/opengraph-image.png: ${og.plate ? `the flat aubergine plate ${PLATE}; the hero-large 256 master reversed (walls ${ON_PLATE}, needle ${ROSE})` : `the white page; the hero-large 256 master in colour`} at its native ${OG.m} px on (${og.mx}, ${og.my}), floor on the baseline y ${og.base} of "Turnout" (Big Shoulders 500, opsz 72, ${OG.F} px, outlined, ${og.plate ? ON_PLATE : INK}); the promise in Big Shoulders 500, opsz 56, ${OG.P} px, outlined, ${og.plate ? LILAC : TITLE}, baseline y ${og.base + OG.lead}, aligned on the mark's left wall end x ${og.px}. No line, no gradient. -->\n${og.svg}\n`;
+  {
+    // every file a header names is written (a note pointing at a file that does not exist sends its reader nowhere)
+    const named = [...new Set(Object.values(out).flatMap(s => (s.match(/<!--[\s\S]*?-->/) || [''])[0].match(/01-swing-final[a-z0-9-]*\.svg/g) || []))];
+    const missing = named.filter(f => !out[f] && !out['marks/' + f]);
+    checks.push(`${missing.length ? 'FAIL' : 'ok  '} file headers: every file a header names is written (${named.length}: ${named.join(', ')})${missing.length ? ': MISSING ' + missing.join(', ') : ''}`);
+  }
   // file-level guards
   // retired looks: the first identity, and Marquise (ink #111114, wine #E0115F, concrete paper #F2F3F3, arc #606062)
   const OLDI = /#F7F4EE|#B4530A|#17150F|#E39A5F|#6B655B|#111114|#E0115F|#F2F3F3|#606062|#646466|Fraunces|\bInter\b|IBM Plex Mono/i, OLD = { test: s => OLDI.test(s) || /CROWD TO CAMPAIGN/.test(s) };
@@ -1189,6 +1325,20 @@ function main() {
     checks.push(`${okf ? 'ok  ' : 'FAIL'} file ${rel}: ${n} x ${n}${dpr > 1 ? ` at devicePixelRatio ${dpr} = native ${q.native} device px` : ' = native'}, viewBox 0 0 ${q.vb} ${q.vb}, the afterglow one flat ${MODES[mode].glow} (no mask, no opacity), ${ds.length} paths, no arc commands, native size stated${staircase ? ', hinted joint: the header says it is right only at devicePixelRatio 1' : ''}, no colour or font of the retired look`);
   }
   lockupChecks(lock, hL, '01-swing-final.svg', { k: 4, master: 'the hero-large 128', key: LOCK.key, F: LOCK.F }, checks);
+  {
+    // 01-swing-final.svg is public/logo.svg, the file used outside the app (press, email, README) as an <img>, where an
+    // in-file resolution media query does not fire: it draws one wall, the true curve, right at every devicePixelRatio
+    const s = out['01-swing-final.svg'], ok = (c, m) => checks.push(`${c ? 'ok  ' : 'FAIL'} 01-swing-final.svg (= public/logo.svg): ${m}`);
+    ok(!/<style|@media|min-resolution|turnout-ink/.test(s) && s.includes(`<path d="${hL2x.ink}" fill="${INK}"/>`) && !s.includes(` d="${hL.ink}"`), `one wall, the true curve (the ink of the hero-large 128 at 2x), no style and no resolution media query: as an <img> it draws the same wall at every devicePixelRatio`);
+    // at devicePixelRatio 1 the true curve, unhinted, blends wine and ink on the cut, but the collar keeps the page out
+    const lq = { ...hL, ink: hL2x.ink }, k = 128 / hL.vb, F = raster(layersOf(lq), 128, hL.vb).browser;
+    const y0 = Math.round(hL.py * k), y1 = Math.round(hL.pyB * k), x0 = Math.round((hL.hx - hL.L) * k), xP = Math.floor(hL.P[0] * k + 1e-9);
+    let bg = 0, at = null;
+    for (let y = y0; y < y1; y++) for (let x = x0; x < xP; x++) { const v = F.pap[y * 128 + x]; if (v > bg) { bg = v; at = [x, y]; } }
+    ok(bg <= 0.02, `at devicePixelRatio 1 (128 device px) the true curve with its collar keeps the page out of the joint: rows ${y0}..${y1 - 1}, columns ${x0}..${xP - 1} (wall, collar and the hub's left half), worst background ${pc1(bg)}${bg > 0.005 ? ` at (${at.join(', ')})` : ''}, limit 2.0 %`);
+    // and no nub at 1, 2 and 3: within a quarter pixel of the exact cut in every device row
+    for (const dpr of [1, 2, 3]) nubCheck(Q, 128, dpr, checks, { id: 'heroL', wallId: 'heroL2x', d: hL2x.wallL, tag: '01-swing-final.svg', who: 'the file' });
+  }
   lockupChecks(hdr, q48, '01-swing-final-lockup-header.svg', { k: 1, master: 'the 48 master', key: HDR.key, F: HDR.F }, checks);
   lockupChecks(og, hL256, '01-swing-final-og.svg', { k: 8, master: OG.plate ? 'the hero-large 256, reversed' : 'the hero-large 256', key: OG.key, F: OG.F }, checks);
   {
@@ -1218,7 +1368,8 @@ function main() {
   // share a glowId have the same afterglow and motion layer, byte for byte, so whichever copy url(#...) resolves to is right.
   const swingKey = q => q.swing ? JSON.stringify({ ...q.swing, P: q.swing.P.map(r4) }) : '';
   const sharedSwing = LARGE.every(q => swingKey(q) === swingKey(hL));
-  const swingLit = (q, ind) => `{ P: [${q.swing.P.map(r4).join(', ')}], deg: ${q.swing.deg}, turn: "${q.swing.turn}",${q.swing.still ? ` still: "${q.swing.still}",` : ''} sector: "${q.swing.sector}", clip: "${q.swing.clip}" }`;
+  // stillRef: the name the still part is written by when it is the shared collar (the same path, written once)
+  const swingLit = (q, stillRef) => `{ P: [${q.swing.P.map(r4).join(', ')}], deg: ${q.swing.deg}, turn: "${q.swing.turn}",${q.swing.still ? ` still: ${stillRef && q.swing.still === q.collarD ? stillRef : `"${q.swing.still}"`},` : ''}${q.swing.notch ? ` notch: "${q.swing.notch}",` : ''} sector: "${q.swing.sector}", clip: "${q.swing.clip}" }`;
   const mBlock = (key, q, note, glowId, glowRef, swingRef, collarRef) => `  // ${note}
   ${key}: {
     vb: ${q.vb},
@@ -1228,7 +1379,7 @@ function main() {
     glowId: "${glowId}",
     glow: ${glowRef || glowLit(q)},
     needle: "${q.needle}",${q.collarD ? `\n    collar: ${collarRef || `"${q.collarD}"`},` : ''}${q.arc ? `\n    arc: "${q.arc}",` : ''}
-    ink: "${q.ink}",${q.retina ? `\n    ink2x: "${Q[q.retina].ink}",` : ''}${q.swing ? `\n    swing: ${swingRef || swingLit(q, '    ')},` : ''}
+    ink: "${q.ink}",${q.retina ? `\n    ink2x: "${Q[q.retina].ink}",` : ''}${q.swing ? `\n    swing: ${swingRef || swingLit(q)},` : ''}
   },`;
   const markFor = [[26, 20], [38, 32], [56, 48], [100, 64]];
   // the afterglow in the component: the same solid tints as the files, mixed by the browser from the live tokens, so a
@@ -1269,8 +1420,11 @@ function main() {
 // needle, collar, arc, ink.
 // MOTION (personality "live"). motion swings the needle open once, when the mark is first drawn: from closed (the
 // needle lying in the wall line, across the doorway) to rest in ${DUR} ms, ${EASE_CSS}, about the hub
-// centre, the afterglow carried round behind it and clipped to the floor line. At ${DUR - 1} ms the motion layer hands
-// over to the master paths, so the rest state is the master, pixel for pixel. prefers-reduced-motion: reduce (or no
+// centre, the afterglow carried round behind it and clipped to the floor line. While it turns, what stays is painted
+// after it: the foot of a pixel master, or a hub master's whole collar (the same path as at rest) and a notch square at
+// the hub's top-left, all inside the wall band, so the joint never shows the page. At ${DUR - 1} ms the motion layer hands
+// over to the master paths; at 0 degrees it is those very paths in the same order, so the hand-over changes no pixel
+// and the rest state is the master, pixel for pixel. prefers-reduced-motion: reduce (or no
 // CSS animation) draws the rest state only. The masters with a tapered needle carry it (32, 48, 64, 128, 256, 512);
 // the 16 and the 20 never move. Use it once per page, on the home hero lockup; the header mark stays still. Freeze a
 // frame for review with the custom properties turnout-t (a time, e.g. 300ms) and turnout-ps (paused), each with the
@@ -1297,9 +1451,11 @@ type Master = {
   ink: string;
   collar?: string; // the hidden collar of wine under the wall's cut (flush inlay), painted after the needle, under the ink
   ink2x?: string; // ink with the joint as the true curve, drawn instead of ink at ${RETINA_DPPX} dppx and up
-  // the motion layer: the needle that turns about the hub P by deg (closed) to 0 (rest), the foot (or the collar round
-  // the hub) that stays, the afterglow sector that turns with it, and the half disc above the floor that clips it
-  swing?: { P: [x: number, y: number]; deg: number; turn: string; still?: string; sector: string; clip: string };
+  // the motion layer: the needle that turns about the hub P by deg (closed) to 0 (rest); what stays, painted after it
+  // (the foot of a pixel master; a hub master's whole collar, the same path as collar, and its notch square at the
+  // hub's top-left, so the wall band shows no page while the needle turns); the afterglow sector that turns with it,
+  // and the half disc above the floor that clips it
+  swing?: { P: [x: number, y: number]; deg: number; turn: string; still?: string; notch?: string; sector: string; clip: string };
 };
 ${sharedGlow ? `
 // The afterglow of the hero-large family (the same needle and arc centreline at 128, 256 and 512).
@@ -1309,19 +1465,24 @@ const GLOW_LARGE: Master["glow"] = ${glowLit(hL)};
 // the hub to the floor; it shows only where it completes the joint.
 const COLLAR_LARGE: NonNullable<Master["collar"]> = "${hL.collarD}";
 ` : ''}${sharedSwing ? `
-// The motion layer of the hero-large family (the same needle, hub and afterglow at 128, 256 and 512); the collar round
-// the hub stays still, under the wall.
-const SWING_LARGE: NonNullable<Master["swing"]> = ${swingLit(hL, '')};
+// The motion layer of the hero-large family (the same needle, hub and afterglow at 128, 256 and 512): the needle turns;
+// the whole collar (the same path) and the notch square stay still, painted after it, so the wall band never shows the
+// page and at 0 degrees the layer is the master path for path.
+const SWING_LARGE: NonNullable<Master["swing"]> = ${swingLit(hL, sharedCollar && 'COLLAR_LARGE')};
 ` : ''}
-export const SWING: Record<"px16" | "px20" | "px32" | "px48" | "hero" | "heroLarge" | "heroLarge256" | "heroLarge512", Master> = {
+export const SWING: Record<"px16" | "px20" | "px32" | "px48" | "hero" | "heroLarge" | "heroLarge256" | "heroLarge512" | "heroLargeOne256" | "heroLargeOne512", Master> = {
 ${mBlock('px16', q16, `native 16, viewBox 32, 1 px = 2 units. Walls, needle, arc 1 px (arc at 65 %); foot = the pixel above the wall end; still.`, 'px16')}
 ${mBlock('px20', q20, `native 20, 1 unit = 1 px. Walls 1 px, needle 1.2 on a 1 px foot, arc 1 px at 65 %; still.`, 'px20')}
 ${mBlock('px32', q32, `native 32, 1 unit = 1 px. Walls 2 px, foot 2 x 2 px, needle 2 at the hub and ${q32.nd.taper.wTop} at the arc, arc ${q32.aw} px full ink.`, 'px32')}
 ${mBlock('px48', q48, `native 48, 1 unit = 1 px. Walls 3 px, foot 3 x 3 px, needle 3 at the hub and ${q48.nd.taper.wTop} at the arc, arc ${q48.aw} px full ink.`, 'px48')}
 ${mBlock('hero', h, `native 64, viewBox 32 (2 px per unit). Walls 1.5 (3 px), foot 3 x 3 px, needle 1.5 at the hub and ${h.nd.taper.wTop} at the arc, arc ${h.aw} (${r4(h.aw * 2)} px) full ink.`, 'hero')}
-${mBlock('heroLarge', hL, `native 128, viewBox 32 (4 px per unit), every tone. Hub r 0.75 inlaid flush, collar ${hL.collar.u}; the joint hinted to the 1x grid (rows end at device px ${hL.socket.rows.map(r => r.w).join(' ')}); ink2x: the true curve, for 2x and 3x screens. Walls 1.5 (6 px), arc ${hL.aw} (${r4(hL.aw * 4)} px) full ink.`, 'large', sharedGlow && 'GLOW_LARGE', sharedSwing && 'SWING_LARGE', sharedCollar && 'COLLAR_LARGE')}
-${mBlock('heroLarge256', hL256, `native 256, viewBox 32 (8 px per unit), every tone. The joint hinted to the 1x grid (rows end at device px ${hL256.socket.rows.map(r => r.w).join(' ')}); ink2x: the 512 wall, the true curve.`, 'large', sharedGlow && 'GLOW_LARGE', sharedSwing && 'SWING_LARGE', sharedCollar && 'COLLAR_LARGE')}
+${mBlock('heroLarge', hL, `native 128, viewBox 32 (4 px per unit), every tone. Hub r 0.75 inlaid flush, collar ${cu(hL)}; the joint hinted to the 1x grid (rows end at device px ${rowsW(hL, ' ')}); ink2x: the true curve, for 2x and 3x screens. Walls 1.5 (6 px), arc ${hL.aw} (${r4(hL.aw * 4)} px) full ink.`, 'large', sharedGlow && 'GLOW_LARGE', sharedSwing && 'SWING_LARGE', sharedCollar && 'COLLAR_LARGE')}
+${mBlock('heroLarge256', hL256, `native 256, viewBox 32 (8 px per unit), every tone. The joint hinted to the 1x grid (rows end at device px ${rowsW(hL256, ' ')}); ink2x: the 512 wall, the true curve.`, 'large', sharedGlow && 'GLOW_LARGE', sharedSwing && 'SWING_LARGE', sharedCollar && 'COLLAR_LARGE')}
 ${mBlock('heroLarge512', hL512, `native 512 and its whole multiples, viewBox 32 (16 px per unit), every tone. The joint the true curve.`, 'large', sharedGlow && 'GLOW_LARGE', sharedSwing && 'SWING_LARGE', sharedCollar && 'COLLAR_LARGE')}
+  // the former one-colour masters: one colour now draws the colour masters (the joint is flush in every tone), so these
+  // names, kept for older call sites, are the same objects as heroLarge256 and heroLarge512
+  get heroLargeOne256() { return SWING.heroLarge256; },
+  get heroLargeOne512() { return SWING.heroLarge512; },
 };
 
 /** The native CSS sizes: draw the mark at one of these. */
@@ -1344,8 +1505,9 @@ function arcFill(tone: MarkTone, ground: MarkGround): string {
   return ground === "white" ? "var(--mark-arc-white, var(--mark-arc, ${ARC_WHITE}))" : "var(--mark-arc, ${ARC_PAPER})";
 }
 
-/** The master drawn for a CSS size, the same in every tone (the joint is flush in all three). */
-export function swingMaster(size: number): Master {
+/** The master drawn for a CSS size, the same in every tone (the joint is flush in all three): the tone is ignored, kept
+ * in the signature for older call sites. */
+export function swingMaster(size: number, _tone?: MarkTone): Master {
   return size >= 512 ? SWING.heroLarge512 : size >= 256 ? SWING.heroLarge256 : size >= 128 ? SWING.heroLarge : size >= 64 ? SWING.hero : size >= 48 ? SWING.px48 : size >= 32 ? SWING.px32 : size >= 20 ? SWING.px20 : SWING.px16;
 }
 
@@ -1384,7 +1546,7 @@ export function Mark({ size = 32, tone = "color", ground = "paper", motion = fal
       {sw ? (
         <>
           <g className="turnout-rs"><path d={m.needle} fill={t.needle} />{m.collar && <path d={m.collar} fill={t.needle} />}</g>
-          <g className="turnout-mv">{sw.still && <path d={sw.still} fill={t.needle} />}{turn(sw, <path d={sw.turn} fill={t.needle} />)}</g>
+          <g className="turnout-mv">{turn(sw, <path d={sw.turn} fill={t.needle} />)}{sw.still && <path d={sw.still} fill={t.needle} />}{sw.notch && <path d={sw.notch} fill={t.needle} />}</g>
         </>
       ) : (
         <>
@@ -1496,7 +1658,7 @@ export function Wordmark({ size = 44, phone, tone = "color", live = false, motio
       && jsx.includes(`glow: "${TONE_GLOW.color}"`) && jsx.includes(`glow: "${TONE_GLOW.reverse}"`) && jsx.includes(`glow: "${TONE_GLOW.mono}"`);
     checks.push(`${gOk ? 'ok  ' : 'FAIL'} Logo.tsx: the afterglow is one flat path in a solid tint, no mask, no opacity, no gradient: colour ${TONE_GLOW.color} (${GLOW_PAPER} on white), reverse ${TONE_GLOW.reverse} (${GLOW_REVERSE}), one colour ${TONE_GLOW.mono}; the same colours as the SVG files`);
     // run the component's own picker and colour logic, lifted out of the TSX
-    const lift = name => { const i = jsx.indexOf(`function ${name}(`), j = jsx.indexOf('\n}\n', i); return jsx.slice(i, j + 2).replace(/\(size: number\): Master/, '(size)').replace(/\(tone: MarkTone, ground: MarkGround\): string/, '(tone, ground)'); };
+    const lift = name => { const i = jsx.indexOf(`function ${name}(`), j = jsx.indexOf('\n}\n', i); return jsx.slice(i, j + 2).replace(/\(size: number(?:, _tone\?: MarkTone)?\): Master/, '(size)').replace(/\(tone: MarkTone, ground: MarkGround\): string/, '(tone, ground)'); };
     const SW = Object.fromEntries(Object.keys(KEY).map(k2 => [k2, k2]));
     const pickJsx = new Function('SWING', `${lift('swingMaster')}; return swingMaster;`)(SW);
     const arcJsx = new Function(`${lift('arcFill')}; return arcFill;`)();
@@ -1516,7 +1678,16 @@ export function Wordmark({ size = 44, phone, tone = "color", live = false, motio
     checks.push(`${retinaOk && hintedKeys.length && hintedKeys.every(k2 => /ink2x: /.test(block(k2))) ? 'ok  ' : 'FAIL'} Logo.tsx: the masters with a hinted joint (${hintedKeys.join(', ')}) carry ink2x, the true curve, and draw it instead of ink at ${RETINA_DPPX} dppx and up (min-resolution media query), so a 2x screen never sees the 1x staircase doubled`);
     // the collar is drawn after the needle in both the still and the moving state, under the arc and the ink
     const collarOk = /<g className="turnout-rs"><path d=\{m\.needle\} fill=\{t\.needle\} \/>\{m\.collar && <path d=\{m\.collar\} fill=\{t\.needle\} \/>\}<\/g>/.test(jsx) && /<path d=\{m\.needle\} fill=\{t\.needle\} \/>\n\s*\{m\.collar && <path d=\{m\.collar\} fill=\{t\.needle\} \/>\}/.test(jsx) && jsx.indexOf('{m.collar &&') < jsx.indexOf('{m.arc &&');
-    checks.push(`${collarOk ? 'ok  ' : 'FAIL'} Logo.tsx: the hidden collar is its own path, painted after the needle and before the arc and the ink, at rest and in the rest layer of the motion (the motion layer keeps its part round the hub still)`);
+    checks.push(`${collarOk ? 'ok  ' : 'FAIL'} Logo.tsx: the hidden collar is its own path, painted after the needle and before the arc and the ink, at rest and in the rest layer of the motion`);
+    // the motion layer paints the turning needle first, then what stays (the hero-large family: the collar itself, by
+    // reference, then the notch square), as the rest layer paints needle then collar
+    const mvOk = /<g className="turnout-mv">\{turn\(sw, <path d=\{sw\.turn\} fill=\{t\.needle\} \/>\)\}\{sw\.still && <path d=\{sw\.still\} fill=\{t\.needle\} \/>\}\{sw\.notch && <path d=\{sw\.notch\} fill=\{t\.needle\} \/>\}<\/g>/.test(jsx)
+      && (!sharedSwing || !sharedCollar || (/const SWING_LARGE[^\n]* still: COLLAR_LARGE, notch: "/.test(jsx) && hL.swing.still === hL.collarD && hL.swing.notch === hL.notch.d));
+    checks.push(`${mvOk ? 'ok  ' : 'FAIL'} Logo.tsx: the motion layer paints the turning needle, then what stays: for the hero-large family the collar itself (SWING_LARGE.still is COLLAR_LARGE, the same path) and the notch square ${hL.notch ? hL.notch.d : '(none)'}, in the rest layer's order (needle, then collar), so at 0 degrees it is the master`);
+    // the public API kept: swingMaster(size, _tone?) (the tone ignored) and the former one-colour master names as aliases
+    const apiOk = /export function swingMaster\(size: number, _tone\?: MarkTone\): Master \{/.test(jsx) && /\| "heroLargeOne256" \| "heroLargeOne512", Master> = \{/.test(jsx)
+      && /get heroLargeOne256\(\) \{ return SWING\.heroLarge256; \}/.test(jsx) && /get heroLargeOne512\(\) \{ return SWING\.heroLarge512; \}/.test(jsx) && pickJsx(300, 'mono') === 'heroLarge256';
+    checks.push(`${apiOk ? 'ok  ' : 'FAIL'} Logo.tsx: public API kept: swingMaster(size, _tone?) (every tone draws the same masters, the tone is ignored), SWING.heroLargeOne256 and SWING.heroLargeOne512 the same objects as heroLarge256 and heroLarge512`);
     // the Wordmark's two lockups: the hidden one keeps its swing running (never display: none), takes no layout and is
     // out of the accessibility tree; nothing inside a lockup sets visibility: visible
     const hideOk = jsx.includes(`const LOCKUP_CSS = "${LOCKUP_CSS}"`) && !/display:\s*none/.test(LOCKUP_CSS) && ['visibility:hidden', 'position:absolute', 'width:1px', 'height:1px', 'overflow:hidden', 'clip-path:inset(50%)', 'pointer-events:none'].every(d => LOCKUP_CSS.split(`${d}!important`).length === 3) && /max-width:639\.98px\)\{\.turnout-lockup-wide\{/.test(LOCKUP_CSS) && /min-width:640px\)\{\.turnout-lockup-phone\{/.test(LOCKUP_CSS) && !/visibility:\s*visible|visibility: "visible"|visibility=/.test(jsx.replace(/^\s*\/\/.*$/gm, ''));
@@ -1549,11 +1720,11 @@ export function Wordmark({ size = 44, phone, tone = "color", live = false, motio
     const circ = (r, d) => `<path d="M${X(q.hx + r)} ${X(q.py)}A${r * sc} ${r * sc} 0 0 0 ${X(q.hx)} ${X(q.py - r)}" ${d ? dash : `stroke="${GUIDE}" stroke-width="1" fill="none"`} opacity=".75"/>`;
     let guides = `<path d="M${X(0.5)} ${X(q.py)}H${X(31.5)}" ${dash}/><path d="M${X(q.hx)} ${X(1)}V${X(31)}" ${dash}/>`;
     guides += circ(q.rin) + circ(q.rout, 1);
-    guides += `<circle cx="${X(q.P[0])}" cy="${X(q.P[1])}" r="${q.R * sc}" ${dash} opacity=".75"/><circle cx="${X(q.P[0])}" cy="${X(q.P[1])}" r="${q.collar.Ru * sc}" stroke="${GUIDE}" stroke-width="1" stroke-dasharray="1 3" fill="none" opacity=".75"/><path d="M${X(q.socket.E[0]) + 0.5} ${X(q.socket.E[1])}V${X(q.pyB)}" stroke="${GUIDE}" stroke-width="1" fill="none"/>`;
+    guides += `<circle cx="${X(q.P[0])}" cy="${X(q.P[1])}" r="${q.R * sc}" ${dash} opacity=".75"/><circle cx="${X(q.P[0])}" cy="${X(q.P[1])}" r="${cRu(q) * sc}" stroke="${GUIDE}" stroke-width="1" stroke-dasharray="1 3" fill="none" opacity=".75"/><path d="M${X(q.socket.E[0]) + 0.5} ${X(q.socket.E[1])}V${X(q.pyB)}" stroke="${GUIDE}" stroke-width="1" fill="none"/>`;
     guides += `<path d="M${X(q.P[0])} ${X(q.P[1])}L${X(q.T[0])} ${X(q.T[1])}" stroke="${GUIDE}" stroke-width="1" stroke-dasharray="1 3" fill="none"/><circle cx="${X(q.P[0])}" cy="${X(q.P[1])}" r="2" fill="${GUIDE}"/><circle cx="${X(q.T[0])}" cy="${X(q.T[1])}" r="2" fill="${GUIDE}"/>`;
     const t = (x, y, s, a = 'start') => `<text x="${x}" y="${y}" text-anchor="${a}" ${mono11} fill="${MUTED}">${s}</text>`;
     let labels = t(X(31.5), X(q.py) - 6, `datum y ${q.py}`, 'end') + t(X(q.hx) + 5, X(1) + 10, `x ${q.hx}`) +
-      t(X(4.1), X(30.5), `P: hub r ${q.R}, inlaid flush; collar to r ${q.collar.Ru}`) + t(X(q.T[0]) + 8, X(q.T[1]) - 16, `T, ${q.theta.toFixed(2)}°`) +
+      t(X(4.1), X(30.5), `P: hub r ${q.R}, inlaid flush; collar to r ${cRu(q)}`) + t(X(q.T[0]) + 8, X(q.T[1]) - 16, `T, ${q.theta.toFixed(2)}°`) +
       t(X(27.6), X(9.5), `r ${q.rin} / ${q.rout}`);
     const badge = (id, bx, by, targets) => {
       const s = targets.map(([tx, ty]) => `<path d="M${X(bx)} ${X(by)}L${X(tx)} ${X(ty)}" stroke="${INK}" stroke-width="1"/><rect x="${X(tx) - 2.5}" y="${X(ty) - 2.5}" width="5" height="5" fill="${INK}"/>`).join('');
@@ -1575,7 +1746,7 @@ export function Wordmark({ size = 44, phone, tone = "color", live = false, motio
   const heroGuides = {
     u: U512,
     lines: [[-5, hL512.py, 40, hL512.py, 'd'], [hL512.hx, -5, hL512.hx, 40, 'd'], [hL512.P[0], hL512.P[1], hL512.T[0], hL512.T[1], 'o'], [hL512.socket.E[0], hL512.socket.E[1], hL512.socket.E[0], hL512.pyB + 0.5, '']],
-    circles: [[hL512.hx, hL512.py, hL512.rin, ''], [hL512.hx, hL512.py, hL512.rout, 'd'], [hL512.P[0], hL512.P[1], hL512.R, 'd'], [hL512.P[0], hL512.P[1], hL512.collar.Ru, 'o']],
+    circles: [[hL512.hx, hL512.py, hL512.rin, ''], [hL512.hx, hL512.py, hL512.rout, 'd'], [hL512.P[0], hL512.P[1], hL512.R, 'd'], [hL512.P[0], hL512.P[1], cRu(hL512), 'o']],
   };
   const JOINTS = [
     ['a', 'Hub inlaid in the wall', 1.5, 23.5, 6, 5, `The needle ends in a round hub, r ${hL512.R}, tangent to the wall top, the wall bottom and the jamb. The wall end follows the hub's own circle and drops square to the floor at x ${hL512.socket.E[0]}: the wine hub inlaid in the ink, no paper between them, the lower lip ending in a face.`],
@@ -1597,11 +1768,11 @@ export function Wordmark({ size = 44, phone, tone = "color", live = false, motio
       ${row('Hub', `P (${P2(hL512.P)}), r ${hL512.R}: tangent to y ${hL512.py}, y ${hL512.pyB} and x ${hL512.hx}`)}
       ${row('Needle', `edges tangent to the hub, ${r4(2 * hL512.R)} at the hub, ${hL512.nd.taper.wTop} at r ${hL512.rin}; axis P to T (${P2(hL512.T)}), ${hL512.theta.toFixed(3)}°`)}
       ${row('Inlay', `the hub's own circle r ${hL512.socket.Rc} about P, flush (reveal ${hL512.socket.c}); the wall top stops at x ${r4(hL512.socket.XLc[0])} on the needle's left edge, the cut leaves the circle at (${P2(hL512.socket.E)}) and drops square to the floor at x ${hL512.socket.E[0]}`)}
-      ${row('Collar', `${hL512.collar.u} wide outside the hub, its own path after the needle: <code>${hL512.collarD}</code>`)}
+      ${row('Collar', `${cu(hL512)} wide outside the hub, its own path after the needle: <code>${hL512.collarD}</code>`)}
       ${row('Left wall, 512', `the true curve: <code>${hL512.wallL}</code>`)}
-      ${row('Left wall, 256', `hinted to the 256 grid, rows end at device px ${hL256.socket.rows.map(r => r.w).join(' ')}: <code>${hL256.wallL}</code>`)}
-      ${row('Left wall, 128', `hinted to the 128 grid, rows end at device px ${hL.socket.rows.map(r => r.w).join(' ')}: <code>${hL.wallL}</code>`)}
-      ${row('Left wall, 180', `hinted to the 180 grid, rows end at device px ${q180.socket.rows.map(r => r.w).join(' ')}: <code>${q180.wallL}</code>`)}
+      ${row('Left wall, 256', `hinted to the 256 grid, rows end at device px ${rowsW(hL256, ' ')}: <code>${hL256.wallL}</code>`)}
+      ${row('Left wall, 128', `hinted to the 128 grid, rows end at device px ${rowsW(hL, ' ')}: <code>${hL.wallL}</code>`)}
+      ${row('Left wall, 180', `hinted to the 180 grid, rows end at device px ${rowsW(q180, ' ')}: <code>${q180.wallL}</code>`)}
       ${row('Right wall + arc', `right wall ${hL512.xr}..${hL512.xr + hL512.L} x ${hL512.py}..${hL512.pyB}, arc band r ${hL512.rin} to ${hL512.rout} as ${hL512.poly}° polylines, one outline`)}
       ${row('Afterglow', `one region (floor y ${hL512.py}, outer r ${hL512.rmid}, leaf side on the needle axis (${P2(hL512.CB)}) to (${P2(hL512.CM)})) as one flat tint ${GLOW_PAPER}`)}
     </table>`;
@@ -1612,7 +1783,7 @@ export function Wordmark({ size = 44, phone, tone = "color", live = false, motio
     ['32', '32 master', '32 grid, 1 unit = 1 px', 'app header on phones (Wordmark phone 34)'],
     ['48', '48 master', '48 grid, 1 unit = 1 px', 'app header (01-swing-final-lockup-header.svg, Wordmark 44)'],
     ['64', 'hero', 'viewBox 32, 2 px per unit', 'home hero on phones (Wordmark phone 64, motion)'],
-    ['128', 'hero-large 128', 'viewBox 32, 4 px per unit; hub inlaid flush, the joint hinted to whole pixels; on 2x screens the true curve (hero-large-2x)', 'home hero lockup (01-swing-final.svg, public/logo.svg, Wordmark 128, motion); one colour and reverse'],
+    ['128', 'hero-large 128', 'viewBox 32, 4 px per unit; hub inlaid flush, the joint hinted to whole pixels; on 2x screens the true curve (hero-large-2x)', 'home hero (Wordmark 128, motion); the lockup files 01-swing-final.svg and public/logo.svg draw its 2x wall, the true curve, at every devicePixelRatio; one colour and reverse (reverse-2x for 2x screens)'],
     ['256', 'hero-large 256', 'viewBox 32, 8 px per unit; hub inlaid flush, the joint hinted to whole pixels; on 2x screens the 512 wall', 'the Open Graph card (01-swing-final-og.svg, white page), print, large marketing; one colour and reverse'],
     ['512', 'hero-large 512', 'viewBox 32, 16 px per unit; hub inlaid flush, the true curve', 'PWA icon, print, the construction above; one colour and reverse'],
     ['180', '180 master', '180 grid, white square or reversed on the plate; hub inlaid flush, the joint hinted to whole pixels', 'apple-touch-icon, reversed (src/app/apple-icon.png)'],
@@ -1698,7 +1869,7 @@ pre{background:var(--tone);color:var(--text);font:500 12px/1.6 ui-monospace,Menl
   <div class="cons">
     <div class="board">${construction()}</div>
     <div><ol class="rules">
-      <li><i>a</i><b>Hub inlaid in the wall.</b> The needle ends in a hub of r ${hL512.R} inscribed in the wall end: tangent to the wall top y ${hL512.py}, the wall bottom y ${hL512.pyB} and the jamb x ${hL512.hx}, so wall plus hub are ${hL512.L} long like the right wall. Its edges are straight and tangent to the hub, ${r4(2 * hL512.R)} wide there and ${hL512.nd.taper.wTop} at the arc. The wall end follows the hub's own circle, flush: from the datum down the needle's left edge, round the hub to (${P2(hL512.socket.E)}), then square down to the floor at x ${hL512.socket.E[0]}, so the lower lip ends in a face ${r4(hL512.pyB - hL512.socket.E[1])} high (3 px at 512). Under the cut a collar of wine ${hL512.collar.u} wide, its own path hidden by the wall ink, keeps the page out of the joint. At 256 and 128 the same cut is hinted: the wall ink ends on the whole pixel nearest the curve in every row (device px ${hL256.socket.rows.map(r => r.w).join(' ')} at 256, ${hL.socket.rows.map(r => r.w).join(' ')} at 128), so the joint has no blend pixel.</li>
+      <li><i>a</i><b>Hub inlaid in the wall.</b> The needle ends in a hub of r ${hL512.R} inscribed in the wall end: tangent to the wall top y ${hL512.py}, the wall bottom y ${hL512.pyB} and the jamb x ${hL512.hx}, so wall plus hub are ${hL512.L} long like the right wall. Its edges are straight and tangent to the hub, ${r4(2 * hL512.R)} wide there and ${hL512.nd.taper.wTop} at the arc. The wall end follows the hub's own circle, flush: from the datum down the needle's left edge, round the hub to (${P2(hL512.socket.E)}), then square down to the floor at x ${hL512.socket.E[0]}, so the lower lip ends in a face ${r4(hL512.pyB - hL512.socket.E[1])} high (3 px at 512). Under the cut a collar of wine ${cu(hL512)} wide, its own path hidden by the wall ink, keeps the page out of the joint. At 256 and 128 the same cut is hinted: the wall ink ends on the whole pixel nearest the curve in every row (device px ${rowsW(hL256, ' ')} at 256, ${rowsW(hL, ' ')} at 128), so the joint has no blend pixel.</li>
       <li><i>b</i><b>Arc on the right wall.</b> One outline with the right wall. Inner edge r ${hL.rin} leaves the wall corner (${hL.xr}, ${hL.py}) tangent to the jamb face; outer edge r ${hL.rout} lands square on the wall top. At 20 and 16 px the arc has its own solid 65 % colour and its foot runs on under the wall.</li>
       <li><i>c</i><b>Needle top on the arc.</b> The axis runs from P to T (${P2(hL.T)}), where the previous needle met the arc. The top is cut on r ${hL.rin} and drawn on to r ${hL.rmid}, under the arc.</li>
       <li><i>d</i><b>Arc top end.</b> Cut on the radius x ${hL.hx}, from y ${hL.py - hL.rout} to ${hL.py - hL.rin}.</li>
@@ -1712,10 +1883,10 @@ pre{background:var(--tone);color:var(--text);font:500 12px/1.6 ui-monospace,Menl
   <h2>Every joint, close up</h2><p class="sub">The hero-large 512 rasterised at its native 512 px (16 px per unit), cropped and enlarged 3x without smoothing. Guides in blue: datum and x ${hL.hx} dashed, arc inner edge solid, arc outer edge dashed, hub dashed, the collar's outer edge dotted, the lower lip's drop solid, the needle axis dotted.</p>
   <div class="joints">${JOINTS.map(([id, name, x, y, w, hh, txt, opt]) => `<div class="joint">${canvas(svg(hL512, 512, 'color', opt || {}), 512, 3, [x * U512, y * U512, w * U512, hh * U512], { guides: heroGuides })}<h3><i>${id}</i>${name}</h3><p>${txt}</p></div>`).join('')}
     <div class="joint">${canvas(svg(hL512, 1280), 1280, 1, [1.5 * 40, 23.5 * 40, 6 * 40, 5 * 40])}<h3><i>a</i>Hub at 1280</h3><p>The same joint at 40 px per unit (a review size), 1:1.</p></div>
-    <div class="joint">${canvas(svg(hL256, 256), 256, 6, [1.5 * 8, 24 * 8, 6 * 8, 4.5 * 8], { grid: 1 })}<h3><i>a</i>Inlay at 256</h3><p>The hero-large 256 at its native size, 6x, as on the Open Graph card: hinted, the wine starting at device px ${hL256.socket.rows.map(r => r.w).join(', ')} row by row, a round 12 px outline with square lips, no blend, no paper.</p></div>
-    <div class="joint">${canvas(svg(hL, 128), 128, 12, [1.5 * 4, 24 * 4, 6 * 4, 4.5 * 4], { grid: 1 })}<h3><i>a</i>Inlay at 128</h3><p>The hero-large 128 at its native size, 12x, the home hero: hinted, the wine starting at device px ${hL.socket.rows.map(r => r.w).join(', ')}, the round 6 px pixel outline of the hub, each pixel wine or ink.</p></div>
+    <div class="joint">${canvas(svg(hL256, 256), 256, 6, [1.5 * 8, 24 * 8, 6 * 8, 4.5 * 8], { grid: 1 })}<h3><i>a</i>Inlay at 256</h3><p>The hero-large 256 at its native size, 6x, as on the Open Graph card: hinted, the wine starting at device px ${rowsW(hL256, ', ')} row by row, a round 12 px outline with square lips, no blend, no paper.</p></div>
+    <div class="joint">${canvas(svg(hL, 128), 128, 12, [1.5 * 4, 24 * 4, 6 * 4, 4.5 * 4], { grid: 1 })}<h3><i>a</i>Inlay at 128</h3><p>The hero-large 128 at its native size, 12x, the home hero: hinted, the wine starting at device px ${rowsW(hL, ', ')}, the round 6 px pixel outline of the hub, each pixel wine or ink.</p></div>
     <div class="joint">${canvas(svg(hL2x, 256), 256, 6, [1.5 * 8, 24 * 8, 6 * 8, 4.5 * 8], { grid: 1 })}<h3><i>a</i>128 on a 2x screen</h3><p>At 128 CSS px and devicePixelRatio 2 the mark is 256 device px. The component swaps the 1x staircase, which doubled would show 2 px nubs, for the true curve, the lower lip still square, 6x.</p></div>
-    <div class="joint">${canvas(svg(q180, 180, 'reverse'), 180, 6, [24, 130, 24, 20], { grid: 1, bg: PLATE })}<h3><i>a</i>Reverse in the 180</h3><p>The apple-touch icon on the plate, 6x: the rose hub inlaid in the light wall, hinted to the 180 grid (device px ${q180.socket.rows.map(r => r.w).join(', ')}), no pale blend between them.</p></div>
+    <div class="joint">${canvas(svg(q180, 180, 'reverse'), 180, 6, [24, 130, 24, 20], { grid: 1, bg: PLATE })}<h3><i>a</i>Reverse in the 180</h3><p>The apple-touch icon on the plate, 6x: the rose hub inlaid in the light wall, hinted to the 180 grid (device px ${rowsW(q180, ', ')}), no pale blend between them.</p></div>
     <div class="joint">${canvas(svg(h, 64), 64, 8, [6, 6, 28, 16], { grid: 1 })}<h3><i>d</i>Arc at 64</h3><p>The hero's arc is ${h.aw} = ${h.aw * 2} px of full ink against 3 px walls: both edges and its top end land on whole pixels, top end rows ${(h.py - h.rout) * 2} to ${(h.py - h.rin) * 2 - 1}, foot columns ${h.xr * 2} to ${(h.hx + h.rout) * 2 - 1}, 8x.</p></div>
     <div class="joint">${canvas(svg(h, 64), 64, 8, [0, 40, 24, 20], { grid: 1 })}<h3><i>a</i>Pixel foot at 64</h3><p>The hero at its native 64, 8x: ink wall 5 px, wine foot 3 px with its corner pixel rounded, no reveal.</p></div>
   </div>
@@ -1751,7 +1922,7 @@ pre{background:var(--tone);color:var(--text);font:500 12px/1.6 ui-monospace,Menl
   <ul class="dec">
     <li><b>Native sizes only.</b> 16, 20, 32, 48, the hero at 64, the hero-large masters at 128, 256 and 512, and 180 for the apple-touch icon. The component picks the master by size; give it a native size.</li>
     <li><b>Arc.</b> Full ink, two thirds of the walls' weight on whole pixels and never wider than the needle's top: ${hL.aw} of the grid at 64 px and up (2 px at 64, 4 at 128, 8 at 256, 16 at 512), ${q48.aw} px in the 48 master, ${q32.aw} px at 32, ${q180.aw} px in the 180 master. At 20 and 16 px, where walls and needle are 1 px, exactly one device pixel of ink at 65 %, written as the solid ${ARC_PAPER}, so the wine needle still leads.</li>
-    <li><b>Hub and foot.</b> Hub r 0.75 inlaid flush in every tone: the wall end follows the hub's circle and drops square to the floor at x ${hL.socket.E[0]}, a collar of wine ${hL.collar.u} wide under the cut. Hinted to whole pixels at 128 and 256, the true curve at 512 and on 2x screens (the 128 draws the hero-large 128 at 2x, the 256 the 512 wall). Hub r 4 in the 180 master, hinted, collar 2 px, shipped as a 180 px PNG. Pixel foot 3 x 3 px in the hero and the 48 master, 2 x 2 px at 32, 1 px at 20, the pixel above the wall end at 16.</li>
+    <li><b>Hub and foot.</b> Hub r 0.75 inlaid flush in every tone: the wall end follows the hub's circle and drops square to the floor at x ${hL.socket.E[0]}, a collar of wine ${cu(hL)} wide under the cut. Hinted to whole pixels at 128 and 256, the true curve at 512 and on 2x screens (the 128 draws the hero-large 128 at 2x, the 256 the 512 wall). Hub r 4 in the 180 master, hinted, collar 2 px, shipped as a 180 px PNG. Pixel foot 3 x 3 px in the hero and the 48 master, 2 x 2 px at 32, 1 px at 20, the pixel above the wall end at 16.</li>
     <li><b>No ring.</b> The inner ring of the first pass (a 1 px band at 20 to 50 %) is dropped: in Velours it read as a hairline crossing the afterglow.</li>
     <li><b>Curves as polylines.</b> ${hL.poly}° steps in the hero, the hero-large masters, mono, reverse and 180 master, 2° in the small masters and on the hub. Chrome flattens true SVG arcs coarsely enough to move a 1 px edge's coverage by tens of points.</li>
     <li><b>Afterglow.</b> One flat fill, a solid colour: the needle at ${Math.round(GLOW_K.color * 100)} % over white, ${GLOW_PAPER}; rose at ${Math.round(GLOW_K.reverse * 100)} % over the plate, ${GLOW_REVERSE}; ink at ${Math.round(GLOW_K.mono * 100)} %, ${GLOW_MONO}, in one colour. No mask, no opacity, no fade: the door's swept area as an architect tints it.</li>
@@ -1771,7 +1942,7 @@ pre{background:var(--tone);color:var(--text);font:500 12px/1.6 ui-monospace,Menl
 
 <section>
   <h2>Lockups</h2><p class="sub">The mark's floor sits on the word's baseline. Word Big Shoulders 500, the weight of the Velours titles, sentence case, tracking 0, in the mark's aubergine. No descriptor. Every letter is outlined in the files, so they render without the fonts.</p>
-  <div class="lock board">${heroLockup(hL, { id: `g${++UID}`, ink2x: hL2x.ink }).svg}<span class="lab" style="margin:0">01-swing-final.svg and public/logo.svg, ${lock.W} x ${lock.H}: hero-large 128, word 128 px, gap 24, the home hero</span>${headerLockup(q48, { id: `g${++UID}` }).svg}<span class="lab" style="margin:0">01-swing-final-lockup-header.svg, ${hdr.W} x ${hdr.H}: 48 master, word 44 px, gap 8, as the app header</span>${canvas(headerLockup(q48, { id: 'hz' }).svg, hdr.W, 4, null, { bg: PAPER, h: hdr.H })}<span class="lab" style="margin:0">Header lockup at 1x, enlarged 4x</span></div>
+  <div class="lock board">${heroLockup(hL, { id: `g${++UID}`, wall: hL2x }).svg}<span class="lab" style="margin:0">01-swing-final.svg and public/logo.svg, ${lock.W} x ${lock.H}: hero-large 128, word 128 px, gap 24, the home hero; the wall cut as the true curve, so the file holds as an image at any devicePixelRatio</span>${headerLockup(q48, { id: `g${++UID}` }).svg}<span class="lab" style="margin:0">01-swing-final-lockup-header.svg, ${hdr.W} x ${hdr.H}: 48 master, word 44 px, gap 8, as the app header</span>${canvas(headerLockup(q48, { id: 'hz' }).svg, hdr.W, 4, null, { bg: PAPER, h: hdr.H })}<span class="lab" style="margin:0">Header lockup at 1x, enlarged 4x</span></div>
   <div><img src="01-swing-final-og.svg" width="1200" height="630" alt="Open Graph card" style="display:block;max-width:100%;height:auto"><span class="lab" style="margin:12px 0 0">01-swing-final-og.svg, the source of src/app/opengraph-image.png, 1200 x 630</span></div>
 </section>
 
@@ -1781,7 +1952,7 @@ pre{background:var(--tone);color:var(--text);font:500 12px/1.6 ui-monospace,Menl
   <h2 style="margin-top:40px">Build checks: ${nOk} ok, ${nFail} FAIL</h2>
   <div class="log board">${esc(log)}</div>
 </section>
-<div class="foot">Studio A for Turnout. Files: swing-final.html, 01-swing-final.svg, 01-swing-final-lockup-header.svg, 01-swing-final-og.svg, marks/01-swing-final-{hero-large,hero-large-2x,hero-large-256,hero-large-512,hero,180,48,32,20,16,mono,mono-256,mono-512,mono-16,reverse,reverse-256,reverse-512,180-reverse}.svg, wordmark-outlines.json; src/components/Logo.tsx, src/app/icon.svg, public/logo.svg. Generated by swing-final.mjs.</div>
+<div class="foot">Studio A for Turnout. Files: swing-final.html, 01-swing-final.svg, 01-swing-final-lockup-header.svg, 01-swing-final-og.svg, marks/01-swing-final-{hero-large,hero-large-2x,hero-large-256,hero-large-512,hero,180,48,32,20,16,mono,mono-256,mono-512,mono-16,reverse,reverse-2x,reverse-256,reverse-512,180-reverse}.svg, wordmark-outlines.json; src/components/Logo.tsx, src/app/icon.svg, public/logo.svg. Generated by swing-final.mjs.</div>
 </div>
 <script>
 const SRC = ${JSON.stringify(Object.fromEntries([...SRC].map(([s, key]) => [key, uri(s)])))};

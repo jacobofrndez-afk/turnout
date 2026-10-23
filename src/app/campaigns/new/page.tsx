@@ -153,9 +153,9 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
               <tbody>
                 {profile.offerFits.map((f, i) => (
                   <tr key={f.offerId}>
-                    <td className="font-semibold text-[var(--ink)]">{f.title}{i === 0 && <span className="ml-3 text-sm font-medium text-[var(--muted)]">best fit</span>}</td>
-                    <td className="text-sm text-[var(--muted)]">{f.tagNames.join(", ")}</td>
-                    <td className="text-sm text-[var(--muted)]">e.g. {f.topPlaces.join(", ")}</td>
+                    <td className="font-semibold text-[var(--ink)]">{f.title}{i === 0 && <span className="ml-3 text-sm font-medium text-[var(--muted)]">best fit</span>}<span className="mt-1 block text-sm font-normal text-[var(--muted)] md:hidden">{f.tagNames.join(", ")}. e.g. {f.topPlaces.join(", ")}</span></td>
+                    <td className="hidden text-sm text-[var(--muted)] md:table-cell">{f.tagNames.join(", ")}</td>
+                    <td className="hidden text-sm text-[var(--muted)] md:table-cell">e.g. {f.topPlaces.join(", ")}</td>
                     <td className="t-figure text-right text-2xl">{f.affinity.toFixed(2)}</td>
                   </tr>
                 ))}

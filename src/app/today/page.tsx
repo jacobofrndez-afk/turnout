@@ -8,6 +8,7 @@ import { getOffers } from "@/server/qloo/crowd";
 import { getBrief, latestPulse } from "@/server/agent/pulse";
 import { listAlerts } from "@/server/agent/scan";
 import { weatherWindow } from "@/server/weather/openmeteo";
+import { RefreshEvery } from "./RefreshEvery";
 
 export const dynamic = "force-dynamic";
 
@@ -75,9 +76,9 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
 
   const w0 = next ? presenceWindow(next.event) : undefined;
   const others = merchants.filter((m) => m.id !== merchant.id);
-  const crowdLine = next && w0 ? (
+  const crowdLine = (withName: boolean) => next && w0 ? (
     <>
-      {dayOf(w0.start)} from <span className="mono">{fmtTime.format(new Date(w0.arrive))}</span> to <span className="mono">{fmtTime.format(new Date(w0.leave))}</span>, {next.event.name.charAt(0).toLowerCase() + next.event.name.slice(1)}: about {next.capacity.toLocaleString("en-US")} people
+      {dayOf(w0.start)} from <span className="mono">{fmtTime.format(new Date(w0.arrive))}</span> to <span className="mono">{fmtTime.format(new Date(w0.leave))}</span>{withName ? `, ${next.event.name.charAt(0).toLowerCase() + next.event.name.slice(1)}:` : ":"} about {next.capacity.toLocaleString("en-US")} people
       {next.event.origin === "tv" || next.event.origin === "calendar" ? " around you" : ` ${next.distanceKm.toFixed(1)}\u00A0km from your door`}. Turnout expects <b style={{ color: "var(--ink)" }}>about {next.potentialGuests} extra guests</b>, {Math.min(100, Math.round(next.fill * 100))}% of your {seats} seats.{weather ? ` ${weather} at your door.` : ""}
     </>
   ) : null;
@@ -138,7 +139,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
 
           <div className="stack-section max-w-3xl">
             <p className="eyebrow">Why this, why now</p>
-            <p className="t-lead mt-4">{crowdLine}</p>
+            <p className="t-lead mt-4">{crowdLine(true)}</p>
             <p className="t-body mt-4 text-[var(--muted)]">{nb(firstSentences(draft.rationale, 320))}</p>
           </div>
         </section>
@@ -147,7 +148,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           <div className="plate min-[1152px]:-mx-[68px] min-[1152px]:px-[68px]!">
             <p className="eyebrow flex items-center gap-3"><span className="live-dot" aria-hidden="true" />Next crowd at your door</p>
             <h2 className="t-title mt-5">{next.event.name}</h2>
-            <p className="t-lead mt-5">{crowdLine}</p>
+            <p className="t-lead mt-5">{crowdLine(false)}</p>
             <div className="mt-10">
               {campaign?.status === "sent" || campaign?.status === "approved" ? (
                 <>
@@ -156,9 +157,13 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
                 </>
               ) : campaign?.status === "awaiting_operator" ? (
                 <>
-                  <p className="t-name">Your campaign is being written</p>
-                  <p className="mt-2 max-w-2xl text-base">The agent has read the crowd through Qloo and is choosing your offer and the words. Come back in a minute.</p>
-                  <Link href={`/campaigns/${campaign.id}`} className="mt-3 inline-flex text-base link">Follow it</Link>
+                  <p className="t-name">Writing your campaign</p>
+                  <div className="mt-4 max-w-2xl" aria-hidden="true"><span className="skeleton skeleton-line" /><span className="skeleton skeleton-line" /></div>
+                  <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4">
+                    <Link href={`/campaigns/new?merchant=${merchant.id}&event=${next.event.id}`} className="btn btn-accent btn-lg">See who is coming</Link>
+                    <Link href={`/campaigns/${campaign.id}`} className="text-base link">Follow the draft</Link>
+                  </div>
+                  {now - Date.parse(campaign.created_at.replace(" ", "T") + "Z") < 15 * 60_000 && <RefreshEvery seconds={15} />}
                 </>
               ) : campaign?.status === "needs_input" ? (
                 <>

@@ -7,6 +7,11 @@ import { relative } from "node:path";
 import { getSends, CHANNEL_LABEL, type ChannelId } from "@/server/channels";
 import { nb } from "@/lib/nbsp";
 
+const SIMULATED_NOTE: Partial<Record<ChannelId, string>> = {
+  geofenced_ad: "Ready for Snapchat, word for word. It goes out once your ad account is connected.",
+  google_post: "Ready for your Google listing. It goes out once the listing is verified.",
+};
+
 export const dynamic = "force-dynamic";
 
 export default async function CampaignPage({ params }: { params: Promise<{ id: string }> }) {
@@ -59,7 +64,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
 
       {sends.length > 0 && (
         <section className="stack-block">
-          <p className="eyebrow">Published</p>
+          <p className="eyebrow">{sends.some((s) => s.simulated) ? "Published · simulated in the demo" : "Published"}</p>
           <ul className="mt-6 grid gap-x-16 gap-y-8 sm:grid-cols-2">
             {sends.map((s) => {
               const payload = s.payload_json ? (JSON.parse(s.payload_json) as Record<string, unknown>) : {};
@@ -68,17 +73,15 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                 <li key={s.id}>
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-semibold text-[var(--ink)]">{CHANNEL_LABEL[s.channel as ChannelId] ?? s.channel}</p>
-                    <span className="chip">
-                      {real ? "sent" : s.status}
-                    </span>
+                    {!s.simulated && <span className="chip">{real ? "Sent" : s.status}</span>}
                   </div>
                   <p className="mt-2 text-sm text-[var(--muted)]">
                     {typeof payload.to === "string" ? `To ${payload.to}. ` : ""}
-                    {typeof payload.status_note === "string" ? payload.status_note : ""}
+                    {s.simulated && SIMULATED_NOTE[s.channel as ChannelId] ? SIMULATED_NOTE[s.channel as ChannelId] : typeof payload.status_note === "string" ? payload.status_note : ""}
                     {s.provider_sid ? ` · ${s.provider_sid}` : ""}
                   </p>
                   <details className="mt-1">
-                    <summary className="text-sm font-medium text-[var(--muted)]">payload</summary>
+                    <summary className="text-sm font-medium text-[var(--muted)]">See the exact request</summary>
                     <pre className="mt-3 max-h-64 overflow-auto bg-[var(--tone)] p-4 text-[13px] leading-relaxed">{JSON.stringify(payload, null, 2)}</pre>
                   </details>
                 </li>
@@ -90,15 +93,17 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
 
       {draft && (
         <>
-          <section className="stack-block grid gap-x-16 gap-y-12 md:grid-cols-[1.25fr_1fr]">
-            <div className="plate">
-              <p className="eyebrow">Chosen offer</p>
-              <p className="t-heading mt-4">{offer?.title ?? draft.chosen_offer_id}</p>
-              <p className="mt-3 text-lg text-[var(--muted)]">{nb(`${offer?.description ?? ""}. ${offer?.price ?? ""}.`)}</p>
-              <p className="eyebrow mt-10">Why, according to Qloo</p>
+          <section className="stack-block grid gap-y-16">
+            <div>
+              <div className="plate">
+                <p className="eyebrow">Chosen offer</p>
+                <p className="t-heading mt-4">{offer?.title ?? draft.chosen_offer_id}</p>
+                <p className="mt-3 text-lg text-[var(--muted)]">{nb(`${offer?.description ?? ""}. ${offer?.price ?? ""}.`)}</p>
+                <p className="mt-6 text-sm text-[var(--muted)] tnum">Confidence {(draft.confidence * 100).toFixed(0)}%</p>
+                {campaign.status === "drafted" && (<form action={`/api/campaigns/${campaign.id}/approve`} method="post" className="mt-10"><button className="btn btn-accent btn-lg">Publish it now</button></form>)}
+              </div>
+              <p className="eyebrow mt-12">Why, according to Qloo</p>
               <p className="t-body mt-3">{nb(draft.rationale)}</p>
-              <p className="mt-6 text-sm text-[var(--muted)] tnum">Confidence {(draft.confidence * 100).toFixed(0)}%</p>
-              {campaign.status === "drafted" && (<form action={`/api/campaigns/${campaign.id}/approve`} method="post" className="mt-10"><button className="btn btn-accent btn-lg">Publish it now</button></form>)}
             </div>
             <div className="space-y-12">
               <div>
@@ -106,7 +111,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                 <p className="t-body mt-3">{nb(draft.audience_summary)}</p>
               </div>
               <div>
-                <p className="eyebrow">Windows · {merchant.timezone}</p>
+                <p className="eyebrow">When the crowd is outside, {merchant.timezone.split("/").pop()!.replace(/_/g, " ")} time</p>
                 <ul className="mt-4 space-y-5 text-base">
                   {draft.windows.map((w) => (
                     <li key={w.label}>
@@ -121,7 +126,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
           </section>
 
           <section className="stack-section grid gap-x-16 gap-y-16 md:grid-cols-2">
-            <Channel title={`Geofenced ad · ${draft.geofenced_ad.platform} · ${draft.geofenced_ad.radius_m}\u00A0m · $${draft.geofenced_ad.daily_budget_usd}/day`} tag="reaches strangers near the venue">
+            <Channel title={`Geofenced ad\u00A0· ${draft.geofenced_ad.platform === "meta" ? "Meta" : "Snapchat"}\u00A0· ${draft.geofenced_ad.radius_m}\u00A0m\u00A0· $${draft.geofenced_ad.daily_budget_usd}/day`} tag="reaches strangers near the venue">
               <p className="t-name">{nb(draft.geofenced_ad.headline)}</p>
               <p className="text-base">{nb(draft.geofenced_ad.body)}</p>
               <p className="mt-2 text-sm text-[var(--muted)]">Button: {nb(draft.geofenced_ad.cta)}</p>
@@ -152,9 +157,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
       )}
 
       <details className="stack-section">
-        <summary className="text-base font-semibold text-[var(--ink)]">
-          Provenance · {prov.length} steps · Qloo live {prov.filter((p) => p.kind === "qloo" && !p.cache_hit).length}, cached {prov.filter((p) => p.kind === "qloo" && p.cache_hit).length}
-        </summary>
+        <summary className="text-base font-semibold text-[var(--ink)]">Provenance · {prov.length} steps</summary>
         <table className="data mt-6 w-full text-sm">
           <tbody>
             {prov.map((r) => (
@@ -165,6 +168,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
             ))}
           </tbody>
         </table>
+        <p className="t-meta mt-6 tnum">Qloo calls: {prov.filter((p) => p.kind === "qloo" && !p.cache_hit).length} live, {prov.filter((p) => p.kind === "qloo" && p.cache_hit).length} cached.</p>
       </details>
     </main>
   );
@@ -174,7 +178,7 @@ function Channel({ title, tag, children }: { title: string; tag: string; childre
   return (
     <div>
       <div className="flex items-baseline justify-between gap-2">
-        <p className="eyebrow">{title}</p>
+        <p className="eyebrow text-sm tnum">{title}</p>
         <span className="t-meta">{tag}</span>
       </div>
       <div className="mt-4 space-y-2">{children}</div>

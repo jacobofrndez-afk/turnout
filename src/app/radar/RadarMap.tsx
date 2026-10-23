@@ -107,6 +107,13 @@ function velours(style: ML, P: Palette): ML {
       else if (id === "road_pier") p["line-color"] = C.land;
       else p["line-color"] = C.road;
     } else if (l.type === "symbol" && l.layout?.["text-field"]) {
+      // R2 on the base map too: nothing under 13 px, no uppercase, no tracking. Route shields (10 px refs such as "9A" in a sprite sized for them) go.
+      if (id.includes("shield")) { l.layout.visibility = "none"; continue; }
+      const up = (v: unknown) => (typeof v === "number" ? Math.max(13, v) : v);
+      const s = l.layout["text-size"] ?? 16;
+      l.layout["text-size"] = Array.isArray(s) && s[0] === "interpolate" ? [...s.slice(0, 3), ...s.slice(3).map((v: unknown, i: number) => (i % 2 ? up(v) : v))] : up(s);
+      delete l.layout["text-transform"];
+      l.layout["text-letter-spacing"] = 0;
       p["text-color"] = id.startsWith("label_") ? C.place : C.label;
       p["text-halo-color"] = C.land;
       p["text-halo-width"] = 1.4;
@@ -129,6 +136,8 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
   const meEl = useRef<HTMLElement | null>(null);
   const declutter = useRef<() => void>(() => undefined);
   const handle = useRef<ML>(null);
+  const hAng = useRef(0); // where the handle sits on the radius ring (radians, 0 = east), chosen by the placement pass
+  const dragging = useRef(false);
   const [ready, setReady] = useState(false);
   const [radius, setRadius] = useState(merchant.radiusM);
   const cb = useRef({ onSelect, onRadiusChange });
@@ -188,6 +197,10 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
       m.on("load", () => {
         if (cancelled) return;
         addLayers(m, palette());
+        const ko = () => keepOut(m, wrapRef.current?.parentElement?.querySelector(".tm-fs")?.getBoundingClientRect());
+        ko();
+        m.on("move", ko);
+        m.on("resize", ko);
         drawRings(m, merchant, merchant.radiusM);
         // merchant
         const me = document.createElement("div");
@@ -201,15 +214,17 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
         h.className = "tm-handle";
         h.setAttribute("aria-label", "Drag to change your radius");
         h.innerHTML = `<span class="tm-handle-dot" aria-hidden="true"></span><span class="tm-handle-lbl">${fmtKm(merchant.radiusM)}</span>`;
-        const mk = new ml.Marker({ element: h, draggable: true, anchor: "center" }).setLngLat(eastOf(merchant, merchant.radiusM)).addTo(m);
+        const mk = new ml.Marker({ element: h, draggable: true, anchor: "center" }).setLngLat(ringPt(merchant, merchant.radiusM, hAng.current)).addTo(m);
+        mk.on("dragstart", () => (dragging.current = true));
         mk.on("drag", () => {
           const r = clampR(metersBetween(merchant, mk.getLngLat()));
           drawRings(m, merchant, r);
           h.querySelector(".tm-handle-lbl")!.textContent = fmtKm(r);
         });
         mk.on("dragend", () => {
+          dragging.current = false;
           const r = Math.round(clampR(metersBetween(merchant, mk.getLngLat())) / 100) * 100;
-          mk.setLngLat(eastOf(merchant, r));
+          mk.setLngLat(ringPt(merchant, r, hAng.current));
           drawRings(m, merchant, r);
           h.querySelector(".tm-handle-lbl")!.textContent = fmtKm(r);
           setRadius(r);
@@ -292,9 +307,35 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
         const el = sgn.getElement() as HTMLElement, x = m.project(sgn.getLngLat()).x, w = el.offsetWidth;
         sgn.setOffset(x + 13 + w > mapRect.width - 8 ? [-(13 + w / 2), 0] : [13 + w / 2, 0]);
       }
-      const hEl = handle.current?.getElement() as HTMLElement | undefined;
-      if (hEl && handle.current) hEl.classList.toggle("flip", m.project(handle.current.getLngLat()).x > mapRect.width - 120);
       const hits = (a: DOMRect, b: DOMRect, pad = 4) => a.left < b.right + pad && a.right > b.left - pad && a.top < b.bottom + pad && a.bottom > b.top - pad;
+      // The radius handle takes the first point of its ring (east, south, north, west) where its dot and its label
+      // (right, left or below the dot) stay inside the map and clear of the biggest crowd's sign, your place and the
+      // full screen button; lesser signs and the peek board then step around it. Never while it is being dragged.
+      const hMk = handle.current;
+      const hEl = hMk?.getElement() as HTMLElement | undefined;
+      if (hMk && hEl && !dragging.current) {
+        const rNow = metersBetween(merchant, hMk.getLngLat());
+        const dotEl = hEl.querySelector(".tm-handle-dot") as HTMLElement;
+        const lblEl = hEl.querySelector(".tm-handle-lbl") as HTMLElement;
+        const block = [signs.current[0]?.getElement(), meEl.current?.querySelector(".tm-me"), meEl.current?.querySelector(".tm-chip-me"), wrapRef.current?.parentElement?.querySelector(".tm-fs")]
+          .filter((e): e is Element => !!e).map((e) => e.getBoundingClientRect());
+        const free = (r: DOMRect) => r.left >= mapRect.left + 8 && r.right <= mapRect.right - 8 && r.top >= mapRect.top + 8 && r.bottom <= mapRect.bottom - 8 && !block.some((b) => hits(b, r));
+        const place = (a: number, side: string) => {
+          hMk.setLngLat(ringPt(merchant, rNow, a));
+          hEl.classList.remove("flip", "below");
+          if (side) hEl.classList.add(side);
+          hEl.classList.toggle("ns", Math.abs(Math.sin(a)) > 0.5);
+        };
+        let found = false;
+        for (const a of [0, -Math.PI / 2, Math.PI / 2, Math.PI]) {
+          for (const side of ["", "flip", "below"]) {
+            place(a, side);
+            if (free(dotEl.getBoundingClientRect()) && free(lblEl.getBoundingClientRect())) { hAng.current = a; found = true; break; }
+          }
+          if (found) break;
+        }
+        if (!found) { hAng.current = 0; place(0, m.project(ringPt(merchant, rNow, 0) as [number, number]).x > mapRect.width - 120 ? "flip" : ""); }
+      }
       const obstacles: DOMRect[] = [];
       for (const q of [".tm-me", ".tm-chip-me"]) {
         const r = meEl.current?.querySelector(q)?.getBoundingClientRect();
@@ -302,6 +343,7 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
       }
       const fs = wrapRef.current?.parentElement?.querySelector(".tm-fs")?.getBoundingClientRect();
       if (fs) obstacles.push(fs);
+      if (hEl) for (const q of [".tm-handle-dot", ".tm-handle-lbl"]) obstacles.push(hEl.querySelector(q)!.getBoundingClientRect());
       const top = signs.current[0];
       if (top) {
         const el = top.getElement() as HTMLElement;
@@ -310,6 +352,11 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
         const pt = m.project(top.getLngLat());
         obstacles.push(new DOMRect(mapRect.left + pt.x - 12, mapRect.top + pt.y - 12, 24, 24));
       }
+      // The walking-time labels on the rings (map text north of your place): the board avoids them when it can.
+      const ringLabels: DOMRect[] = m.queryRenderedFeatures({ layers: ["ring-label"] }).map((f: ML) => {
+        const p = m.project(f.geometry.coordinates);
+        return new DOMRect(mapRect.left + p.x - 85, mapRect.top + p.y - 26, 170, 24);
+      });
       const c = card.current;
       if (c) {
         const el = c.getElement() as HTMLElement;
@@ -341,12 +388,16 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
           ...corners,
         ];
         let chosen: [number, number] | undefined;
-        for (const [ccx, ccy] of candidates) {
-          const r = new DOMRect(ccx - w / 2, ccy - h / 2, w, h);
-          if (!obstacles.some((o) => hits(o, r))) {
-            chosen = [ccx - cx, ccy - cy];
-            break;
+        // First pass keeps the ring labels clear; a narrow map with no such spot falls back to the old rule.
+        for (const avoid of [[...obstacles, ...ringLabels], obstacles]) {
+          for (const [ccx, ccy] of candidates) {
+            const r = new DOMRect(ccx - w / 2, ccy - h / 2, w, h);
+            if (!avoid.some((o) => hits(o, r))) {
+              chosen = [ccx - cx, ccy - cy];
+              break;
+            }
           }
+          if (chosen) break;
         }
         if (!chosen) {
           // Nothing free: the corner farthest from your place, so the merchant always reads.
@@ -388,7 +439,7 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
     const m = map.current;
     if (!ready || !m) return;
     drawRings(m, merchant, radius);
-    handle.current?.setLngLat(eastOf(merchant, radius));
+    handle.current?.setLngLat(ringPt(merchant, radius, hAng.current));
     const lbl = handle.current?.getElement()?.querySelector(".tm-handle-lbl");
     if (lbl) lbl.textContent = fmtKm(radius);
   }, [radius, ready]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -450,6 +501,24 @@ function addLayers(m: ML, P: Palette) {
     layout: { "text-field": ["get", "label"], "text-font": FONT_BOLD, "text-size": 13, "text-variable-anchor": ["left", "right", "top", "bottom"], "text-radial-offset": 0.9, "text-justify": "auto", "text-max-width": 9, "text-padding": 4 },
     paint: { "text-color": P.muted, "text-halo-color": P.panel, "text-halo-width": 1.8 },
   });
+  // Keep-out: invisible icons that take room in label placement (this layer is placed first), so no label runs
+  // past the map's edges or under the Full screen button; a label takes its next free anchor instead.
+  m.addSource("keepout", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  m.addLayer({ id: "keepout", type: "symbol", source: "keepout", layout: { "icon-image": ["get", "img"], "icon-anchor": "top-left", "icon-allow-overlap": true, "icon-ignore-placement": false } });
+  // ring labels place first (top symbol layer); venue labels then collide with them instead of drawing over them
+  m.moveLayer("ring-label");
+}
+
+function keepOut(m: ML, fs?: DOMRect) {
+  const c = m.getCanvas(), W = c.clientWidth, H = c.clientHeight, P = 100, g = 6, r = c.getBoundingClientRect();
+  const boxes = [[W, -P, P, H + 2 * P], [-P, -P, P, H + 2 * P], [0, -P, W, P], [0, H, W, P]];
+  if (fs) boxes.push([fs.left - r.left - g, fs.top - r.top - g, fs.width + 2 * g, fs.height + 2 * g]);
+  const features = boxes.map(([x, y, w, h], i) => {
+    const iw = Math.ceil(w), ih = Math.ceil(h), img = `keepout-${i}-${iw}x${ih}`;
+    if (!m.hasImage(img)) m.addImage(img, { width: iw, height: ih, data: new Uint8Array(iw * ih * 4) });
+    return { type: "Feature", properties: { img }, geometry: { type: "Point", coordinates: m.unproject([x, y]).toArray() } };
+  });
+  m.getSource("keepout")?.setData({ type: "FeatureCollection", features });
 }
 
 function drawRings(m: ML, c: { lat: number; lon: number }, r: number) {
@@ -475,7 +544,7 @@ function offset(c: { lat: number; lon: number }, dxM: number, dyM: number): numb
   const dLon = dxM / (111_320 * Math.cos((c.lat * Math.PI) / 180));
   return [c.lon + dLon, c.lat + dLat];
 }
-const eastOf = (c: { lat: number; lon: number }, r: number) => offset(c, r, 0);
+const ringPt = (c: { lat: number; lon: number }, r: number, a: number) => offset(c, r * Math.cos(a), r * Math.sin(a));
 const northOf = (c: { lat: number; lon: number }, r: number) => offset(c, 0, r);
 function metersBetween(c: { lat: number; lon: number }, p: { lat: number; lng: number }) {
   const dy = (p.lat - c.lat) * 111_320;

@@ -69,7 +69,7 @@ export async function publishCampaign(campaignId: string, merchant: Merchant, dr
         if (draft.geofenced_ad.platform === "snapchat" && snapConfigured()) {
           try {
             const ids = await createGeofencedCampaign(spec);
-            record("geofenced_ad", "created (paused)", false, { platform: "snapchat", ...ids, creative, request: payloads, status_note: "campaign and ad squad created PAUSED in the Snapchat ad account; creative to attach in Ads Manager" }, undefined, ids.campaignId);
+            record("geofenced_ad", "created (paused)", false, { platform: "snapchat", ...ids, creative, request: payloads, status_note: "Created in your Snapchat ad account, paused. Attach the creative in Ads Manager and start it." }, undefined, ids.campaignId);
           } catch (e) {
             record("geofenced_ad", `failed: ${String((e as Error).message).slice(0, 120)}`, false, { platform: "snapchat", creative, request: payloads });
           }
@@ -80,16 +80,16 @@ export async function publishCampaign(campaignId: string, merchant: Merchant, dr
             creative,
             daily_budget_usd: draft.geofenced_ad.daily_budget_usd,
             request: payloads,
-            status_note: "exact Snapchat Marketing API payload, not pushed without an ad account (SNAP_ACCESS_TOKEN, SNAP_AD_ACCOUNT_ID)",
+            status_note: "Ready for Snapchat, word for word. It goes out once your ad account is connected.",
           });
         }
         break;
       }
       case "google_post":
-        record("google_post", "simulated", true, { type: "OFFER", title: draft.google_post.title, body: draft.google_post.body, terms: draft.google_post.offer_terms, schedule: draft.windows, status_note: "Business Profile localPosts payload; needs a verified listing" });
+        record("google_post", "simulated", true, { type: "OFFER", title: draft.google_post.title, body: draft.google_post.body, terms: draft.google_post.offer_terms, schedule: draft.windows, status_note: "Ready for your Google listing. It goes out once the listing is verified." });
         break;
       case "storefront":
-        record("storefront", "ready", true, { chalkboard: draft.storefront.chalkboard, staff_line: draft.storefront.staff_line, status_note: "printed or chalked by the merchant" });
+        record("storefront", "ready", true, { chalkboard: draft.storefront.chalkboard, staff_line: draft.storefront.staff_line, status_note: "Yours to chalk on the board and say at the door." });
         break;
       case "dooh":
         record("dooh", "simulated", true, { headline: draft.dooh.headline, body: draft.dooh.body, screens: "nearest programmatic screens to the venue", schedule: draft.windows });

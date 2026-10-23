@@ -34,18 +34,55 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
           <p className="eyebrow">Neighbourhood pulse · the everyday flow</p>
           <h1 className="t-title mt-2">The street outside {merchant.name}</h1>
           <p className="mt-3 text-base text-[var(--muted)]">
-            {pulse.localityName ? `${pulse.localityName}, ` : ""}{merchant.city} · Qloo taste of a 1.5&nbsp;km radius around your door · {pulse.qlooCalls.live} live calls, {pulse.qlooCalls.cached} cached
+            {pulse.localityName ? `${pulse.localityName}, ` : ""}{merchant.city} · Qloo taste of a 1.5&nbsp;km radius around your door
           </p>
         </div>
         <form action="/api/pulse" method="post">
           <input type="hidden" name="merchant" value={merchant.id} />
-          <button className="btn btn-accent">{brief ? "Redo this week's brief" : "Write this week's brief"}</button>
+          <button className="btn btn-accent">{brief ? "Redo this week's brief" : row?.status === "awaiting_operator" ? "Ask for the brief again" : "Write this week's brief"}</button>
         </form>
       </header>
 
-      {evenings.length > 0 && (
+      {row?.status === "awaiting_operator" && (
+        <section className="tone stack-block">
+          <p className="text-base">The agent is writing this week's brief. Reload in a moment.</p>
+        </section>
+      )}
+      {row?.status === "failed" && (
+        <section className="tone stack-block">
+          <p className="text-base">The brief failed: {row.error}</p>
+        </section>
+      )}
+
+      {brief && (
         <section className="stack-block">
-          <p className="eyebrow">Evenings this week at your door · 17:00 to 21:00 · Open-Meteo</p>
+          <div className="plate">
+            <p className="eyebrow">This week</p>
+            <p className="t-heading mt-4">{featured?.title ?? brief.featured_offer_id}</p>
+            <p className="mt-3 text-lg text-[var(--muted)]">{nb(brief.street_in_one_line)}</p>
+            <p className="eyebrow mt-10">Why, according to Qloo</p>
+            <p className="t-body mt-3">{nb(brief.rationale)}</p>
+          </div>
+          <div className="stack-block grid gap-x-16 gap-y-16 md:grid-cols-2">
+            <Block title="Chalkboard" tag="every weekday"><p className="t-name whitespace-pre-wrap">{nb(brief.chalkboard)}</p></Block>
+            <Block title="Google Business post" tag="this week"><p className="t-name">{nb(brief.google_post.title)}</p><p className="text-base">{nb(brief.google_post.body)}</p></Block>
+            <Block title="Note to regulars" tag="WhatsApp"><p className="text-base">{nb(brief.whatsapp)}</p></Block>
+            <Block title={`Always-on ad · ${brief.always_on_ad.radius_m}\u00A0m · $${brief.always_on_ad.daily_budget_usd}/day`} tag={adSlot(pulse.rhythm)}>
+              <p className="t-name">{nb(brief.always_on_ad.headline)}</p>
+              <p className="text-base">{nb(brief.always_on_ad.body)}</p>
+              <p className="mt-3 text-sm text-[var(--muted)]">Interests: {brief.always_on_ad.interests.join(" · ")}</p>
+            </Block>
+          </div>
+          <div className="stack-block">
+            <p className="eyebrow">What this does not establish</p>
+            <p className="t-body mt-3">{nb(brief.limitations)}</p>
+          </div>
+        </section>
+      )}
+
+      {evenings.length > 0 && (
+        <section className="stack-section">
+          <p className="eyebrow">Evenings this week at your door · <span className="mono">17:00 to 21:00</span> · Open-Meteo</p>
           <div className="mt-6 grid grid-cols-2 gap-x-8 gap-y-6 text-sm sm:grid-cols-4 lg:grid-cols-7">
             {evenings.map((e) => (
               <div key={e.day}>
@@ -144,43 +181,6 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
         </div>
       </section>
 
-      {row?.status === "awaiting_operator" && (
-        <section className="tone stack-block">
-          <p className="text-base">The agent is writing this week's brief. Reload in a moment.</p>
-        </section>
-      )}
-      {row?.status === "failed" && (
-        <section className="tone stack-block">
-          <p className="text-base">The brief failed: {row.error}</p>
-        </section>
-      )}
-
-      {brief && (
-        <section className="stack-section">
-          <div className="plate">
-            <p className="eyebrow">This week</p>
-            <p className="t-heading mt-4">{featured?.title ?? brief.featured_offer_id}</p>
-            <p className="mt-3 text-lg text-[var(--muted)]">{nb(brief.street_in_one_line)}</p>
-            <p className="eyebrow mt-10">Why, according to Qloo</p>
-            <p className="t-body mt-3">{nb(brief.rationale)}</p>
-          </div>
-          <div className="stack-block grid gap-x-16 gap-y-16 md:grid-cols-2">
-            <Block title="Chalkboard" tag="every weekday"><p className="t-name whitespace-pre-wrap">{nb(brief.chalkboard)}</p></Block>
-            <Block title="Google Business post" tag="this week"><p className="t-name">{nb(brief.google_post.title)}</p><p className="text-base">{nb(brief.google_post.body)}</p></Block>
-            <Block title="Note to regulars" tag="WhatsApp"><p className="text-base">{nb(brief.whatsapp)}</p></Block>
-            <Block title={`Always-on ad · ${brief.always_on_ad.radius_m}\u00A0m · $${brief.always_on_ad.daily_budget_usd}/day`} tag={adSlot(pulse.rhythm)}>
-              <p className="t-name">{nb(brief.always_on_ad.headline)}</p>
-              <p className="text-base">{nb(brief.always_on_ad.body)}</p>
-              <p className="mt-3 text-sm text-[var(--muted)]">Interests: {brief.always_on_ad.interests.join(" · ")}</p>
-            </Block>
-          </div>
-          <div className="stack-block">
-            <p className="eyebrow">What this does not establish</p>
-            <p className="t-body mt-3">{nb(brief.limitations)}</p>
-          </div>
-        </section>
-      )}
-
       <details className="stack-section">
         <summary className="text-base font-semibold text-[var(--ink)]">Provenance · {pulse.provenance.length} steps</summary>
         <table className="data mt-3 w-full text-sm">
@@ -193,6 +193,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
             ))}
           </tbody>
         </table>
+        <p className="t-meta mt-6 tnum">Qloo calls: {pulse.qlooCalls.live} live, {pulse.qlooCalls.cached} cached.</p>
       </details>
     </main>
   );

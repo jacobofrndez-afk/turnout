@@ -9,7 +9,9 @@
 .tm-me-wrap { position: relative; width: 0; height: 0; }
 .tm-me-wrap.maplibregl-marker { z-index: 2; } /* your place and its label stay above signs and the peek board */
 .tm-sign.maplibregl-marker { z-index: 1; }
+.tm-handle.maplibregl-marker { z-index: 3; } /* the radius handle is a control: above the signs; the peek board steps around it */
 .tm-peek.maplibregl-marker { z-index: 4; }
+.tm-mapwrap .maplibregl-ctrl-bottom-right { z-index: 5; } /* the map credit stays above the board when the board takes the bottom-right corner */
 .tm-me { position: absolute; left: -7px; top: -7px; width: 14px; height: 14px; }
 .tm-chip { position: absolute; white-space: nowrap; }
 .tm-chip-me { left: -14px; top: 12px; transform: translateX(-100%); }
@@ -19,6 +21,8 @@
 .tm-handle-dot { position: absolute; left: -9px; top: -9px; width: 18px; height: 18px; }
 .tm-handle-lbl { position: absolute; left: 14px; top: -10px; white-space: nowrap; }
 .tm-handle.flip .tm-handle-lbl { left: auto; right: 14px; }
+.tm-handle.below .tm-handle-lbl { left: auto; right: -9px; top: 16px; }
+.tm-handle.ns { cursor: ns-resize; }
 
 /* peek card on the selected crowd: a board */
 
@@ -53,8 +57,8 @@
 .tm-track { position: relative; height: 222px; cursor: crosshair; user-select: none; touch-action: pan-y; outline: none; }
 .tm-days { position: absolute; inset: 0; }
 .tm-day { position: absolute; top: 0; bottom: 0; }
-.tm-day b { position: sticky; left: 12px; display: inline-block; white-space: nowrap; }
-.tm-tick { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.tm-day b { position: sticky; left: 12px; z-index: 1; display: inline-block; white-space: nowrap; background: var(--paper); padding: 0 6px; }
+.tm-tick { position: absolute; z-index: 1; transform: translateX(-50%); white-space: nowrap; background: var(--paper); padding: 0 4px; }
 .tm-curve { position: absolute; left: 0; right: 0; top: 30px; height: 78px; width: 100%; pointer-events: none; }
 .tm-ev { position: absolute; transform: translateX(calc(var(--s) / -2)); display: flex; align-items: center; gap: 5px; border: 0; background: none; padding: 0; cursor: pointer; white-space: nowrap; }
 .tm-ev i { display: block; width: var(--s); height: var(--s); border-radius: 50%; flex: none; }

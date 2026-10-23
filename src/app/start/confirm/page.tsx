@@ -2,6 +2,29 @@ import Link from "next/link";
 import { getMerchant } from "@/server/events/radar";
 import { offerTagCandidates } from "@/server/merchants/onboarding";
 
+const TAG_KIND: Record<string, string> = {
+  "offerings:place": "on the menu",
+  "genre:place": "kind of place",
+  "category:place": "category",
+  "cuisine:qloo": "cuisine",
+  "good_for:qloo": "good for",
+  "specialty_dish:place": "signature dish",
+  "menu_highlight:qloo": "menu highlight",
+  "beverage_offerings:qloo": "drinks",
+  "dining_option:qloo": "dining",
+  "resy:collection": "Resy list",
+};
+// One chip per label, no media tags, three at most. The first (top-ranked, default-ticked) is unchanged.
+function plainCandidates<T extends { name: string; namespace: string }>(list: T[]): T[] {
+  const seen = new Set<string>();
+  return list
+    .filter((t) => {
+      const k = t.name.toLowerCase();
+      return !t.namespace.endsWith(":media") && !seen.has(k) && !!seen.add(k);
+    })
+    .slice(0, 3);
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function ConfirmPage({ searchParams }: { searchParams: Promise<{ merchant?: string }> }) {
@@ -14,14 +37,14 @@ export default async function ConfirmPage({ searchParams }: { searchParams: Prom
       </main>
     );
   }
-  const offers = await offerTagCandidates(merchant.id);
+  const offers = (await offerTagCandidates(merchant.id)).map((o) => ({ ...o, concepts: o.concepts.map((c) => ({ ...c, candidates: plainCandidates(c.candidates) })) }));
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
       <div className="max-w-2xl">
         <p className="eyebrow">Step 2 of 2 · confirm what Turnout understood</p>
         <h1 className="t-title mt-3">Did I read your offers right?</h1>
         <p className="mt-5 text-base text-[var(--muted)]">
-          {merchant.name}, located at {merchant.address} ({merchant.timezone}). For each offer, Turnout searched Qloo's tag vocabulary. Keep the tags that mean what you mean, untick the rest.
+          {merchant.name}, located at {merchant.address}. For each offer, Turnout searched Qloo's tag vocabulary. Keep the tags that mean what you mean, untick the rest.
         </p>
         <form action={`/api/merchants/${merchant.id}/offers`} method="post" className="stack-block space-y-16">
           {offers.map((o) => (
@@ -41,7 +64,7 @@ export default async function ConfirmPage({ searchParams }: { searchParams: Prom
                         <label key={t.id} className="chip h-10 cursor-pointer gap-3 px-4 text-[15px]" title={t.id}>
                           <input type="checkbox" name={`tag:${o.id}`} value={`${t.id}::${t.name}`} defaultChecked={i === 0} />
                           {t.name}
-                          <span className="text-[var(--muted)]">· {t.namespace}</span>
+                          {TAG_KIND[t.namespace] && <span className="text-[var(--muted)]">· {TAG_KIND[t.namespace]}</span>}
                         </label>
                       ))}
                     </div>

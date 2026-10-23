@@ -74,7 +74,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
         .sort((a, b) => a.w.start - b.w.start),
     [items, now],
   );
-  const inView = all.filter((c) => c.w.leave > t0 && c.w.arrive < t1);
+  const inView = useMemo(() => all.filter((c) => c.w.leave > t0 && c.w.arrive < t1), [all, t0, t1]);
 
   const firstHot = all.find((c) => c.interesting && c.w.leave > now);
   const [cursor, setCursor] = useState<number>(() => {
@@ -91,6 +91,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const placed = useRef(false);
   const [edge, setEdge] = useState<{ cursor: boolean; left: Set<string> }>({ cursor: false, left: new Set() });
+  const edgeRef = useRef(edge);
 
   useEffect(() => setRadius(merchant.radiusM), [merchant.radiusM]);
 
@@ -202,14 +203,27 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
     const el = scrollRef.current;
     if (!el) return;
     const check = () => {
+      const lo = el.scrollLeft + 8;
       const right = el.scrollLeft + el.clientWidth - 8;
       const lbl = el.querySelector<HTMLElement>(".tm-cursor i");
       const cursorOut = ((cursor - t0) / span) * el.scrollWidth + 8 + (lbl?.offsetWidth ?? 0) > right;
       const left = new Set<string>();
       for (const b of el.querySelectorAll<HTMLElement>(".tm-ev.lbl")) {
-        if ((parseFloat(b.style.left) / 100) * el.scrollWidth + b.offsetWidth > right) left.add(b.dataset.id ?? "");
+        const x = (parseFloat(b.style.left) / 100) * el.scrollWidth;
+        // A dot outside the visible window takes its name with it: flipped, the name would still be cut at the edge.
+        const name = b.querySelector<HTMLElement>("span");
+        if (name) name.style.visibility = x < lo || x > right ? "hidden" : "";
+        if (x + b.offsetWidth > right) left.add(b.dataset.id ?? "");
       }
-      setEdge((p) => (p.cursor === cursorOut && p.left.size === left.size && [...left].every((k) => p.left.has(k)) ? p : { cursor: cursorOut, left }));
+      // A clock that would cross either edge of the window is hidden, never cut to ":00".
+      for (const t of el.querySelectorAll<HTMLElement>(".tm-tick")) {
+        const x = (parseFloat(t.style.left) / 100) * el.scrollWidth;
+        t.style.visibility = x - t.offsetWidth / 2 < el.scrollLeft || x + t.offsetWidth / 2 > el.scrollLeft + el.clientWidth ? "hidden" : "";
+      }
+      const p = edgeRef.current;
+      if (p.cursor === cursorOut && p.left.size === left.size && [...left].every((k) => p.left.has(k))) return;
+      edgeRef.current = { cursor: cursorOut, left };
+      setEdge(edgeRef.current);
     };
     check();
     el.addEventListener("scroll", check, { passive: true });
@@ -351,14 +365,6 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
       </p>
 
       <div className="tm-body">
-        <div className="tm-maparea">
-          <RadarMap merchant={{ name: merchant.name, lat: merchant.lat, lon: merchant.lon, radiusM: radius }} points={points} onSelect={(id) => selectCrowd(id)} onRadiusChange={changeRadius} />
-          <p className="tm-maphint">{saving ? "Updating your radius…" : <>Drag the white handle to change your radius&nbsp;· <span className="tm-mono">{fmtKm(radius)}, {walkMin(radius)}&nbsp;min</span> walk</>}</p>
-          <button type="button" className="tm-fs" onClick={toggleFull} aria-label={full ? "Exit full screen" : "Full screen"} title={full ? "Exit full screen" : "Full screen"}>
-            {full ? "Exit full screen" : "Full screen"}
-          </button>
-        </div>
-
         <section className="tm-tl" aria-label="Crowds over the next hours">
           <div ref={scrollRef} className="tm-scroll">
             <div
@@ -408,11 +414,20 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
                 <button
                   key={c.id}
                   type="button"
+                  tabIndex={lane >= 0 ? undefined : -1}
                   data-id={c.id}
                   className={`tm-ev${isTonight(c) ? " hot" : isHot(c) ? " later" : ""}${c.kind !== "venue" ? " moment" : ""}${selected === c.id || (selWave?.members.includes(c.id) ?? false) ? " sel" : ""}${lane >= 0 ? " lbl" : ""}${edge.left.has(c.id) ? " left" : ""}`}
                   style={{ left: `${pct(c.w.start)}%`, top: lane >= 0 ? 118 + lane * 24 : 196, ["--s" as string]: `${size}px` }}
                   title={`${c.headliner} · ${c.kind === "venue" ? c.venue : (c.blurb ?? c.venue)} · ${fmtTime.format(new Date(c.w.start))} · ~${c.capacity.toLocaleString("en-US")} people · could bring ~${c.guests} guests`}
                   onClick={() => selectCrowd(c.id)}
+                  onFocus={(e) => {
+                    // A flipped label can stay in view while its dot and focus ring sit past the scroller edge; Chrome will not scroll then.
+                    const dot = e.currentTarget.querySelector("i");
+                    const sc = scrollRef.current;
+                    if (!dot || !sc) return;
+                    const d = dot.getBoundingClientRect(), s = sc.getBoundingClientRect();
+                    if (d.left < s.left + 8 || d.right > s.right - 8) dot.scrollIntoView({ block: "nearest", inline: "center" });
+                  }}
                 >
                   <i aria-hidden="true" />
                   {lane >= 0 && <span>{c.short}</span>}
@@ -427,6 +442,14 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
             </div>
           </div>
         </section>
+
+        <div className="tm-maparea">
+          <RadarMap merchant={{ name: merchant.name, lat: merchant.lat, lon: merchant.lon, radiusM: radius }} points={points} onSelect={(id) => selectCrowd(id)} onRadiusChange={changeRadius} />
+          <p className="tm-maphint">{saving ? "Updating your radius…" : <>Drag the white handle to change your radius&nbsp;· <span className="tm-mono">{fmtKm(radius)}, {walkMin(radius)}&nbsp;min</span> walk</>}</p>
+          <button type="button" className="tm-fs" onClick={toggleFull} aria-label={full ? "Exit full screen" : "Full screen"} title={full ? "Exit full screen" : "Full screen"}>
+            {full ? "Exit full screen" : "Full screen"}
+          </button>
+        </div>
 
         <aside className="tm-list">
           <h2 className="t-heading">{onlyWorth ? "Crowds worth a campaign" : "Every event nearby"}</h2>

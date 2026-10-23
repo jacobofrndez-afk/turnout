@@ -74,7 +74,7 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
         <div>
           <p className="eyebrow">Radar · next 3 days</p>
           <h1 className="t-title mt-2">{merchant.name}</h1>
-          <p className="mt-3 text-base text-[var(--muted)]">
+          <p className="mt-3 max-w-none text-base text-[var(--muted)]">
             {merchant.address}&nbsp;· {merchant.seats ?? 60} seats&nbsp;· watching {merchant.radius_m >= 1000 ? `${(merchant.radius_m / 1000).toLocaleString("en-US")}\u00A0km` : `${merchant.radius_m}\u00A0m`} around you
           </p>
         </div>

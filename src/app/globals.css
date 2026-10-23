@@ -853,6 +853,10 @@ a.hover\:underline:hover,
 .plate,
 .card-live { padding: var(--plate-pad); }
 .tone { padding: var(--tone-pad); }
+@media (max-width: 639px) {
+  /* phones: the one plate and the one tone run edge to edge; their text stays on the page gutter */
+  main .plate, main .tone { margin-inline: calc(50% - 50vw); padding-inline: calc(50vw - 50%); }
+}
 
 /* The place switch carries an inline padding and a 13 px size: the select keeps its chevron room and the 17 px
    of every other field, so Type reads the same size as Name and Seats beside it. */
@@ -906,8 +910,9 @@ main :where(p).max-w-xl { max-width: min(36rem, var(--measure)); }
 .font-display.text-xl:not(.truncate),
 .font-display.text-2xl:not(.truncate) { line-height: 1.08; }
 
-/* Clocks and distances (R3): 15 px, tabular, wherever a label or a table cell carries one. */
-p.eyebrow:has(.mono),
+/* Clocks and distances (R3): 15 px, tabular, wherever a label or a table cell carries one. In a label only the
+   figure grows, so labels side by side keep one size and one baseline. */
+p.eyebrow .mono,
 table.data td:has(.mono) { font-size: var(--fs-clock); }
 
 /* The site footer (layout.tsx) is one fine-print sentence set loose in a 72rem box: 15 px and held to the measure
@@ -954,7 +959,7 @@ nextjs-portal { display: none !important; }
 .tm-root .tm-ev:focus-visible { outline: none; }
 .tm-root .tm-ev:focus-visible i { outline: 2px solid var(--focus); outline-offset: 3px; }
 .tm-root .tm-now { border-left: 1px solid var(--now); }
-.tm-root .tm-now i { bottom: 26px; left: 2px; z-index: 1; background: var(--paper); padding: 0 4px; font-size: var(--fs-meta); font-weight: 500; color: var(--muted); }
+.tm-root .tm-now i { bottom: 26px; right: 3px; z-index: 1; background: var(--paper); padding: 0 4px; font-size: var(--fs-meta); font-weight: 500; color: var(--muted); }
 .tm-root .tm-cursor { width: 1px; margin-left: 0; background: var(--plum); }
 .tm-root .tm-cursor i {
   top: 29px;

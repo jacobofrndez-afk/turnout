@@ -8,7 +8,7 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
         <p className="eyebrow">Step 1 of 2 · two minutes, no account</p>
         <h1 className="t-title mt-3">Tell Turnout about your place</h1>
         <p className="mt-5 text-base text-[var(--muted)]">
-          Nothing you type here reaches Qloo except the words describing your offers. Your address is only used to draw the radar.
+          Nothing you type here reaches Qloo except the words describing your offers. Your address is only used to find the crowds around you.
         </p>
 
         {error && <p className="mt-6 bg-[var(--danger-soft)] px-5 py-4 text-base text-[var(--danger)]">{error}</p>}

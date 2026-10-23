@@ -11,13 +11,12 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
   if (!merchant) {
     return (
       <main className="mx-auto max-w-3xl px-5 py-16">
-        <h1 className="text-3xl">No place yet</h1>
-        <Link href="/start" className="link">Set up your place</Link>
+        <h1 className="t-title">No place yet</h1>
+        <Link href="/start" className="link mt-6 inline-flex text-base">Set up your place</Link>
       </main>
     );
   }
   const live = whatsappConfigured() && Boolean(process.env.DEMO_WHATSAPP_TO);
-  const every = Number(process.env.SCAN_EVERY_MIN ?? 60);
   const allAlerts = listAlerts(merchant.id);
   const alerts = sp.all ? allAlerts : allAlerts.slice(0, 6);
   const dayKey = new Intl.DateTimeFormat("en-CA", { timeZone: merchant.timezone });
@@ -25,33 +24,28 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
   const todayKey = dayKey.format(new Date());
   const sentAs = live ? "sent" : "simulated";
   const fmt = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: merchant.timezone });
-  const statusLabel: Record<string, string> = { sent: "Sent on WhatsApp", simulated: "Simulated, WhatsApp not connected", failed: "WhatsApp failed" };
+  const statusLabel: Record<string, string> = { sent: "Sent on WhatsApp", simulated: "Kept here, WhatsApp not connected", failed: "WhatsApp failed" };
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
       <div className="max-w-3xl">
-        <Link href={`/radar?merchant=${merchant.id}`} className="link text-sm">Back to the radar</Link>
-        <header className="mt-3 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="eyebrow">Alerts</p>
-            <h1 className="t-title mt-2">What Turnout told {merchant.name}</h1>
-            <p className="mt-4 text-base text-[var(--muted)]">
-              {every > 0 ? `Every ${every} minutes` : "When asked"}, Turnout scans the radar, drafts the campaign for the strongest new moment and sends this message.{" "}
-              {live ? "WhatsApp is connected: messages go to the demo number." : "WhatsApp is not connected yet, so messages are recorded here instead of sent."}
-            </p>
-          </div>
-          <form action="/api/scan" method="post">
-            <input type="hidden" name="merchant" value={merchant.id} />
-            <button className="btn btn-accent">Run the scan now</button>
-          </form>
-        </header>
+        <Link href={`/today?merchant=${merchant.id}`} className="link text-base">Today</Link>
+        <h1 className="t-display mt-6">What Turnout did on its own</h1>
+        <p className="t-lead mt-5">Every hour Turnout looks for a crowd worth a campaign, writes it and tells you.</p>
+        <form action="/api/scan" method="post" className="mt-4">
+          <input type="hidden" name="merchant" value={merchant.id} />
+          <button className="link text-base">Look for a crowd now</button>
+        </form>
 
         {alerts.length === 0 && (
-          <div className="empty stack-block"><p className="empty-title">No alert yet</p><p>Run the scan: if a moment worth a campaign is coming in the next two days, the campaign is drafted and the alert appears here.</p></div>
+          <div className="empty stack-block">
+            <p className="empty-title">Nothing yet</p>
+            <p>When a crowd worth a campaign is coming in the next two days, Turnout writes the campaign and tells you here.</p>
+          </div>
         )}
 
-        <section className="stack-block space-y-16">
-          {alerts.map((a, i) => {
+        <section className="stack-block space-y-12">
+          {alerts.map((a) => {
             const at = new Date(a.created_at.endsWith("Z") ? a.created_at : a.created_at.replace(" ", "T") + "Z");
             const clean = a.message
               .replace(/\n(Review and approve|See it on your radar):[\s\S]*$/, "")
@@ -65,28 +59,22 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
             const tail = what ? first.slice(when.length + 2 + what.length + 2) : first;
             const href = a.campaign_id ? `/campaigns/${a.campaign_id}` : `/radar?merchant=${merchant.id}`;
             return (
-              <article key={a.id} className={i === 0 ? "tone" : undefined}>
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="t-clock text-[var(--muted)]">{fmt.format(at)}</p>
-                  {a.status !== sentAs && (
-                    <p className={a.status === "failed" ? "text-sm text-[var(--danger)]" : "text-sm text-[var(--muted)]"}>
-                      {statusLabel[a.status] ?? a.status}{a.status === "failed" && a.to_ref ? ` · ${a.to_ref}` : ""}
-                    </p>
-                  )}
-                </div>
-                {what && (
-                  <h2 className="t-name mt-3">
-                    {i === 0 ? what : <Link href={href} className="hover:text-[var(--link-hover)]">{what}</Link>}
-                  </h2>
-                )}
-                <p className="mt-2 text-base text-[var(--text)]">
+              <article key={a.id}>
+                <p className="t-body">
+                  <span className="t-clock text-[var(--muted)]">{fmt.format(at)}</span>
+                  {what && <> · <span className="font-semibold text-[var(--ink)]">{what}</span></>}
+                </p>
+                <p className="t-body mt-2">
                   {what ? `${when} · ${tail}` : tail} {rest.join(" ")}
                 </p>
-                {i === 0 && (
-                  <Link href={href} className="link mt-4 inline-flex text-base">
-                    {a.campaign_id ? "Open the campaign" : "See it on the radar"}
-                  </Link>
+                {a.status !== sentAs && (
+                  <p className={a.status === "failed" ? "t-body mt-2 text-[var(--danger)]" : "t-body mt-2 text-[var(--muted)]"}>
+                    {statusLabel[a.status] ?? a.status}{a.status === "failed" && a.to_ref ? `: ${a.to_ref}` : ""}
+                  </p>
                 )}
+                <Link href={href} className="link mt-3 inline-flex text-base">
+                  {a.campaign_id ? "See the campaign" : "Explore the map"}
+                </Link>
               </article>
             );
           })}
@@ -94,6 +82,9 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
         {!sp.all && allAlerts.length > alerts.length && (
           <Link href={`/alerts?merchant=${merchant.id}&all=1`} className="link stack-block inline-flex text-base">Show older alerts</Link>
         )}
+        <p className="t-body stack-block text-[var(--muted)]">
+          {live ? "WhatsApp is connected: each message also goes to the demo number." : "WhatsApp is not connected yet, so the messages are kept here instead of sent."}
+        </p>
       </div>
     </main>
   );

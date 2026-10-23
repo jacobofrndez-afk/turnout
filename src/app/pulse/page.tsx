@@ -2,7 +2,7 @@ import Link from "next/link";
 import { nb } from "@/lib/nbsp";
 import { firstSentences, noScores } from "@/lib/text";
 import { getMerchant, listMerchants } from "@/server/events/radar";
-import { buildNeighborhoodPulse, type NeighborhoodPulse } from "@/server/qloo/neighborhood";
+import { buildNeighborhoodPulse, type NeighborhoodPulse, type PulseOfferFit } from "@/server/qloo/neighborhood";
 import { getBrief, latestPulse } from "@/server/agent/pulse";
 import { getOffers } from "@/server/qloo/crowd";
 import { eveningsThisWeek } from "@/server/weather/openmeteo";
@@ -15,8 +15,8 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
   if (!merchant) {
     return (
       <main className="mx-auto max-w-3xl px-5 py-16">
-        <h1 className="text-3xl">No place yet</h1>
-        <Link href="/start" className="link">Set up your place</Link>
+        <h1 className="t-title">No place yet</h1>
+        <Link href="/start" className="link mt-6 inline-flex text-base">Set up your place</Link>
       </main>
     );
   }
@@ -29,113 +29,71 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
   const whyLead = firstSentences(why, 320);
   const whyRest = why.startsWith(whyLead) ? why.slice(whyLead.length).trim() : "";
   const evenings = await eveningsThisWeek(merchant.lat, merchant.lon, merchant.timezone).catch(() => []);
+  // Qloo reads the street within the merchant radius, never under 1.5 km (see buildNeighborhoodPulse).
+  const radiusKm = (Math.max(merchant.radius_m, 1500) / 1000).toLocaleString("en-US");
+  const bestFit = pulse.offerFits.find((f) => f.matches > 0);
+  const briefAction = brief ? "Redo this week's brief" : row?.status === "awaiting_operator" ? "Ask for the brief again" : "Write this week's brief";
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-10">
-      <Link href={`/radar?merchant=${merchant.id}`} className="link text-sm">Back to the radar</Link>
-      <header className="mt-3 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="eyebrow">Neighbourhood pulse · the everyday flow</p>
-          <h1 className="t-title mt-2">The street outside {merchant.name}</h1>
-          <p className="mt-3 text-base text-[var(--muted)]">
-            {pulse.localityName ? `${pulse.localityName}, ` : ""}{merchant.city} · Qloo taste of a 1.5&nbsp;km radius around your door
-          </p>
-        </div>
-        <form action="/api/pulse" method="post">
-          <input type="hidden" name="merchant" value={merchant.id} />
-          <button className="btn btn-accent">{brief ? "Redo this week's brief" : row?.status === "awaiting_operator" ? "Ask for the brief again" : "Write this week's brief"}</button>
-        </form>
-      </header>
+      <Link href={`/today?merchant=${merchant.id}`} className="link text-base">Today</Link>
+      <h1 className="t-display mt-6">Every day at {merchant.name}</h1>
+      <p className="t-lead mt-5">
+        The people who walk past your door on a normal day, read by Qloo within <span className="mono">{nb(`${radiusKm} km`)}</span>.
+      </p>
+      <form action="/api/pulse" method="post" className="mt-4">
+        <input type="hidden" name="merchant" value={merchant.id} />
+        <button className="link text-base">{briefAction}</button>
+      </form>
 
       {row?.status === "awaiting_operator" && (
         <section className="tone stack-block">
-          <p className="text-base">The agent is writing this week's brief. Reload in a moment.</p>
+          <p className="t-body">Turnout is writing this week's plan. Reload in a moment.</p>
         </section>
       )}
       {row?.status === "failed" && (
         <section className="tone stack-block">
-          <p className="text-base">The brief failed: {row.error}</p>
+          <p className="t-body">This week's plan could not be written: {row.error}</p>
         </section>
       )}
 
       {brief && (
-        <section className="stack-block">
-          <div className="plate">
+        <>
+          <section className="plate stack-block">
             <p className="eyebrow">This week</p>
-            <p className="t-heading mt-4">{featured?.title ?? brief.featured_offer_id}</p>
-            <p className="mt-3 text-lg text-[var(--muted)]">{nb(noScores(brief.street_in_one_line))}</p>
-          </div>
-          <div className="stack-block">
-            <p className="eyebrow">Why, according to Qloo</p>
-            <p className="t-body measure mt-3">{nb(whyLead)}</p>
-            {whyRest && (<details className="mt-4"><summary className="link w-fit text-base">The rest of the reasoning</summary><p className="t-body measure mt-3">{nb(whyRest)}</p></details>)}
-          </div>
-          <div className="stack-block grid gap-x-16 gap-y-16 md:grid-cols-2">
-            <Block title="Chalkboard" tag="every weekday"><p className="t-name whitespace-pre-wrap">{nb(brief.chalkboard)}</p></Block>
-            <Block title="Google Business post" tag="this week"><p className="t-name">{nb(brief.google_post.title)}</p><p className="text-base">{nb(brief.google_post.body)}</p></Block>
-            <Block title="Note to regulars" tag="WhatsApp"><p className="text-base">{nb(brief.whatsapp)}</p></Block>
-            <Block title={<>Always-on ad · <span className="mono">{nb(`${brief.always_on_ad.radius_m} m`)}</span> · ${brief.always_on_ad.daily_budget_usd}/day</>} tag={adSlot(pulse.rhythm)}>
-              <p className="t-name">{nb(brief.always_on_ad.headline)}</p>
-              <p className="text-base">{nb(brief.always_on_ad.body)}</p>
-              <p className="mt-3 text-sm text-[var(--muted)]">Interests: {brief.always_on_ad.interests.join(" · ")}</p>
-            </Block>
-          </div>
-          <div className="stack-block">
-            <p className="eyebrow">What this does not establish</p>
-            <p className="t-body mt-3">{nb(noScores(brief.limitations))}</p>
-          </div>
-        </section>
-      )}
-
-      {evenings.length > 0 && (
-        <section className="stack-section">
-          <p className="eyebrow">Evenings this week at your door · <span className="mono">17:00 to 21:00</span> · Open-Meteo</p>
-          <div className="mt-6 grid grid-cols-2 gap-x-8 gap-y-6 text-sm sm:grid-cols-4 lg:grid-cols-7">
-            {evenings.map((e) => (
-              <div key={e.day}>
-                <p className="text-sm font-semibold text-[var(--ink)]">{e.day}</p>
-                <p className="mt-1 text-sm text-[var(--text)] tnum">{e.summary.label}</p>
-              </div>
-            ))}
-          </div>
-        </section>
+            <h2 className="t-title mt-4">{featured?.title ?? brief.featured_offer_id}</h2>
+            <p className="t-lead mt-4">{nb(noScores(brief.street_in_one_line))}</p>
+          </section>
+          <section className="stack-block">
+            <h2 className="t-title">Why</h2>
+            <p className="t-body mt-4">{nb(whyLead)}</p>
+            {whyRest && (<details className="mt-4"><summary className="link w-fit text-base">The rest of the reasoning</summary><p className="t-body mt-3">{nb(whyRest)}</p></details>)}
+          </section>
+        </>
       )}
 
       {pulse.rhythm && pulse.rhythm.moments.length > 0 && (
         <section className="stack-section">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <p className="eyebrow">The rhythm of your street</p>
-            <p className="text-sm text-[var(--muted)]">
-              When the everyday flow peaks, read by Qloo from {pulse.rhythm.placesRead} places around your door, {pulse.rhythm.hospitality} of them bars and restaurants, {pulse.rhythm.withHours} with opening hours
-            </p>
-          </div>
-          <div className="stack-block grid gap-x-16 gap-y-12 md:grid-cols-3">
-            {pulse.rhythm.moments.map((r) => (
-              <div key={r.id}>
-                <p className="t-name">{r.label}</p>
-                <p className="mt-2 text-base font-semibold text-[var(--ink)] tnum">
-                  {dayRange(r.days)} · {r.from} to {r.to}
-                  <span className={r.strength === "strong" ? "ml-3 text-sm font-semibold text-[var(--ink)]" : "ml-3 text-sm text-[var(--muted)]"}>{r.strength === "strong" ? "strong" : "likely"}</span>
-                </p>
-                <ul className="mt-4 space-y-2 text-base">
-                  {r.evidence.map((e) => <li key={e}>{e}</li>)}
-                </ul>
-                {r.places.length > 0 && (
-                  <p className="mt-4 text-sm text-[var(--muted)]">Their crowd is yours: {r.places.map((pl) => pl.name).join(", ")}</p>
-                )}
-              </div>
-            ))}
-          </div>
-          {(pulse.rhythm.passersBy.length > 0 || pulse.rhythm.eventHabits.length > 0) && (
-            <div className="stack-block measure text-base">
-              {pulse.rhythm.passersBy.length > 0 && (
-                <p>
-                  <span className="font-semibold text-[var(--ink)]">Who walks past, in Qloo's own words about the places here:</span>{" "}
-                  {pulse.rhythm.passersBy.map((w) => `${w.label.toLowerCase()} (${w.places} places)`).join(", ")}.
-                </p>
+          <h2 className="t-title">The rhythm of your street</h2>
+          <p className="t-body mt-4 text-[var(--muted)]">
+            When the everyday flow peaks, read from {pulse.rhythm.placesRead} places around your door, {pulse.rhythm.hospitality} of them bars and restaurants, {pulse.rhythm.withHours} with opening hours.
+          </p>
+          {pulse.rhythm.moments.map((r) => (
+            <div key={r.id} className="stack-block">
+              <h3 className="t-title">{r.label}</h3>
+              <p className="t-body mt-3">
+                {dayRange(r.days)}, <span className="mono">{nb(`${r.from} to ${r.to}`)}</span>, {r.strength === "strong" ? "strong" : "likely"}
+              </p>
+              {r.evidence.map((e) => <p key={e} className="t-body mt-2 text-[var(--muted)]">{e}</p>)}
+              {r.places.length > 0 && (
+                <p className="t-body mt-2 text-[var(--muted)]">Their crowd is yours: {r.places.map((pl) => pl.name).join(", ")}.</p>
               )}
+            </div>
+          ))}
+          {pulse.rhythm.eventHabits.length > 0 && (
+            <div className="stack-block">
               {pulse.rhythm.eventHabits.map((h) => (
-                <p key={h.place} className="mt-1.5 text-[var(--muted)]">
+                <p key={h.place} className="t-body mt-2 text-[var(--muted)]">
                   <span className="font-semibold text-[var(--text)]">{h.place}:</span> “{h.text}”
                 </p>
               ))}
@@ -144,53 +102,112 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
         </section>
       )}
 
-      <section className="stack-section grid gap-x-16 gap-y-12 md:grid-cols-3">
+      {evenings.length > 0 && (
+        <section className="stack-section">
+          <h2 className="t-title">Evenings this week</h2>
+          <p className="t-body mt-4 text-[var(--muted)]">At your door, <span className="mono">17:00 to 21:00</span>, from the Open-Meteo forecast.</p>
+          <div className="mt-8 grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4 lg:grid-cols-7">
+            {evenings.map((e) => (
+              <div key={e.day}>
+                <p className="t-body font-semibold text-[var(--ink)]">{e.day}</p>
+                <p className="t-body mt-1 tnum">{e.summary.label}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="stack-section grid gap-x-16 gap-y-16 md:grid-cols-3">
         <div>
-          <p className="eyebrow">Who walks past</p>
-          <p className="mt-4 text-base">{pulse.audienceTags.length ? pulse.audienceTags.map((t) => t.name).join(" · ") : <span className="text-[var(--muted)]">No audience tags returned.</span>}</p>
+          <h2 className="t-title">Who walks past</h2>
+          <p className="t-body mt-4">
+            {pulse.audienceTags.length ? pulse.audienceTags.map((t) => t.name).join(", ") : <span className="text-[var(--muted)]">No one described yet.</span>}
+          </p>
+          {pulse.rhythm && pulse.rhythm.passersBy.length > 0 && (
+            <p className="t-body mt-3 text-[var(--muted)]">
+              In the words of the places around you: {pulse.rhythm.passersBy.map((w) => `${w.label.toLowerCase()} (${w.places} places)`).join(", ")}.
+            </p>
+          )}
         </div>
         <div>
-          <p className="eyebrow">What they like in a place</p>
-          <p className="mt-4 text-base">{pulse.ambienceTags.length ? pulse.ambienceTags.map((t) => t.name).join(" · ") : <span className="text-[var(--muted)]">No ambience tags returned.</span>}</p>
+          <h2 className="t-title">What they like in a place</h2>
+          <p className="t-body mt-4">
+            {pulse.ambienceTags.length ? pulse.ambienceTags.map((t) => t.name).join(", ") : <span className="text-[var(--muted)]">Nothing described yet.</span>}
+          </p>
         </div>
         <div>
-          <p className="eyebrow">Brands and media they over-index on</p>
-          <p className="mt-4 text-base">{pulse.brands.slice(0, 10).map((b) => b.name).join(" · ") || "—"}</p>
+          <h2 className="t-title">Brands they like</h2>
+          <p className="t-body mt-4">
+            {pulse.brands.length ? pulse.brands.slice(0, 10).map((b) => b.name).join(", ") : <span className="text-[var(--muted)]">No brand stands out yet.</span>}
+          </p>
         </div>
       </section>
 
       <section className="stack-section grid gap-x-24 gap-y-16 lg:grid-cols-2">
         <div>
-          <p className="eyebrow">Where they already go, within reach</p>
-          <ol className="mt-3 space-y-1.5 text-base">
-            {pulse.places.slice(0, 10).map((p) => (
-              <li key={p.entity_id} className="flex justify-between gap-2">
-                <span className="truncate">{p.name} <span className="text-sm text-[var(--muted)]">{(p.properties?.geocode as { name?: string } | undefined)?.name}</span></span>
-                <span className="t-figure text-2xl">{(p.query?.affinity ?? 0).toFixed(2)}</span>
-              </li>
-            ))}
-            {pulse.places.length === 0 && <li className="text-[var(--muted)]">Nothing returned for this radius.</li>}
+          <h2 className="t-title">Where they already go</h2>
+          <p className="t-body mt-4 text-[var(--muted)]">Within reach of your door, strongest fit first.</p>
+          <ol className="mt-6 space-y-2">
+            {pulse.places.slice(0, 10).map((p) => {
+              const locality = (p.properties?.geocode as { name?: string } | undefined)?.name;
+              return (
+                <li key={p.entity_id} className="t-body">
+                  {p.name}{locality && <span className="text-[var(--muted)]"> {locality}</span>}
+                </li>
+              );
+            })}
+            {pulse.places.length === 0 && <li className="t-body text-[var(--muted)]">Nothing within reach yet.</li>}
           </ol>
         </div>
         <div>
-          <p className="eyebrow">Your offers against the street</p>
-          <table className="data mt-2 w-full text-base">
+          <h2 className="t-title">Your offers for them</h2>
+          <table className="data mt-6 w-full text-base">
             <tbody>
               {pulse.offerFits.map((f) => (
                 <tr key={f.offerId}>
-                  <td className="font-semibold text-[var(--ink)]">{f.title}<span className="mt-1 block text-sm font-normal text-[var(--muted)] md:hidden">{f.tagNames.join(", ")}</span></td>
-                  <td className="hidden text-sm text-[var(--muted)] md:table-cell">{f.tagNames.join(", ")}</td>
-                  <td className="t-figure text-right text-2xl">{f.matches > 0 ? f.affinity.toFixed(2) : <span className="font-sans whitespace-nowrap text-sm font-medium text-[var(--muted)]">no match</span>}</td>
+                  <td className="font-semibold text-[var(--ink)]">{f.title}<span className="mt-1 block font-normal text-[var(--muted)] md:hidden">{f.tagNames.join(", ")}</span></td>
+                  <td className="hidden text-[var(--muted)] md:table-cell">{f.tagNames.join(", ")}</td>
+                  <td className="whitespace-nowrap text-right">{fitWord(f, bestFit)}</td>
                 </tr>
               ))}
+              {pulse.offerFits.length === 0 && <tr><td className="text-[var(--muted)]">No offer with tags yet.</td></tr>}
             </tbody>
           </table>
         </div>
       </section>
 
+      {brief && (
+        <>
+          <section className="stack-section grid gap-x-16 gap-y-16 md:grid-cols-2">
+            <Block title="Chalkboard" tag="Every weekday">
+              <p className="t-name whitespace-pre-wrap">{nb(brief.chalkboard)}</p>
+            </Block>
+            <Block title="Google Business post" tag="This week">
+              <p className="t-body font-semibold text-[var(--ink)]">{nb(brief.google_post.title)}</p>
+              <p className="t-body">{nb(brief.google_post.body)}</p>
+            </Block>
+            <Block title="Note to regulars" tag="On WhatsApp">
+              <p className="t-body">{nb(brief.whatsapp)}</p>
+            </Block>
+            <Block
+              title="Ad to strangers nearby"
+              tag={<>{adSlot(pulse.rhythm)}, within <span className="mono">{nb(`${brief.always_on_ad.radius_m} m`)}</span>, ${brief.always_on_ad.daily_budget_usd} a day</>}
+            >
+              <p className="t-body font-semibold text-[var(--ink)]">{nb(brief.always_on_ad.headline)}</p>
+              <p className="t-body">{nb(brief.always_on_ad.body)}</p>
+              <p className="t-body text-[var(--muted)]">Interests: {brief.always_on_ad.interests.join(", ")}</p>
+            </Block>
+          </section>
+          <section className="stack-section">
+            <h2 className="t-title">What this does not establish</h2>
+            <p className="t-body mt-4">{nb(noScores(brief.limitations))}</p>
+          </section>
+        </>
+      )}
+
       <details className="stack-section">
-        <summary className="text-base font-semibold text-[var(--ink)]">Provenance · {pulse.provenance.length} steps</summary>
-        <table className="data mt-3 w-full text-sm">
+        <summary className="link w-fit text-base">How Turnout got here, {pulse.provenance.length} steps</summary>
+        <table className="data mt-4 w-full text-sm">
           <tbody>
             {pulse.provenance.map((r) => (
               <tr key={r.seq}>
@@ -218,14 +235,22 @@ function adSlot(r: NeighborhoodPulse["rhythm"]): React.ReactNode {
   return a ? <>{dayRange(a.days)} <span className="mono">{nb(`${a.from} to ${a.to}`)}</span></> : <>weekdays <span className="mono">17:00 to 19:00</span></>;
 }
 
-function Block({ title, tag, children }: { title: React.ReactNode; tag: React.ReactNode; children: React.ReactNode }) {
+// The fit of an offer in words, against the best one: the list is sorted, so the first matched offer is the strongest.
+function fitWord(f: PulseOfferFit, best: PulseOfferFit | undefined): string {
+  if (f.matches === 0 || !best) return "no match nearby";
+  if (f === best) return "Strongest fit";
+  const gap = Math.round((best.affinity - f.affinity) * 100);
+  if (gap <= 2) return "Close";
+  if (gap <= 6) return "Further";
+  return "Weak";
+}
+
+function Block({ title, tag, children }: { title: string; tag: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
-      <div className="flex items-baseline justify-between gap-2">
-        <p className="eyebrow">{title}</p>
-        <span className="text-base text-[var(--muted)]">{tag}</span>
-      </div>
-      <div className="mt-4 space-y-2">{children}</div>
+      <h2 className="t-title">{title}</h2>
+      <p className="t-body mt-3 text-[var(--muted)]">{tag}</p>
+      <div className="mt-5 space-y-2">{children}</div>
     </div>
   );
 }

@@ -274,8 +274,8 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
     labelData();
     m.on("zoomend", labelData);
     const ml = (window as unknown as { maplibregl: ML }).maplibregl;
-    // Hot venues carry a solid sign label (an HTML marker); the chosen crowd keeps one too, since the peek board is
-    // hidden beside the list from 1024 px up. Cold venues keep the map's own text layer.
+    // Hot venues carry a solid sign label (an HTML marker); the chosen crowd keeps one too, so it reads on phones
+    // where the peek board does not open. Cold venues keep the map's own text layer.
     // Priority: your place, then the chosen crowd's sign (always shown), then the biggest crowds.
     for (const sgn of signs.current) sgn.remove();
     signs.current = points

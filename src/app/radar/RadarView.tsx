@@ -33,22 +33,27 @@ type Props = {
   merchant: { id: string; name: string; lat: number; lon: number; radiusM: number; timezone: string; seats: number };
   items: ViewItem[];
   nowIso: string;
-  hours: number;
 };
 
 const H = 3_600_000;
 const Q = 15 * 60_000;
+const AHEAD_H = 72; // the radar: three hours back, three days ahead
+const PX_PER_HOUR = 24; // the hour by hour track
 type Crowd = ViewItem;
 // Moments with a real place of their own go on the map; TV games and city nights are everywhere around you.
 const ON_MAP = new Set(["venue", "street"]);
+// Where the cursor goes for a crowd: an hour before a show starts, when people arrive; a moment at its peak.
+const cursorFor = (c: Crowd) => Math.round((c.kind === "venue" ? c.w.start - H : c.w.start) / Q) * Q;
 
-export default function RadarView({ merchant, items, nowIso, hours }: Props) {
+// The radar in the order of docs/UX-ONE-PATH.md: the map first and full width, the hours folded under a link,
+// then the crowds worth a campaign, one link each.
+export default function RadarView({ merchant, items, nowIso }: Props) {
   const router = useRouter();
   const now = Date.parse(nowIso);
+  const nowQ = Math.round(now / Q) * Q;
   const tz = merchant.timezone;
-  const [zoom, setZoom] = useState<24 | 72>(72);
   const t0 = now - 3 * H;
-  const t1 = now + zoom * H;
+  const t1 = now + AHEAD_H * H;
   const span = t1 - t0;
   const pct = (t: number) => Math.min(100, Math.max(0, ((t - t0) / span) * 100));
 
@@ -66,24 +71,22 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
     return short ? fmtShortDay.format(new Date(t)) : fmtWeekday.format(new Date(t));
   };
 
-  // Every crowd in the next 72 hours, so the street's whole activity shows.
+  // Every crowd on the radar, so the street's whole activity shows.
   const all: Crowd[] = useMemo(
     () =>
       items
-        .filter((i) => i.w.leave > now - 3 * H && i.w.arrive < now + 72 * H)
+        .filter((i) => i.w.leave > t0 && i.w.arrive < t1)
         .sort((a, b) => a.w.start - b.w.start),
-    [items, now],
+    [items, t0, t1],
   );
-  const inView = useMemo(() => all.filter((c) => c.w.leave > t0 && c.w.arrive < t1), [all, t0, t1]);
 
   const firstHot = all.find((c) => c.interesting && c.w.leave > now);
-  const [cursor, setCursor] = useState<number>(() => {
-    const activeNow = all.some((c) => c.interesting && c.w.arrive <= now && now <= c.w.leave);
-    return activeNow || !firstHot ? Math.round(now / Q) * Q : Math.round((firstHot.w.start - H) / Q) * Q;
-  });
   const [selected, setSelected] = useState<string | undefined>(firstHot?.id);
-  const [onlyWorth, setOnlyWorth] = useState(items.some((i) => i.interesting));
+  const [cursor, setCursor] = useState(nowQ);
+  const [hourly, setHourly] = useState(false);
   const [full, setFull] = useState(false);
+  // Full screen is the whole radar, map and hours; on the page the hours open under their link.
+  const timelineOpen = hourly || full;
   const [radius, setRadius] = useState(merchant.radiusM);
   const [saving, setSaving] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -104,13 +107,19 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
   const nextHot = hotList.find((c) => c.w.start - H > cursor + 5 * 60_000);
   const prevHot = [...hotList].reverse().find((c) => c.w.start - H < cursor - 5 * 60_000);
 
+  // The hours open on the chosen crowd (or now); folded, the cursor stays at now so the map shows the present.
+  useEffect(() => {
+    const c = timelineOpen ? all.find((x) => x.id === selected) : undefined;
+    setCursor(c && c.w.leave > now ? cursorFor(c) : nowQ);
+  }, [timelineOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // "People around you": crowds present per 15 minutes, weighted by distance to the merchant.
   const curve = useMemo(() => {
     const n = Math.ceil(span / Q) + 1;
     const hot = new Array(n).fill(0);
     const other = new Array(n).fill(0);
     const rKm = radius / 1000;
-    for (const c of inView) {
+    for (const c of all) {
       if (c.kind === "wave") continue; // its shows are already counted one by one
       const weight = c.distanceKm <= rKm ? 1 : Math.max(0, 1 - (c.distanceKm - rKm) / (2 * rKm));
       if (weight <= 0) continue;
@@ -124,7 +133,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
     }
     const max = Math.max(1, ...hot.map((h, i) => h + other[i]));
     return { n, hot, other, max };
-  }, [inView, t0, span, radius, hotMembers]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [all, t0, span, radius, hotMembers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Square columns per 15-minute slot: other crowds in grey, the window worth a campaign in plum on top.
   const columns = useMemo(() => {
@@ -143,52 +152,48 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
   // Event markers: hot or big crowds get a labelled lane, the others a dot on the base row.
   const markers = useMemo(() => {
     const laneEnds = [-1, -1, -1];
-    return inView.map((c) => {
+    return all.map((c) => {
       const big = c.interesting || (c.kind === "venue" && c.capacity >= 2500) || c.kind === "calendar";
       let lane = -1;
       if (big) {
         const x = pct(c.w.start);
-        const need = ((c.short.length * 6.5 + 26) / (span / H) / (zoom === 24 ? 52 : 24)) * 100;
+        const need = ((c.short.length * 6.5 + 26) / (span / H) / PX_PER_HOUR) * 100;
         lane = laneEnds.findIndex((e) => e <= x);
         if (lane !== -1) laneEnds[lane] = x + need;
       }
       return { c, lane, size: Math.round(Math.max(7, Math.min(18, 4 + Math.sqrt(c.capacity) / 11))) };
     });
-  }, [inView, zoom]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [all]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Day bands, night shading and hour ticks in the merchant's time zone.
-  const { days, ticks, nights } = useMemo(() => {
+  // Day bands and hour ticks in the merchant's time zone.
+  const { days, ticks } = useMemo(() => {
     const days: { left: number; right: number; start: number }[] = [];
     const ticks: { left: number; label: string; major: boolean }[] = [];
-    const nights: { left: number; right: number }[] = [];
     let dayStart = t0;
-    let nightStart: number | undefined;
-    const every = zoom === 24 ? 3 : 6;
     for (let t = Math.ceil(t0 / H) * H; t <= t1; t += H) {
       const h = Number(fmtHour.format(new Date(t)));
       if (h === 0) {
         days.push({ left: pct(dayStart), right: pct(t), start: dayStart });
         dayStart = t;
       }
-      if (h % every === 0) ticks.push({ left: pct(t), label: `${String(h).padStart(2, "0")}:00`, major: h === 0 });
-      if (h === 1 && nightStart === undefined) nightStart = t - H;
-      if (h === 7 && nightStart !== undefined) {
-        nights.push({ left: pct(nightStart), right: pct(t) });
-        nightStart = undefined;
-      }
+      if (h % 6 === 0) ticks.push({ left: pct(t), label: `${String(h).padStart(2, "0")}:00`, major: h === 0 });
     }
     days.push({ left: pct(dayStart), right: 100, start: dayStart });
-    return { days, ticks, nights };
-  }, [t0, t1, zoom]); // eslint-disable-line react-hooks/exhaustive-deps
+    return { days, ticks };
+  }, [t0, t1]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const pxPerHour = zoom === 24 ? 52 : 24;
-  const trackWidth = `max(100%, ${Math.round((span / H) * pxPerHour)}px)`;
+  const trackWidth = `max(100%, ${Math.round((span / H) * PX_PER_HOUR)}px)`;
   const clampT = (t: number) => Math.min(t1, Math.max(t0, t));
 
-  // Keep the cursor in view inside the scrollable timeline.
+  // Keep the cursor in view inside the scrollable timeline. Folded, there is no scroller: it places itself again
+  // when the hours open.
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el || el.scrollWidth <= el.clientWidth) return;
+    if (!el) {
+      placed.current = false;
+      return;
+    }
+    if (el.scrollWidth <= el.clientWidth) return;
     const x = ((cursor - t0) / span) * el.scrollWidth;
     if (!placed.current) {
       placed.current = true;
@@ -196,7 +201,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
       return;
     }
     if (x < el.scrollLeft + el.clientWidth * 0.15 || x > el.scrollLeft + el.clientWidth * 0.75) el.scrollTo({ left: Math.max(0, x - el.clientWidth * 0.3), behavior: "smooth" });
-  }, [cursor, zoom, full]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cursor, full, timelineOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A label that would run past the visible edge of the scroller goes to the left of its line or dot.
   useEffect(() => {
@@ -228,7 +233,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
     check();
     el.addEventListener("scroll", check, { passive: true });
     return () => el.removeEventListener("scroll", check);
-  }, [cursor, zoom, full, cursorPeople, markers]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cursor, full, timelineOpen, cursorPeople, markers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function setFromPointer(clientX: number) {
     const r = trackRef.current?.getBoundingClientRect();
@@ -239,10 +244,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
   function selectCrowd(id: string) {
     setSelected(id);
     const c = all.find((x) => x.id === id);
-    if (!c) return;
-    if (c.w.start > now + 24 * H && zoom === 24) setZoom(72);
-    // A show: an hour before it starts, when people arrive. A moment: its peak.
-    setCursor(Math.round((c.kind === "venue" ? c.w.start - H : c.w.start) / Q) * Q);
+    if (c && timelineOpen) setCursor(cursorFor(c));
   }
   function onTrackKey(e: KeyboardEvent<HTMLDivElement>) {
     const step = e.shiftKey ? H : Q;
@@ -250,7 +252,7 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
     else if (e.key === "ArrowLeft") setCursor((c) => clampT(c - step));
     else if (e.key === "PageDown" && nextHot) selectCrowd(nextHot.id);
     else if (e.key === "PageUp" && prevHot) selectCrowd(prevHot.id);
-    else if (e.key === "Home") setCursor(Math.round(now / Q) * Q);
+    else if (e.key === "Home") setCursor(nowQ);
     else return;
     e.preventDefault();
   }
@@ -365,28 +367,25 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
     return pts;
   }, [all, cursor, selected, fmtTime, merchant.id, hotMembers]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const listItems = (onlyWorth ? all.filter((i) => i.interesting) : all).filter((i) => i.w.leave > now);
-  const groups = new Map<string, Crowd[]>();
-  for (const it of listItems) {
-    const k = dayLabel(it.w.start);
-    groups.set(k, [...(groups.get(k) ?? []), it]);
-  }
+  const crowds = hotList.filter((c) => c.w.leave > now);
   const cursorLabel = `${dayLabel(cursor, true)} ${fmtTime.format(new Date(cursor))}`;
   const cursorPct = pct(cursor);
 
   return (
     <div ref={rootRef} className={`tm-root${full ? " is-full" : ""}`}>
-      <p className="tm-summary">
-        {hotList.filter((c) => c.w.leave > now).length > 0 ? (
-          <>
-            <b>{hotList.filter((c) => c.w.leave > now).length} moments worth a campaign</b> in the next 3 days, sized for your {merchant.seats} seats. Drag the line on the timeline to see who is around you, or click a moment.
-          </>
-        ) : (
-          <>Nothing big enough for your {merchant.seats} seats in the next 3 days. The timeline still shows the smaller events.</>
-        )}
-      </p>
+      <div className="tm-maparea">
+        <button type="button" className="tm-fs" onClick={toggleFull} aria-label={full ? "Exit full screen" : "Full screen"} title={full ? "Exit full screen" : "Full screen"}>
+          {full ? "Exit full screen" : "Full screen"}
+        </button>
+        <RadarMap merchant={{ name: merchant.name, lat: merchant.lat, lon: merchant.lon, radiusM: radius }} points={points} onSelect={(id) => selectCrowd(id)} onRadiusChange={changeRadius} />
+        <p className="tm-maphint">{saving ? "Updating your radius…" : <>Drag the white handle to change your radius&nbsp;· <span className="tm-mono">{fmtKm(radius)}, {walkMin(radius)}&nbsp;min</span> walk</>}</p>
+      </div>
 
-      <div className="tm-body">
+      <button type="button" className="link tm-fold" aria-expanded={hourly} onClick={() => setHourly((v) => !v)}>
+        Hour by hour
+      </button>
+
+      {timelineOpen && (
         <section className="tm-tl" aria-label="Crowds over the next hours">
           <div ref={scrollRef} className="tm-scroll">
             <div
@@ -464,66 +463,36 @@ export default function RadarView({ merchant, items, nowIso, hours }: Props) {
             </div>
           </div>
         </section>
+      )}
 
-        <div className="tm-maparea">
-          <button type="button" className="tm-fs" onClick={toggleFull} aria-label={full ? "Exit full screen" : "Full screen"} title={full ? "Exit full screen" : "Full screen"}>
-            {full ? "Exit full screen" : "Full screen"}
-          </button>
-          <RadarMap merchant={{ name: merchant.name, lat: merchant.lat, lon: merchant.lon, radiusM: radius }} points={points} onSelect={(id) => selectCrowd(id)} onRadiusChange={changeRadius} />
-          <p className="tm-maphint">{saving ? "Updating your radius…" : <>Drag the white handle to change your radius&nbsp;· <span className="tm-mono">{fmtKm(radius)}, {walkMin(radius)}&nbsp;min</span> walk</>}</p>
-        </div>
-
-        <aside className="tm-list">
-          <h2 className="t-heading">{onlyWorth ? "Crowds worth a campaign" : "Every event nearby"}</h2>
-          {groups.size === 0 && <div className="empty"><p className="empty-title">Nothing worth a campaign yet</p><p>No crowd big enough for your {merchant.seats} seats in the next {hours} hours. Show every event nearby to see the smaller ones.</p></div>}
-          {[...groups.entries()].map(([day, list]) => (
-            <div key={day} className="tm-daygroup">
-              <h3>{day}</h3>
-              {list.map((it) => {
-                const isSel = selected === it.id;
-                return (
-                  <div key={it.id} className={isSel ? "tone tm-card-sel" : undefined}>
-                    <div className="flex items-start justify-between gap-4">
-                      <button type="button" className="tm-item min-w-0" onClick={() => selectCrowd(it.id)} aria-pressed={isSel}>
-                        <p className="text-sm text-[var(--ink)]">
-                          <span className="tm-mono">{fmtTime.format(new Date(it.w.start))}</span>&nbsp;<span className="text-[var(--muted)]">· crowd from <span className="tm-mono">{fmtTime.format(new Date(it.w.arrive))}</span> to <span className="tm-mono">{fmtTime.format(new Date(it.w.leave))}</span></span>
-                        </p>
-                        <p className="t-name mt-1 text-balance">{it.headliner}</p>
-                        <p className="mt-1 text-sm text-[var(--muted)]">
-                          {it.kind === "venue" || it.kind === "street" ? <><span className="tm-mono">{it.distanceKm.toFixed(1)}&nbsp;km</span>&nbsp;· </> : null}~<span className="tm-mono">{it.capacity.toLocaleString("en-US")}</span>&nbsp;people{it.kind === "venue" || it.kind === "wave" ? "" : " (estimate)"}&nbsp;· {it.kind === "venue" ? it.venue : (it.blurb ?? it.venue)}
-                        </p>
-                        {it.interesting && (
-                          <p className="mt-2 text-base">
-                            Could bring about {it.guests} guests{it.guests >= merchant.seats ? `, enough to fill your ${merchant.seats} seats` : `, ${Math.round((it.guests / merchant.seats) * 100)}% of your ${merchant.seats} seats`}
-                          </p>
-                        )}
-                        {isSel && it.weather && (
-                          <p className="mt-3 text-sm text-[var(--muted)]">
-                            Weather at your door: {it.weather.label}
-                          </p>
-                        )}
-                      </button>
-                      {isSel && (
-                        <div className="score-ring shrink-0" style={{ ["--p" as string]: it.score }} title={`Could fill about ${it.score}% of your room`}>
-                          <span>{it.score}</span>
-                        </div>
-                      )}
-                    </div>
-                    {isSel && it.interesting && (
-                      <Link href={`/campaigns/new?merchant=${merchant.id}&event=${it.id}`} className="btn btn-accent mt-6">
-                        See who is coming, with Qloo
-                      </Link>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-          <button type="button" className="tm-more" onClick={() => setOnlyWorth((v) => !v)}>
-            {onlyWorth ? "Show every event nearby" : "Show only crowds worth a campaign"}
-          </button>
-        </aside>
-      </div>
+      <section className="tm-list stack-block" aria-labelledby="tm-crowds-head">
+        <h2 id="tm-crowds-head" className="t-title">Crowds worth a campaign</h2>
+        {crowds.length === 0 ? (
+          <p className="t-body text-[var(--muted)]">Nothing big enough for your {merchant.seats} seats in the next three days. Hour by hour still shows the smaller events.</p>
+        ) : (
+          <ul className="tm-crowds">
+            {crowds.map((it) => {
+              const isSel = selected === it.id;
+              const onMap = ON_MAP.has(it.kind);
+              const counted = it.kind === "venue" || it.kind === "wave";
+              return (
+                <li key={it.id} className={isSel ? "tone" : undefined}>
+                  <button type="button" className="tm-item t-body" onClick={() => selectCrowd(it.id)} aria-pressed={isSel}>
+                    <span className="mono">{dayLabel(it.w.start, true)} {fmtTime.format(new Date(it.w.start))}</span> · <b>{it.headliner}</b> ·{" "}
+                    {onMap ? <>{it.venue}, <span className="mono">{it.distanceKm.toFixed(1)}&nbsp;km</span></> : (it.blurb ?? it.venue)}
+                  </button>
+                  <p className="t-body mt-1 text-[var(--muted)]">
+                    About <span className="mono">{it.capacity.toLocaleString("en-US")}</span> people{counted ? "" : " by our estimate"}, could bring about {it.guests} guests
+                    {it.guests >= merchant.seats ? `, enough to fill your ${merchant.seats} seats` : `, ${Math.round((it.guests / merchant.seats) * 100)}% of your ${merchant.seats} seats`}.
+                    {isSel && it.weather ? ` Weather at your door: ${it.weather.label}.` : ""}{" "}
+                    <Link href={`/campaigns/new?merchant=${merchant.id}&event=${it.id}`} className="link">See who is coming</Link>
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

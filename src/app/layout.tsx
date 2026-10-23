@@ -4,6 +4,7 @@ import { Big_Shoulders, Instrument_Sans } from "next/font/google";
 import { Wordmark } from "@/components/Logo";
 import "./globals.css";
 
+// One path (docs/UX-ONE-PATH.md): the header carries the logo, Today and Explore, nothing else.
 // Velours type: Big Shoulders (variable, opsz 10..72) for names and numbers, Instrument Sans for sentences, clocks and distances (tabular).
 const display = Big_Shoulders({ subsets: ["latin"], variable: "--font-display", axes: ["opsz"], display: "swap" });
 const sans = Instrument_Sans({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
@@ -24,20 +25,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
             <nav className="flex min-w-0 items-center gap-1 text-[15px] font-medium">
               <Link href="/today" className="inline-flex min-h-11 items-center whitespace-nowrap px-3 text-[var(--ink)] transition-colors hover:text-[var(--wine)]">Today</Link>
-              <Link href="/radar" className="inline-flex min-h-11 items-center whitespace-nowrap px-3 text-[var(--ink)] transition-colors hover:text-[var(--wine)]">Radar</Link>
-              <Link href="/start" className="inline-flex min-h-11 items-center whitespace-nowrap px-3 text-[var(--ink)] transition-colors hover:text-[var(--wine)]">
-                <span className="hidden sm:inline">Set up your place</span>
-                <span className="sm:hidden">Set up</span>
-              </Link>
-              <a href="https://github.com/qloo/qloo-hackathon-kit" target="_blank" rel="noreferrer" className="ml-2 -mr-3 hidden min-h-11 items-center whitespace-nowrap px-3 text-xs font-medium text-[var(--muted)] transition-colors hover:text-[var(--plum)] md:inline-flex">
-                Powered by Qloo
-              </a>
+              <Link href="/radar" className="inline-flex min-h-11 items-center whitespace-nowrap px-3 text-[var(--ink)] transition-colors hover:text-[var(--wine)]">Explore</Link>
             </nav>
           </div>
         </header>
         {children}
         <footer className="mx-auto max-w-6xl px-5 pb-12 pt-24">
-          <p className="measure text-sm text-[var(--muted)]">Qloo results describe what groups tend to like, not what any person will do. No personal data is sent to Qloo. Turnout is built for the Qloo Agentic Hackathon.</p>
+          <p className="text-sm font-medium text-[var(--muted)]">
+            <a href="https://github.com/qloo/qloo-hackathon-kit" target="_blank" rel="noreferrer" className="link">Powered by Qloo</a>
+            {" · "}
+            <Link href="/start" className="link">Set up a place</Link>
+          </p>
+          <p className="measure mt-4 text-sm text-[var(--muted)]">Qloo results describe what groups tend to like, not what any person will do. No personal data is sent to Qloo. Turnout is built for the Qloo Agentic Hackathon.</p>
         </footer>
       </body>
     </html>

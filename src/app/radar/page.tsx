@@ -1,13 +1,17 @@
 import Link from "next/link";
+import { nb } from "@/lib/nbsp";
 import { getMerchant, listMerchants, radarFor, type RadarItem } from "@/server/events/radar";
 import RadarView, { type ViewItem } from "./RadarView";
-import MerchantSwitch from "./MerchantSwitch";
 import { weatherWindow, type WeatherSummary } from "@/server/weather/openmeteo";
 import { presenceWindow } from "@/server/events/concentration";
 import { memberSummary } from "@/lib/summary";
 
 export const dynamic = "force-dynamic";
 
+const H = 3_600_000;
+
+// Explore (docs/UX-ONE-PATH.md): one link back to Today, who is around the place, then the map first,
+// the hours folded under a link, and the crowds worth a campaign with one link each.
 export default async function RadarPage({ searchParams }: { searchParams: Promise<{ merchant?: string; hours?: string }> }) {
   const sp = await searchParams;
   const merchants = listMerchants().filter((m) => m.id === "m_penn_pour" || m.id === "m_quai_bercy" || m.id === (sp.merchant ?? ""));
@@ -22,7 +26,9 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
       </main>
     );
   }
+  const now = Date.now();
   const hours = Number(sp.hours ?? 72);
+  const seats = merchant.seats ?? 60;
   let items: RadarItem[] = [];
   let error: string | undefined;
   try {
@@ -68,30 +74,22 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
       weather: weather.get(it.event.id) ? { label: weather.get(it.event.id)!.label, kind: weather.get(it.event.id)!.kind } : undefined,
     };
   });
+  // The crowds the list under the map will show: worth a campaign, still around, within the three days.
+  const worth = view.filter((v) => v.interesting && v.w.leave > now && v.w.arrive < now + 72 * H).length;
+  const reach = merchant.radius_m >= 1000 ? `${(merchant.radius_m / 1000).toLocaleString("en-US")} km` : `${merchant.radius_m} m`;
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-10">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="eyebrow">Radar · next 3 days</p>
-          <h1 className="t-title mt-2">{merchant.name}</h1>
-          <p className="mt-3 max-w-none text-base text-[var(--muted)]">
-            {merchant.address}&nbsp;· {merchant.seats ?? 60} seats&nbsp;· watching {merchant.radius_m >= 1000 ? `${(merchant.radius_m / 1000).toLocaleString("en-US")}\u00A0km` : `${merchant.radius_m}\u00A0m`} around you
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
-          <MerchantSwitch current={merchant.id} options={merchants.map((m) => ({ id: m.id, label: `${m.name}, ${m.city}` }))} />
-          <Link href={`/today?merchant=${merchant.id}`} className="link text-base">
-            Today
-          </Link>
-          <Link href={`/alerts?merchant=${merchant.id}`} className="link text-base">
-            Alerts
-          </Link>
-          <Link href={`/pulse?merchant=${merchant.id}`} className="link text-base">
-            Weekly pulse
-          </Link>
-        </div>
-      </header>
+      <Link href={`/today?merchant=${merchant.id}`} className="link">Today</Link>
+      <h1 className="t-display mt-6">Who is around {merchant.name}</h1>
+      <p className="t-lead mt-5">
+        The next three days, within <span className="mono">{nb(reach)}</span> of your door.
+      </p>
+      {worth > 0 && (
+        <p className="t-body mt-3">
+          {worth === 1 ? "One crowd" : `${worth} crowds`} worth a campaign, sized for your {seats} seats.
+        </p>
+      )}
 
       {error && (
         <p className="mt-6 bg-[var(--danger-soft)] px-5 py-4 text-base text-[var(--danger)]">
@@ -99,12 +97,11 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
         </p>
       )}
 
-      <div className="mt-8">
+      <div className="mt-10">
         <RadarView
-          merchant={{ id: merchant.id, name: merchant.name, lat: merchant.lat, lon: merchant.lon, radiusM: merchant.radius_m, timezone: merchant.timezone, seats: merchant.seats ?? 60 }}
+          merchant={{ id: merchant.id, name: merchant.name, lat: merchant.lat, lon: merchant.lon, radiusM: merchant.radius_m, timezone: merchant.timezone, seats }}
           items={view}
-          nowIso={new Date().toISOString()}
-          hours={hours}
+          nowIso={new Date(now).toISOString()}
         />
       </div>
     </main>
@@ -139,13 +136,12 @@ function blurbOf(e: RadarItem["event"], memberNames: string[]): string | undefin
       return memberNames.length ? memberSummary(memberNames, 60, "shows", count) : undefined;
     }
     case "tv":
-      return [meta.league, meta.side === "away" ? "away game" : "home game across town", meta.tv, meta.fandom ? `Qloo local fandom: ${meta.fandom.band}` : undefined].filter(Boolean).join("\u00A0· ");
+      return [meta.league, meta.side === "away" ? "away game" : "home game across town", meta.tv, meta.fandom ? `Qloo local fandom: ${meta.fandom.band}` : undefined].filter(Boolean).join(" · ");
     case "street":
-      return [meta.type, e.venue.name].filter(Boolean).join("\u00A0· ");
+      return [meta.type, e.venue.name].filter(Boolean).join(" · ");
     case "calendar":
       return "A night the whole city goes out";
     default:
       return undefined;
   }
 }
-

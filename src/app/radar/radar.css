@@ -4,6 +4,7 @@
 .tm-map { height: 520px; width: 100%; }
 .tm-mapwrap.is-full .tm-map, .tm-mapwrap:fullscreen .tm-map { height: 100%; }
 .tm-mapwrap .maplibregl-canvas { outline: none; }
+@media (max-width: 640px) { .tm-map { height: 380px; } }
 
 /* your place */
 .tm-me-wrap { position: relative; width: 0; height: 0; }
@@ -24,35 +25,27 @@
 .tm-handle.below .tm-handle-lbl { left: auto; right: -9px; top: 16px; }
 .tm-handle.ns { cursor: ns-resize; }
 
-/* peek card on the selected crowd: a board */
-
 /* hot venue names on the map: solid sign labels */
 .tm-sign { white-space: nowrap; pointer-events: none; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
 /* The chosen crowd's sign carries a whole name (a wave reads "Theatre crowd arriving, 34 shows"): two lines rather than a cut. */
 .tm-sign.sel { white-space: normal; text-overflow: clip; max-width: 180px; text-align: center; }
 
-/* layout */
-.tm-root { display: grid; gap: 14px; }
-.tm-body { display: grid; gap: 18px; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); grid-template-areas: "tl tl" "map list"; align-items: start; }
-.tm-maparea { grid-area: map; min-width: 0; position: relative; }
-.tm-tl { grid-area: tl; min-width: 0; }
-.tm-list { grid-area: list; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-content: start; min-width: 0; }
-@media (max-width: 1023px) { .tm-body { grid-template-columns: minmax(0, 1fr); grid-template-areas: "tl" "map" "list"; } }
-@media (min-width: 1024px) {
-  .tm-root:not(.is-full):not(:fullscreen) .tm-maparea { position: sticky; top: 100px; }
-  .tm-root:not(.is-full):not(:fullscreen) .tm-peek { display: none; } /* the chosen moment's card sits beside the map: one board, one "See who is coming" */
-}
+/* layout: one column; the map first and full width, the hour by hour link under it, the hours when open, then the crowds */
+.tm-root { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.tm-maparea { min-width: 0; position: relative; }
+.tm-tl { min-width: 0; }
+.tm-list { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; min-width: 0; }
+.tm-fold { justify-self: start; display: inline-flex; align-items: center; min-height: 44px; border: 0; background: none; padding: 0; cursor: pointer; font-size: var(--fs-body); line-height: 1.65; }
 
 /* full screen: map and timeline only; landscape puts the timeline under the map, portrait gives it more room */
-.tm-root.is-full { position: fixed; inset: 0; z-index: 60; background: var(--paper); padding: max(12px, env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px)); grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
-.tm-root:fullscreen { background: var(--paper); padding: 12px 14px; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
-.tm-root.is-full .tm-list, .tm-root:fullscreen .tm-list { display: none; }
-.tm-root.is-full .tm-body, .tm-root:fullscreen .tm-body { grid-template-columns: minmax(0, 1fr); grid-template-areas: "map" "tl"; grid-template-rows: minmax(0, 1fr) auto; height: 100%; min-height: 0; }
+.tm-root.is-full { position: fixed; inset: 0; z-index: 60; background: var(--paper); padding: max(12px, env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px)); grid-template-rows: minmax(0, 1fr) auto; overflow: hidden; }
+.tm-root:fullscreen { background: var(--paper); padding: 12px 14px; grid-template-rows: minmax(0, 1fr) auto; overflow: hidden; }
+.tm-root.is-full :is(.tm-list, .tm-fold), .tm-root:fullscreen :is(.tm-list, .tm-fold) { display: none; }
 .tm-root.is-full .tm-maparea, .tm-root:fullscreen .tm-maparea { height: 100%; min-height: 0; }
 .tm-root.is-full .tm-mapwrap, .tm-root:fullscreen .tm-mapwrap { height: 100%; }
 .tm-root.is-full .tm-map, .tm-root:fullscreen .tm-map { height: 100%; }
 @media (orientation: portrait) {
-  .tm-root.is-full .tm-body, .tm-root:fullscreen .tm-body { grid-template-rows: minmax(0, 1fr) minmax(300px, 44%); }
+  .tm-root.is-full, .tm-root:fullscreen { grid-template-rows: minmax(0, 1fr) minmax(300px, 44%); }
   .tm-root.is-full .tm-tl, .tm-root:fullscreen .tm-tl { overflow-y: auto; }
 }
 
@@ -77,11 +70,9 @@
 .tm-cursor i { position: absolute; font-style: normal; white-space: nowrap; }
 @media (max-width: 640px) { .tm-wide { display: none; } }
 
-/* list */
-.tm-daygroup { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
-.tm-item { display: block; flex: 1 1 auto; min-width: 0; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; color: inherit; }
-@media (max-width: 640px) { .tm-map { height: 380px; } }
+/* the crowds worth a campaign: a plain list, the chosen one on the tone; each line a button that picks it on the map */
+.tm-crowds { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.tm-item { display: block; min-width: 0; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; color: inherit; }
 
-/* summary, map hint, full screen button */
+/* full screen button */
 .tm-fs { position: absolute; z-index: 5; line-height: 1; }
-.tm-more { justify-self: start; border: 0; background: none; cursor: pointer; }

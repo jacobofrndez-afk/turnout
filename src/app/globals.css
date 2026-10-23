@@ -39,8 +39,8 @@
   --text-5xl: 58px;  --text-5xl--line-height: 0.96;
   --text-6xl: 72px;  --text-6xl--line-height: 0.94;
   --text-7xl: 88px;  --text-7xl--line-height: 0.92;
-  --text-8xl: 108px; --text-8xl--line-height: 0.9;
-  --text-9xl: 128px; --text-9xl--line-height: 0.9;
+  --text-8xl: 108px; --text-8xl--line-height: 1.04;
+  --text-9xl: 128px; --text-9xl--line-height: 1.04;
 
   --leading-tight: 1.2;
   --leading-snug: 1.4;
@@ -149,7 +149,7 @@ html:root {
   --fs-display: clamp(56px, 8.4vw, 124px);  /* the one hero line per screen */
   /* Three levels per screen (docs/UX-ONE-PATH.md): the display line once, section titles, body. The steps are far
      apart on purpose (121 / 36 / 17 px at 1440) so the one loud line is unmistakable. */
-  --fs-title: clamp(28px, 2.5vw, 36px);     /* section titles: "What goes out", "Why", "Coming next" */
+  --fs-title: clamp(30px, 2.5vw, 36px);     /* section titles: "What goes out", "Why", "Coming next" */
   --fs-heading: var(--fs-title);            /* legacy: same level as .t-title */
   --fs-name: clamp(19px, 1.45vw, 21px);     /* names and campaign copy: body family, 600, the lead's size */
   --fs-lead: clamp(19px, 1.45vw, 21px);
@@ -172,8 +172,8 @@ html:root {
   --space-9: 96px;
   --space-10: 128px;
   --space-11: 160px;
-  --section: clamp(72px, 7.5vw, 112px);      /* between sections: sized to 36 px section titles */
-  --block: clamp(40px, 4.5vw, 64px);         /* between groups inside a section */
+  --section: clamp(72px, 6.5vw, 96px);       /* between sections: about 2.6 times the section title */
+  --block: clamp(40px, 3.6vw, 52px);         /* between groups inside a section */
   --plate-pad: clamp(28px, 5vw, 64px);
   --tone-pad: clamp(24px, 3.6vw, 44px);
   /* The measure is set in em, not ch: in Instrument Sans the "0" is 0.665 em wide while running prose averages
@@ -396,7 +396,7 @@ html:root {
     font-optical-sizing: auto;
     font-weight: 500;
     font-size: var(--fs-display);
-    line-height: 0.9;
+    line-height: 1.04;   /* a descender on line one clears the capitals of line two (0.206 em + 0.80 em cap) */
     letter-spacing: 0;
     color: var(--ink);
     text-wrap: balance;
@@ -406,10 +406,11 @@ html:root {
     font-optical-sizing: auto;
     font-weight: 500;
     font-size: var(--fs-title);
-    line-height: 1;
+    line-height: 1.1;
     letter-spacing: 0.002em;
     color: var(--ink);
     text-wrap: balance;
+    max-width: 20em;
   }
   .t-heading {
     font-family: var(--font-display), "Arial Narrow", sans-serif;
@@ -1002,7 +1003,7 @@ nextjs-portal { display: none !important; }
 .tm-root .tm-peek-k { font-size: var(--fs-clock); line-height: 1.4; color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
 .tm-root .tm-peek.hot .tm-peek-k::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 8px; border-radius: 50%; background: var(--wine); vertical-align: 1px; }
 .tm-root .tm-peek-k .on { color: var(--plum); font-weight: 600; }
-.tm-root .tm-peek-t { margin-top: 6px; font-family: var(--font-display), "Arial Narrow", sans-serif; font-optical-sizing: auto; font-weight: 600; font-size: 24px; line-height: 1.04; color: var(--ink); letter-spacing: 0.006em; }
+.tm-root .tm-peek-t { margin-top: 6px; font-family: var(--font-sans), sans-serif; font-weight: 600; font-size: var(--fs-name); line-height: 1.3; color: var(--ink); letter-spacing: 0; }
 .tm-root .tm-peek-s { margin-top: 8px; font-size: var(--fs-clock); line-height: 1.5; color: var(--muted); font-variant-numeric: tabular-nums; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .tm-root .tm-peek-s .mono { font-family: var(--font-sans), sans-serif; font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
 .tm-root .tm-peek-a { display: inline-block; margin-top: 12px; font-size: var(--fs-small); font-weight: 600; color: var(--link); text-decoration: none; transition: color 160ms var(--ease); }
@@ -1187,6 +1188,6 @@ body .maplibregl-map,
 @media (max-width: 640px) {
   .score-ring > span { font-size: 26px; }
   .tm-root .tm-peek { min-width: 0; max-width: 230px; padding: 12px 14px 14px; }
-  .tm-root .tm-peek-t { font-size: 20px; }
+  .tm-root .tm-peek-t { font-size: 19px; }
   .tm-root .tm-fs { top: 12px; right: 12px; padding: 0 14px; }
 }

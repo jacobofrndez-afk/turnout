@@ -992,7 +992,7 @@ nextjs-portal { display: none !important; }
 .tm-root .tm-peek.hot .tm-peek-k::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 8px; border-radius: 50%; background: var(--wine); vertical-align: 1px; }
 .tm-root .tm-peek-k .on { color: var(--plum); font-weight: 600; }
 .tm-root .tm-peek-t { margin-top: 6px; font-family: var(--font-display), "Arial Narrow", sans-serif; font-optical-sizing: auto; font-weight: 600; font-size: 24px; line-height: 1.04; color: var(--ink); letter-spacing: 0.006em; }
-.tm-root .tm-peek-s { margin-top: 8px; font-size: var(--fs-clock); line-height: 1.5; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tm-root .tm-peek-s { margin-top: 8px; font-size: var(--fs-clock); line-height: 1.5; color: var(--muted); font-variant-numeric: tabular-nums; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .tm-root .tm-peek-s .mono { font-family: var(--font-sans), sans-serif; font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
 .tm-root .tm-peek-a { display: inline-block; margin-top: 12px; font-size: var(--fs-small); font-weight: 600; color: var(--link); text-decoration: none; transition: color 160ms var(--ease); }
 .tm-root .tm-peek-a:hover { color: var(--link-hover); }
@@ -1192,9 +1192,9 @@ body .maplibregl-map,
   .skeleton { animation: none; opacity: 0.75; }
 }
 
-/* Under 560 px the map has no free side for the peek board: it would cover your place and the full screen
-   button. The chosen moment is the first card under the map, so the board steps aside. */
-@media (max-width: 559px) {
+/* Under 640 px (RadarMap's own breakpoint) the map has no free side for the peek board: it would cover your
+   place and the full screen button. The chosen moment is the first card under the map, so the board steps aside. */
+@media (max-width: 639px) {
   .tm-root .tm-peek { display: none; }
 }
 

@@ -196,7 +196,10 @@ html:root {
     background: var(--paper);
     font-synthesis: none;
     -webkit-text-size-adjust: 100%;
+    scroll-padding-top: 92px;      /* the 76 px sticky header + 16: focus, anchors and scrollIntoView land below it */
+    scroll-padding-bottom: 24px;   /* a focus ring near the fold is never cut */
   }
+  @media (max-width: 639px) { html { scroll-padding-top: 80px; } }   /* the 64 px header + 16 */
 
   body {
     background: var(--paper);
@@ -930,7 +933,9 @@ nextjs-portal { display: none !important; }
    Clocks 15 px tabular, names 14 px, day names 14 px semibold. */
 .tm-root .tm-scroll { background: transparent; border-top: 0; border-radius: 0; box-shadow: none; }
 .tm-root .tm-track { height: 236px; outline: none; }
-.tm-root .tm-track:focus-visible { box-shadow: none; outline: 2px solid var(--focus); outline-offset: 3px; }
+.tm-root .tm-track:focus-visible { box-shadow: none; outline: none; }
+/* the slider is wider than its scroller, which clips any ring drawn on it: the scroller draws the ring instead */
+.tm-root .tm-scroll:has(> .tm-track:focus-visible) { outline: 2px solid var(--focus); outline-offset: 3px; }
 .tm-root .tm-day { border-left: 0; }
 .tm-root .tm-day.alt { background: transparent; }
 .tm-root .tm-day b { top: 6px; left: 12px; font-size: var(--fs-label); font-weight: 600; color: var(--ink); letter-spacing: 0.004em; }
@@ -968,6 +973,8 @@ nextjs-portal { display: none !important; }
 
 /* map: a borderless plate; flat square controls; your place an aubergine square */
 .tm-root .tm-mapwrap { border: 0; border-radius: 0; box-shadow: none; background: var(--map-land); }
+/* the map canvas is a tab stop; its own ring would be clipped by the map, so the frame shows it */
+.tm-root .tm-mapwrap:has(.maplibregl-canvas:focus-visible) { outline: 2px solid var(--focus); outline-offset: 3px; }
 .tm-root .tm-me { background: var(--plum); border-radius: 0; box-shadow: 0 0 0 3px #FFFFFF; }
 .tm-root .tm-chip { border: 0; border-radius: 0; box-shadow: none; background: #FFFFFF; color: var(--ink); padding: 3px 9px; font-size: var(--fs-label); font-weight: 600; line-height: 1.35; }
 .tm-root .tm-handle-dot { border: 2px solid var(--plum); background: #FFFFFF; border-radius: 50%; box-shadow: none; }

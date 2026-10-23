@@ -19,7 +19,7 @@ Every secondary page starts with one link back: "Today" (not "Back to the radar"
 
 - **Level 1, one per screen**: `.t-display` for the thing that matters now (the offer, the crowd, the place). Never a
   section name, never a date.
-- **Level 2, at most four per screen**: `.t-title` for section heads. Section heads are plain words a merchant
+- **Level 2, at most four per screen (five on Today, the home carries two more sections)**: `.t-title` for section heads. Section heads are plain words a merchant
   says: "What goes out", "Why", "Coming next", "Every day this week".
 - **Level 3**: `.t-body` for everything else; `.t-lead` only for the one sentence under the headline.
 - Eyebrows (`.eyebrow`) only inside the plate and above the three channel cards. Everywhere else a label becomes a

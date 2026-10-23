@@ -36,9 +36,14 @@
 // 180). A hinted joint is right at devicePixelRatio 1 only (doubled, its 1 px steps become 2 px nubs), so the 128 and
 // the 256 name a retina twin with the true curve (the hero-large 128 at 2x, native 256; the hero-large 512), and the
 // component draws the twin's wall at 1.5 dppx and up. Below 128 px the pixel feet have no clearance either.
-// Motion: while the needle turns, a hub master keeps its whole collar still (the master's own path, painted after the
-// turning needle as at rest) and a notch square at the hub's top-left, so the wall band shows no page in any frame and
-// at 0 degrees the motion layer is the master path for path (the hand-over at DUR - 1 ms changes no pixel).
+// Motion: the needle swings open once. What turns and what holds still split the master needle on whole device pixel
+// lines: a hub master turns the needle above y 27 and holds still the needle in the wall band left of x 5.75 or below
+// y 27 (the hub but its top right) and its whole collar; a pixel master holds still its foot and turns the hull less the
+// foot's corner square. The browser composites the turning group as a layer and resamples it while it turns, so what
+// holds still at the joint is drawn crisp over it, and the turning group is clipped at the floor. In the model, at 0
+// degrees the motion layer composites to the master within half an 8-bit level, so the hand-over at DUR - 1 ms
+// changes no pixel; in the frozen frames the joint band (to the hub's centre column) shows no page and the row under
+// the floor no wine, both as drawn and as the compositor resamples the turning group.
 // Arc rule: from 32 px up the outer arc is full ink, two thirds of the walls' weight rounded to whole device pixels and
 // never wider than the needle's top: 1 of the 32 grid at 64 px and up (2 px at 64, 4 px at 128, 8 px at 256), 2 px at
 // 48, 1 px at 32, 5 px on the 180 grid. At 20 and 16 px, where walls and needle are 1 px, it is 1 device px of ink at
@@ -46,7 +51,8 @@
 // the plate), so the wine needle still leads.
 // Every master is checked before it is written: exact geometry guards on the path data it emits, and a pixel model
 // that composites each path the way a browser does (one coverage mask per path, painted in order). Mutation self-tests
-// undo one joint at a time and the same checks must object. Exit code 1 on any FAIL.
+// undo one joint at a time and the same checks must object. On any FAIL nothing is written (no mark, no sheet, no app
+// file): the FAIL lines are printed and the exit code is 1.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -140,22 +146,23 @@ const AW32 = 1;
 const M = {
   // The hero-large family shares one geometry (viewBox 32, arc 1 in full ink, hub r 0.75, no ring) in every tone: flush
   // inlay (c = 0), the wall end cut concentric to the hub at exactly r 0.75, dropping square to the floor at x 4.75
-  // (whole pixels at 128, 256, 384, 512, 768 and 1024), hidden collar 0.5 wide (2 px at 128); for the motion only, a
-  // notch square 0.25 (1 px at 128) at the hub's top-left. The masters differ only in the wall: hinted to the 128 and
-  // the 256 grid, the true curve at 512 and in the 2x twin.
+  // (whole pixels at 128, 256, 384, 512, 768 and 1024), hidden collar 0.5 wide (2 px at 128); for the motion only, the
+  // needle split on y 27 and x 5.75 (whole pixels at all those sizes): what lies in the wall band left of x 5.75 or
+  // below y 27 (the hub but its top right) holds still while the rest turns. The masters differ only in the wall:
+  // hinted to the 128 and the 256 grid, the true curve at 512 and in the 2x twin.
   // Native 128 (4 px per unit): the home hero lockup. The cut hinted to the 128 grid. Retina twin: heroL2x.
   heroL: { ...G32, native: 128, mult: [128], size: 128, aw: AW32, tone: 1, ring: null, poly: 0.5,
-    needle: HUB32, foot: { type: 'hub', c: 0, cutX: 4.75, collar: 0.5, notch: 0.25, snap: 128 }, retina: 'heroL2x' },
+    needle: HUB32, foot: { type: 'hub', c: 0, cutX: 4.75, collar: 0.5, still: { y: 27, x: 5.75 }, snap: 128 }, retina: 'heroL2x' },
   // The hero-large 128 at devicePixelRatio 2 and 3 (256 and 384 device px): the same mark, the cut a true curve.
   heroL2x: { ...G32, native: 256, mult: [256, 384], size: 256, aw: AW32, tone: 1, ring: null, poly: 0.5, twin: [2, 3],
-    needle: HUB32, foot: { type: 'hub', c: 0, cutX: 4.75, collar: 0.5, notch: 0.25 } },
+    needle: HUB32, foot: { type: 'hub', c: 0, cutX: 4.75, collar: 0.5, still: { y: 27, x: 5.75 } } },
   // Native 256 (8 px per unit): the Open Graph card. The cut hinted to the 256 grid. Retina twin: heroL512.
   heroL256: { ...G32, native: 256, mult: [256], size: 256, aw: AW32, tone: 1, ring: null, poly: 0.5,
-    needle: HUB32, foot: { type: 'hub', c: 0, cutX: 4.75, collar: 0.5, notch: 0.25, snap: 256 }, retina: 'heroL512' },
+    needle: HUB32, foot: { type: 'hub', c: 0, cutX: 4.75, collar: 0.5, still: { y: 27, x: 5.75 }, snap: 256 }, retina: 'heroL512' },
   // Native 512 (16 px per unit) and its whole multiples, also the hero-large 256 at devicePixelRatio 2 and 3: the true
   // curve.
   heroL512: { ...G32, native: 512, mult: [512, 768, 1024], size: 512, aw: AW32, tone: 1, ring: null, poly: 0.5,
-    needle: HUB32, foot: { type: 'hub', c: 0, cutX: 4.75, collar: 0.5, notch: 0.25 } },
+    needle: HUB32, foot: { type: 'hub', c: 0, cutX: 4.75, collar: 0.5, still: { y: 27, x: 5.75 } } },
   // Native 64 (2 px per unit). Arc 1 = 2 px full ink, walls 3 px, pixel foot 3 x 3 px.
   hero: { ...G32, native: 64, mult: [64], size: 64, aw: AW32, tone: 1, ring: null, poly: 0.5,
     needle: HUB32, foot: { type: 'pix', box: [4.5, 26, 6, 27.5], rr: 0.5, flow: true, under: 0.25, inset: 0.125 } },
@@ -290,10 +297,14 @@ function build(id, g) {
       // mutation (stillHub): the motion's still collar cut back to the part round the hub, as da1d0cb drew it (the
       // strip along the needle's left edge dropped, so the page showed in the wall band while the needle turned)
       if (F.stillHub) q.collar.stillHub = dPoly(orient([TL, P, B, Ob, ...outer], 1));
-      // the notch square (motion only): `notch` wide, at the hub's top-left, from the datum down, ending on the hub's
-      // centre column. While the needle turns, its left edge leaves the corner between the wall's cut, the datum and the
-      // hub; the collar's strip fills that corner but for a sliver under the hub's top, and this square closes it. At
-      // rest it lies inside the needle, on whole pixels, so it adds nothing to a pixel the needle does not already fill
+      // mutation (discCollar): the whole hub disc added to the collar (and so held still in the motion), on the needle's
+      // own hub vertices: the hub's visible rim is then drawn twice at rest
+      if (F.discCollar) q.collar.d += dPoly(orient([TL, ...arcPts(P, R, aTL, aTR + 360, fstep, TR).map(v => v.p), ...arcPts(P, R, aTR, aTL, fstep, TL).map(v => v.p)], 1));
+      // the notch square (a6b0991's motion, now only a mutation: the still hub part covers its corner): `notch` wide, at
+      // the hub's top-left, from the datum down, ending on the hub's centre column. While the whole needle turns, its
+      // left edge leaves the corner between the wall's cut, the datum and the hub; the collar's strip fills that corner
+      // but for a sliver under the hub's top, and this square closes it. At rest it lies inside the needle, on whole
+      // pixels, so it adds nothing to a pixel the needle does not already fill
       if (F.notch) {
         const s = F.notch, x0 = r4(P[0] - s), x1 = r4(P[0]), y1 = r4(py + s);
         q.notch = { s, box: [x0, py, x1, y1], d: `M${x0} ${py}H${x1}V${y1}H${x0}Z` };
@@ -320,33 +331,63 @@ function build(id, g) {
       // hidden strip under the ink at the wall-to-foot edge, inset from the wall's top and bottom edges
       const ins = F.inset ?? 0.25;
       needleSubs.push(orient([[x0 - F.under, y0 + ins], [x0, y0 + ins], [x0, y1 - ins], [x0 - F.under, y1 - ins]], 1));
-      q.foot.under = { w: F.under, inset: ins };
+      q.foot.under = { w: F.under, inset: ins, poly: needleSubs.at(-1) };
     }
+    // the foot as the master draws it (the box with its rounded corner, and the hidden strip): what a moving pixel master
+    // keeps still while its needle turns
+    q.foot.d = dPoly(box) + (q.foot.under ? dPoly(q.foot.under.poly) : '');
     const we = F.flow || F.under ? x0 : (F.box[1] >= py ? x0 : hx);
     q.foot.wallEnd = we;
     wallL = `M${hx - L} ${py}H${we}V${pyB}H${hx - L}Z`;
   }
   const needle = needleSubs.map(dPoly).join('');
   // the motion layer ("live"): a tapered needle turns about its hub P, from closed (deg, its axis on the line through P,
-  // lying in the wall band) to rest (0). Hub masters turn their own needle; pixel-foot masters keep the foot box minus
-  // its quadrant past P (still) and turn the hull of the hub circle and the leaf. The afterglow turns as a sector about
-  // P, one flat tint like the rest state, clipped to the half disc above the datum inside the arc centreline.
+  // lying in the wall band) to rest (0). What turns and what holds still split the master needle on whole device pixel
+  // lines, so at 0 degrees the two cover every pixel exactly as the master needle does (a pixel lies wholly on one side
+  // of each line, or wholly inside both pieces):
+  // - hub masters (the hero-large family, `still`): the needle above y `still.y` turns; what lies in the wall band left
+  //   of x `still.x` or below y `still.y` (the hub but its top right, the needle's foot in the band) holds still,
+  //   painted after it, with the whole collar. The browser composites the turning group as its own layer and resamples
+  //   it while it turns; the parts at the joint that hold still are drawn crisp over it. Without `still` (a mutation) the
+  //   whole needle turns, as a6b0991 drew it.
+  // - pixel-foot masters: the foot as the master draws it (box, rounded corner, hidden strip) holds still; the hull of
+  //   the hub circle and the leaf turns, less the corner square that holds the foot's rounded corner (whole pixels), so
+  //   at rest it adds nothing to the corner's partly covered pixels.
+  // The turning group is clipped at the floor (y pyB, a whole pixel): geometrically it never goes below it, but its
+  // resampled edge would bleed one device pixel of wine under the floor. The afterglow turns as a sector about P, one
+  // flat tint like the rest state, clipped to the half disc above the datum inside the arc centreline.
   let swing = null;
   if (R) {
     const aTL = angAbout(P, TL), aTR = angAbout(P, TR);
     const hull = orient([TL, ...arcPts(P, R, aTL, aTR + 360, fstep, TR).map(v => v.p), TRt, ...arcPts(A, topR, angAbout(A, TRt), angAbout(A, TLt), poly, TLt).map(v => v.p)], 1);
     const Rs = r4(2 * rout);
+    let turn, hub = null, still = null;
+    if (F.type === 'hub') {
+      if (F.still) {
+        const ys = F.still.y, xs = F.still.x, nd = needleSubs[0];
+        const T = clipY(nd, -Infinity, ys), K = clipY(nd, py, Infinity), S = minusRect(K, [xs, -1e3, 1e3, ys]);
+        turn = dPoly(T); hub = dPoly(S);
+        q.split = { kind: 'hub', y: ys, x: xs, T, S, lines: [['y', ys], ['x', xs]] };
+      } else turn = dPoly(needleSubs[0]);
+      // the whole collar, the master's own path (mutation stillHub: cut back to the part round the hub)
+      still = q.collar ? q.collar.stillHub || q.collar.d : null;
+    } else {
+      const kN = g.native / g.vb, cN = Math.max(1, Math.ceil((F.rr || 0) * kN - 1e-9)) / kN, [, , bx1, by1] = F.box;
+      if (F.oldSwing) {
+        // mutation: the motion layer as a6b0991 drew it, the hull turning whole over the foot box minus its quadrant past P
+        turn = dPoly(hull);
+        still = `M${F.box[0]} ${F.box[1]}H${F.box[2]}V${r4(P[1])}H${r4(P[0])}V${F.box[3]}H${F.box[0]}Z`;
+      } else {
+        const T = minusRect(hull, [r4(bx1 - cN), r4(by1 - cN), bx1, 1e3]);
+        turn = dPoly(T); still = q.foot.d;
+        q.split = { kind: 'pix', corner: [r4(bx1 - cN), r4(by1 - cN), bx1, by1], T, lines: [['y', r4(by1 - cN)], ['x', r4(bx1 - cN)]] };
+      }
+    }
     swing = {
-      P, deg: r4(theta),
-      // a hub master turns its needle (the collar is its own path; closed, it would leave the wall band) and keeps the
-      // whole collar still, the master's own path, painted after the needle as at rest, plus the notch square: the wall
-      // band shows no page while the needle turns, and at 0 degrees the motion layer is the master, path for path. All
-      // of it lies inside the wall band, left of the jamb: no still wine above the datum or in the doorway
-      turn: F.type === 'hub' ? dPoly(needleSubs[0]) : dPoly(hull),
-      still: F.type === 'hub' ? (q.collar ? q.collar.stillHub || q.collar.d : null) : `M${F.box[0]} ${F.box[1]}H${F.box[2]}V${r4(P[1])}H${r4(P[0])}V${F.box[3]}H${F.box[0]}Z`,
-      ...(q.notch ? { notch: q.notch.d } : {}),
+      P, deg: r4(theta), turn, ...(hub ? { hub } : {}), ...(still ? { still } : {}), ...(q.notch ? { notch: q.notch.d } : {}),
       sector: dPoly([P, at(P, Rs, theta - 80), ...arcPts(P, Rs, theta - 80, theta, 1).map(v => v.p)]),
       clip: dPoly([at(A, rmid, 0), ...arcPts(A, rmid, 0, 180, 1).map(v => v.p)]),
+      ...(g.noFloor ? {} : { floorClip: `M${-g.vb} ${-g.vb}H${2 * g.vb}V${pyB}H${-g.vb}Z` }),
     };
   }
   const band = (r0, r1) => `H${r4(hx + r1)}${Lp(arcPts(A, r1, 0, 90, poly))}V${r4(py - r0)}${Lp(arcPts(A, r0, 90, 0, poly))}`;
@@ -661,12 +702,12 @@ function guards(q, out, opt = {}) {
    source-over, which is what Chrome/Skia does, conflation artefacts included (background seams where two shapes
    abut, hidden colour peeking through a partly covered pixel). "exact": every sub-pixel span composited on its own.
    x coverage is exact (span lengths), y uses 16 sub-rows per pixel. */
-function edgesOf(ds, k, n) {
+function edgesOf(ds, k, n, off = [0, 0]) {
   const rows = Array.from({ length: n }, () => []);
   for (const d of ds) for (const poly of polygons(d, 0.001 / k)) for (let i = 0; i < poly.length; i++) {
     const A = poly[i], B = poly[(i + 1) % poly.length];
     if (A[1] === B[1]) continue;
-    const e = [A[0] * k, A[1] * k, B[0] * k, B[1] * k];
+    const e = [A[0] * k - off[0], A[1] * k - off[1], B[0] * k - off[0], B[1] * k - off[1]];
     const r0 = Math.max(0, Math.floor(Math.min(e[1], e[3]))), r1 = Math.min(n - 1, Math.floor(Math.max(e[1], e[3])));
     for (let r = r0; r <= r1; r++) rows[r].push(e);
   }
@@ -915,14 +956,20 @@ function nubCheck(Q, n, dpr, out, override) {
 
 /* ================================================================ the motion layer on the device grid
    The component's motion layer (turnout-mv), composited as the browser does, in its paint order: the afterglow sector
-   turned about P and clipped to the half disc above the datum, the turning needle, then what stays still (a hub
-   master's whole collar and its notch square), the arc, and the ink the component draws at that devicePixelRatio (a
-   hinted master's retina twin's wall at 1.5 dppx and up). At 0 degrees (turnout-mv on, turnout-rs off) it must composite
-   identically to the master, so the hand-over at DUR - 1 ms changes no pixel; in frozen frames of the swing the joint
-   band (the wall band from the left wall's outer end to the hub's centre line: the wall, the collar and the hub's left
-   half, as jointChecks reads it) must show no page over MV_PAGE. The column right of the centre line, the hub's own
-   round edge against the page, is reported beside it. */
-const MV_T = [0, 150, 300, 600, 895], MV_PAGE = 0.06;
+   turned about P and clipped to the half disc above the datum, the turning needle clipped at the floor, then what holds
+   still (a hub master's still hub part and whole collar; a pixel master's foot), the arc, and the ink the component
+   draws at that devicePixelRatio (a hinted master's retina twin's wall at 1.5 dppx and up). At 0 degrees (turnout-mv
+   on, turnout-rs off) it must composite identically to the master, so the hand-over at DUR - 1 ms changes no pixel.
+   In frozen frames of the swing the joint band (the wall band from the left wall's outer end to the hub's centre
+   column inclusive: the wall, the collar and the hub's left half and centre column) must show no page over MV_PAGE,
+   and the row under the floor no ink or wine over MV_BELOW, in two models: the exact geometry (the turning paths
+   rotated, as a main-thread paint would draw them) and the compositor (as Chrome draws an element under an active
+   transform animation: the turning group rasterised once at rest on its own texel grid, then drawn rotated with
+   bilinear filtering, at its own grid phase and half a pixel off it, the floor clip applied after). The identity at 0
+   degrees allows ID_MAX, half an 8-bit level: the split's crossing points are rounded to 4 decimals like all path data,
+   which moves a coverage by a few ten-thousandths, and the needle's left edge in the wall band is drawn by both pieces,
+   under the collar. */
+const MV_T = [0, 150, 300, 600, 850, 895, 899], MV_PAGE = 0.06, MV_BELOW = 0.02, ID_MAX = 0.5 / 255;
 const pc1 = v => `${(v * 100).toFixed(1)} %`;
 // the swing's progress at a fraction x of DUR: the CSS cubic-bezier EASE, solved for x by bisection
 function easeAt(x) {
@@ -950,42 +997,187 @@ function clipConvex(subject, clip) {
   }
   return res;
 }
-function mvLayers(q, mode, inkD, ang) {
+// a convex polygon cut to the band yLo <= y <= yHi (crossings snapped onto the lines, repeats dropped)
+function clipY(poly, yLo, yHi) {
+  const lo = Math.max(yLo, -1e3), hi = Math.min(yHi, 1e3);
+  const r = clipConvex(poly, [[-1e3, lo], [1e3, lo], [1e3, hi], [-1e3, hi]]).map(p => [p[0], Math.abs(p[1] - lo) < 1e-9 ? lo : Math.abs(p[1] - hi) < 1e-9 ? hi : p[1]]);
+  return r.filter((p, i) => !near(p, r[(i + r.length - 1) % r.length], 1e-12));
+}
+// a convex polygon minus the open rectangle (xa, xb) x (ya, yb) (far sides may stand at +-1e3), which its boundary enters
+// and leaves once: its own vertices outside the rectangle, the crossings (snapped onto the sides) and, between them, the
+// rectangle's corners that lie inside the polygon
+function minusRect(poly, [xa, ya, xb, yb]) {
+  const e = 1e-12, inR = p => p[0] > xa + e && p[0] < xb - e && p[1] > ya + e && p[1] < yb - e;
+  const s0 = poly.findIndex(p => !inR(p));
+  if (s0 < 0) throw new Error('minusRect: the polygon lies inside the rectangle');
+  const Pp = [...poly.slice(s0), ...poly.slice(0, s0)], n = Pp.length;
+  // Liang-Barsky: where p -> q lies inside the closed rectangle, and the side it enters and leaves by
+  const lb = (p, q) => {
+    const d = [q[0] - p[0], q[1] - p[1]]; let t0 = 0, t1 = 1, s0 = null, s1 = null;
+    for (const [pk, qk, side] of [[-d[0], p[0] - xa, 'L'], [d[0], xb - p[0], 'R'], [-d[1], p[1] - ya, 'T'], [d[1], yb - p[1], 'B']]) {
+      if (Math.abs(pk) < 1e-15) { if (qk < 0) return null; continue; }
+      const t = qk / pk;
+      if (pk < 0) { if (t > t1) return null; if (t >= t0) { t0 = t; s0 = side; } } else { if (t < t0) return null; if (t <= t1) { t1 = t; s1 = side; } }
+    }
+    return { t0, t1, s0, s1 };
+  };
+  const pt = (p, q, t, side) => { const r = [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]; if (side === 'L') r[0] = xa; else if (side === 'R') r[0] = xb; else if (side === 'T') r[1] = ya; else if (side === 'B') r[1] = yb; return r; };
+  const W = xb - xa, H = yb - ya, per = 2 * (W + H);
+  const par = (p, side) => (side === 'T' ? p[0] - xa : side === 'R' ? W + p[1] - ya : side === 'B' ? W + H + xb - p[0] : 2 * W + H + yb - p[1]);
+  const corners = [[xa, ya, 0], [xb, ya, W], [xb, yb, W + H], [xa, yb, 2 * W + H]];
+  const path = (se, sx) => {
+    const f = c => (c[2] - se + per) % per, b = c => (se - c[2] + per) % per;
+    const fwd = corners.filter(c => f(c) < (sx - se + per) % per).sort((u, v) => f(u) - f(v));
+    const bwd = corners.filter(c => b(c) < (se - sx + per) % per).sort((u, v) => b(u) - b(v));
+    const okF = fwd.every(c => inside([poly], c)), okB = bwd.every(c => inside([poly], c));
+    if (okF === okB) throw new Error('minusRect: the rectangle\'s boundary inside the polygon is ambiguous');
+    return (okF ? fwd : bwd).map(c => [c[0], c[1]]);
+  };
+  const out = []; let se = null;
+  for (let i = 0; i < n; i++) {
+    const p = Pp[i], q = Pp[(i + 1) % n], pi = inR(p), qi = inR(q);
+    if (!pi) out.push(p);
+    if (pi && qi) continue;
+    const c = lb(p, q);
+    if (!c) continue;
+    if (!pi && qi) { const ep = pt(p, q, c.t0, c.s0); out.push(ep); se = par(ep, c.s0); }
+    else if (pi && !qi) { const xp = pt(p, q, c.t1, c.s1); out.push(...path(se, par(xp, c.s1)), xp); se = null; }
+    else if (c.t1 - c.t0 > 1e-12 && inR(pt(p, q, (c.t0 + c.t1) / 2))) { const ep = pt(p, q, c.t0, c.s0), xp = pt(p, q, c.t1, c.s1); out.push(ep, ...path(par(ep, c.s0), par(xp, c.s1)), xp); }
+  }
+  return out.filter((p, i) => !near(p, out[(i + out.length - 1) % out.length], 1e-12));
+}
+// one path's coverage per device pixel, exactly as raster() computes a layer's; off: the texel grid's offset from the
+// device grid (device px), for a layer rasterised on its own origin
+function pathCov(ds, n, vb, off = [0, 0], S = 16) {
+  const rows = edgesOf(ds, n / vb, n, off), cov = new Float64Array(n * n);
+  for (let j = 0; j < n * S; j++) {
+    const y = (j + 0.5) / S, row = Math.floor(j / S), b0 = row * n;
+    for (const [a, b] of spansAt(rows[row], y, n)) for (let px = Math.floor(a); px < Math.min(n, Math.ceil(b)); px++) cov[b0 + px] += (Math.min(b, px + 1) - Math.max(a, px)) / S;
+  }
+  return cov;
+}
+// the browser composite of coverage layers (raster()'s, from given coverages)
+function composeCov(L, n, base, fgI, fgA) {
+  const pap = RGB(base), img = new Float64Array(n * n * 3), cols = L.map(l => RGB(l.col));
+  for (let i = 0; i < n * n; i++) {
+    let c0 = pap[0], c1 = pap[1], c2 = pap[2];
+    for (let li = 0; li < L.length; li++) { const a = Math.min(1, L[li].cov[i]) * (L[li].op ?? 1), c = cols[li]; c0 += (c[0] - c0) * a; c1 += (c[1] - c1) * a; c2 += (c[2] - c2) * a; }
+    img[i * 3] = c0; img[i * 3 + 1] = c1; img[i * 3 + 2] = c2;
+  }
+  return unmix(img, n, base, fgI, fgA);
+}
+// the compositor's draw of a turning layer: its texture (coverage on a texel grid offset `off` from the device grid),
+// rotated by ang (CSS rotate, clockwise on screen) about Pd (device px), sampled bilinearly at each device pixel centre
+function rotSample(tex, n, Pd, ang, off) {
+  const a = rad(ang), c = Math.cos(a), s = Math.sin(a), out = new Float64Array(n * n);
+  const T = (i, j) => (i < 0 || j < 0 || i >= n || j >= n ? 0 : tex[j * n + i]);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const dx = x + 0.5 - Pd[0], dy = y + 0.5 - Pd[1];
+    const u = Pd[0] + dx * c + dy * s - off[0] - 0.5, v = Pd[1] - dx * s + dy * c - off[1] - 0.5;
+    const i = Math.floor(u), j = Math.floor(v), fx = u - i, fy = v - j;
+    out[y * n + x] = (1 - fx) * (1 - fy) * T(i, j) + fx * (1 - fy) * T(i + 1, j) + (1 - fx) * fy * T(i, j + 1) + fx * fy * T(i + 1, j + 1);
+  }
+  return out;
+}
+// the turning needle at ang, as drawn by a main-thread paint: rotated about P, clipped at the floor
+const turnAt = (q, ang) => {
+  const sw = q.swing, fl = sw.floorClip ? polygons(sw.floorClip)[0] : null;
+  return polygons(sw.turn).map(poly => { const r = poly.map(p => (ang ? rotAbout(sw.P, ang, p) : p)); return fl ? clipConvex(r, fl) : r; }).filter(r => r.length > 2).map(dRaw).join('');
+};
+// the still layers of the motion, in paint order, after the turning needle
+const stillLayers = (q, mode, inkD) => {
   const k = MODES[mode], sw = q.swing;
-  const turn = ang ? polygons(sw.turn).map(poly => dRaw(poly.map(p => rotAbout(sw.P, ang, p)))).join('') : sw.turn;
-  const glow = clipConvex(polygons(sw.sector)[0].map(p => (ang ? rotAbout(sw.P, ang, p) : p)), polygons(sw.clip)[0]);
   return [
-    ...(glow.length > 2 ? [{ ds: [dRaw(glow)], col: k.glow }] : []),
-    { ds: [turn], col: k.acc },
+    ...(sw.hub ? [{ ds: [sw.hub], col: k.acc }] : []),
     ...(sw.still ? [{ ds: [sw.still], col: k.acc }] : []),
     ...(sw.notch ? [{ ds: [sw.notch], col: k.acc }] : []),
     ...(q.arc ? [{ ds: [q.arc], col: arcColour(q, mode) }] : []),
     { ds: [inkD], col: k.line },
   ];
+};
+const glowAt = (q, mode, ang) => {
+  const sw = q.swing, glow = clipConvex(polygons(sw.sector)[0].map(p => (ang ? rotAbout(sw.P, ang, p) : p)), polygons(sw.clip)[0]);
+  return glow.length > 2 ? [{ ds: [dRaw(glow)], col: MODES[mode].glow }] : [];
+};
+function mvLayers(q, mode, inkD, ang) {
+  return [...glowAt(q, mode, ang), { ds: [turnAt(q, ang) || 'M0 0Z'], col: MODES[mode].acc }, ...stillLayers(q, mode, inkD)];
 }
 // the master as the component draws it at rest (turnout-rs), with the ink it draws at that devicePixelRatio
 const restLayers = (q, mode, inkD) => layersOf(q, false, mode).map((l, i, a) => (i === a.length - 1 ? { ...l, ds: [inkD] } : l));
+// the motion's split of the master needle: what turns plus what holds still is the master needle, sampled; the two
+// overlap only inside the needle where both are solid (a hub master: the band left of x still.x above y still.y) or not
+// at all (a pixel master); the split lines on whole device pixels at every size drawn; no still wine above the datum or
+// in the doorway
+function splitChecks(q, out) {
+  const sw = q.swing, sp = q.split, tag = q.id, ok = (c, m) => { out.push(`${c ? 'ok  ' : 'FAIL'} ${tag}: motion ${m}`); return c; };
+  const nP = polygons(q.needle), tP = polygons(sw.turn), hP = sp.kind === 'hub' ? polygons(sw.hub) : polygons(sw.still);
+  const sizes = q.mult || [q.native], all = nP.flat(), xs = all.map(p => p[0]), ys = all.map(p => p[1]);
+  const G = 420, x0 = Math.min(...xs) - 0.01, x1 = Math.max(...xs) + 0.01, y0 = Math.min(...ys) - 0.01, y1 = Math.max(...ys) + 0.01;
+  let n = 0, miss = 0, badLap = 0, lap = 0, inCorner = 0;
+  for (let i = 0; i < G; i++) for (let j = 0; j < G; j++) {
+    const p = [x0 + (x1 - x0) * (i + 0.5 + 0.1234) / (G + 1), y0 + (y1 - y0) * (j + 0.5 + 0.3141) / (G + 1)];
+    const a = inside(nP, p), t = inside(tP, p), h = inside(hP, p);
+    if (a) n++;
+    if (a !== (t || h)) miss++;
+    const inBox = sp.kind === 'pix' && p[0] >= q.foot.box[0] && p[0] <= q.foot.box[2] && p[1] >= q.foot.box[1] && p[1] <= q.foot.box[3] && !(p[0] > sp.corner[0] && p[1] > sp.corner[1]);
+    if (t && h) { lap++; if (!(sp.kind === 'hub' ? p[0] <= sp.x && p[1] >= q.py && p[1] <= sp.y : inBox)) badLap++; }
+    if (sp.kind === 'pix' && t && p[0] > sp.corner[0] && p[0] < sp.corner[2] && p[1] > sp.corner[1] && p[1] < sp.corner[3]) inCorner++;
+  }
+  const onAll = sp.lines.every(([, v]) => sizes.every(m => Number.isInteger(r4(v * m / q.vb))));
+  const linesTxt = sp.lines.map(([ax, v]) => `${ax} ${v} (device ${ax === 'x' ? 'column' : 'row'} ${sizes.map(m => r4(v * m / q.vb)).join(', ')})`).join(' and ');
+  if (sp.kind === 'hub') {
+    const hv = hP.flat(), tv = tP.flat();
+    const placed = hv.every(p => p[1] >= q.py - 1e-9 && p[1] <= q.pyB + 1e-9 && p[0] <= q.hx + 1e-9) && tv.every(p => p[1] <= sp.y + 1e-9);
+    ok(miss <= 0.001 * n && badLap === 0 && onAll && placed && hP.length === 1 && tP.length === 1,
+      `split: the needle above y ${sp.y} turns; what lies in the wall band left of x ${sp.x} or below y ${sp.y} (the hub but its top right, the needle's foot in the band) holds still, painted after it: ${n} samples of the needle, ${miss} covered by neither or outside it, ${lap} in both, all in the band left of x ${sp.x} above y ${sp.y} (inside the needle, under the collar where it has an edge); split on ${linesTxt}, whole pixels at ${sizes.join(', ')}, so at rest every pixel lies wholly on one side; the still part inside the wall band left of the jamb x ${q.hx}: no still wine above the datum or in the doorway`);
+  } else {
+    const footOk = sw.still === q.foot.d && q.foot.d.startsWith(dPoly(orient([[q.foot.box[0], q.foot.box[1]], [q.foot.box[2], q.foot.box[1]], ...(q.foot.rr ? [[q.foot.box[2], q.foot.box[3] - q.foot.rr], ...arcPts(q.foot.Cc, q.foot.rr, 0, -90, 2, [q.foot.box[2] - q.foot.rr, q.foot.box[3]]).map(v => v.p)] : [[q.foot.box[2], q.foot.box[3]]]), [q.foot.box[0], q.foot.box[3]]], 1)));
+    ok(miss <= 0.001 * n && badLap === 0 && inCorner === 0 && onAll && footOk && tP.length === 1,
+      `split: the foot as the master draws it holds still (box x ${q.foot.box[0]}..${q.foot.box[2]}, y ${q.foot.box[1]}..${q.foot.box[3]}, its corner rounded ${q.foot.rr} on the master's own vertices, and the hidden strip); the hull of the hub circle and the leaf turns, less the corner square x ${sp.corner[0]}..${sp.corner[2]}, y ${sp.corner[1]}..${sp.corner[3]} that holds the rounded corner: ${n} samples of the needle, ${miss} covered by neither or outside it, ${lap} in both, all inside the foot box outside the corner square, where the foot is solid on every pixel; ${inCorner} of the turning hull in the corner square; the square on ${linesTxt}, whole pixels at ${sizes.join(', ')}, so at rest the turning hull adds nothing to the corner's partly covered pixels`);
+  }
+}
 function motionChecks(q, n, dpr, inkD, out, opt = {}) {
   const mode = opt.mode || 'color', md = MODES[mode], N = Math.round(n * dpr), k = N / q.vb, sw = q.swing;
   const tag = `${opt.tag || q.id}${mode !== 'color' ? ' ' + mode : ''}@${n}${dpr > 1 ? ` x${dpr}` : ''}`;
   const ok = (c, m) => { out.push(`${c ? 'ok  ' : 'FAIL'} ${tag}: motion ${m}`); return c; };
-  const R = L => raster(L, N, q.vb, md.page, md.line, md.acc).browser;
+  const covs = L => L.map(l => ({ cov: l.cov || pathCov(l.ds, N, q.vb), col: l.col, op: l.op }));
+  const C = L => composeCov(L, N, md.page, md.line, md.acc);
   const wallTxt = opt.wall && opt.wall !== q.id ? `the ${LABEL[opt.wall] || opt.wall} wall` : 'its own wall';
+  const still = covs(stillLayers(q, mode, inkD));
+  const stillTxt = [sw.hub && 'the still hub part', sw.still && (q.kind === 'hub' ? 'the still collar' : 'the still foot'), sw.notch && 'the notch square'].filter(Boolean).join(', ');
   if (!opt.times) {
-    const rest = R(restLayers(q, mode, inkD)), zero = R(mvLayers(q, mode, inkD, 0));
+    const rest = C(covs(restLayers(q, mode, inkD))), zero = C([...covs([...glowAt(q, mode, 0), { ds: [turnAt(q, 0)], col: md.acc }]), ...still]);
     let worst = 0, wi = 0;
     for (const f of ['ink', 'amb', 'pap']) for (let i = 0; i < N * N; i++) { const d = Math.abs(rest[f][i] - zero[f][i]); if (d > worst) { worst = d; wi = i; } }
-    ok(worst <= 1e-9, `at 0 degrees: the motion layer (turnout-mv on, turnout-rs off, no rotation: the afterglow sector clipped to the half disc, the needle, the still collar${sw.notch ? ' and the notch square' : ''}, ${q.arc ? 'the arc, ' : ''}${wallTxt}) composites identically to the master at ${N} device px: largest difference ${worst <= 1e-9 ? `0, so the hand-over at ${DUR - 1} ms changes no pixel` : `${pc1(worst)} at (${wi % N}, ${Math.floor(wi / N)}): the hand-over at ${DUR - 1} ms pops`}`);
+    ok(worst <= ID_MAX, `at 0 degrees: the motion layer (turnout-mv on, turnout-rs off, no rotation: the afterglow sector clipped to the half disc, the turning needle clipped at the floor, ${stillTxt}, ${q.arc ? 'the arc, ' : ''}${wallTxt}) composites to the master at ${N} device px: largest difference ${worst <= 1e-9 ? '0' : `${(worst * 255).toFixed(3)} of an 8-bit level at (${wi % N}, ${Math.floor(wi / N)})`}${worst <= ID_MAX ? `, under half a level, so the hand-over at ${DUR - 1} ms changes no pixel` : `: the hand-over at ${DUR - 1} ms pops`}${worst > 1e-9 && worst <= ID_MAX ? (q.kind === 'hub' ? ' (the split\'s crossing points rounded to 4 decimals; the needle\'s left edge in the wall band drawn by both pieces, under the collar)' : ' (the turning hull\'s edges run on the master outline\'s lines between other vertices, rounded to 4 decimals)') : ''}`);
   }
-  const y0 = Math.round(q.py * k), y1 = Math.round(q.pyB * k), x0 = Math.round((q.hx - q.L) * k), xP = Math.floor(q.P[0] * k + 1e-9);
-  const bandMax = F => {
-    let w = 0, at = null, wc = 0;
-    for (let y = y0; y < y1; y++) { for (let x = x0; x < xP; x++) { const v = F.pap[y * N + x]; if (v > w) { w = v; at = [x, y]; } } wc = Math.max(wc, F.pap[y * N + xP]); }
-    return { w, at, wc };
+  if (opt.identityOnly) return;
+  const y0 = Math.round(q.py * k), y1 = Math.round(q.pyB * k), x0 = Math.round((q.hx - q.L) * k), xP = Math.floor(q.P[0] * k + 1e-9), xB = Math.ceil((q.hx + 0.5) * k);
+  const measure = F => {
+    let w = 0, at = null, wc = 0, b = 0, bat = null;
+    for (let y = y0; y < y1; y++) for (let x = x0; x <= xP; x++) { const v = F.pap[y * N + x]; if (v > w) { w = v; at = [x, y]; } if (x === xP) wc = Math.max(wc, v); }
+    if (y1 < N) for (let x = x0; x < xB; x++) { const v = 1 - F.pap[y1 * N + x]; if (v > b) { b = v; bat = [x, y1]; } }
+    return { w, at, wc, b, bat };
   };
-  const res = (opt.times || MV_T).map(t => { const ang = sw.deg * (1 - easeAt(t / DUR)); return { t, ang, ...bandMax(R(mvLayers(q, mode, inkD, ang))) }; });
-  const rest = opt.times ? null : bandMax(R(restLayers(q, mode, inkD)));
-  ok(res.every(r => r.w <= MV_PAGE), `frozen frames: in the joint band (rows ${y0}..${y1 - 1}, columns ${x0}..${xP - 1}: the left wall, the collar and the hub's left half) no page over ${pc1(MV_PAGE)}: ${res.map(r => `${r.t} ms (${r.ang.toFixed(2)} deg) ${pc1(r.w)}${r.w > 0.005 ? ` at (${r.at.join(', ')})` : ''}`).join(', ')}${rest ? `, at rest ${pc1(rest.w)}` : ''}; column ${xP}, right of the hub's centre line (its own round edge against the page), at most ${pc1(Math.max(...res.map(r => r.wc)))}${rest ? ` (at rest ${pc1(rest.wc)})` : ''}`);
+  // the compositor model: the turning group's texture at its own grid phase (the fractional part of P on the device
+  // grid, where the layer's origin lies) and half a pixel off it
+  const Pd = [q.P[0] * k, q.P[1] * k], own = Pd.map(v => v - Math.floor(v)), phases = [own, own.map(v => (v + 0.5) % 1)];
+  const tex = phases.map(off => pathCov([sw.turn], N, q.vb, off));
+  const frame = (t, comp) => {
+    const ang = sw.deg * (1 - easeAt(t / DUR)), glow = covs(glowAt(q, mode, ang));
+    if (!comp) return { t, ang, ...measure(C([...glow, ...covs([{ ds: [turnAt(q, ang) || 'M0 0Z'], col: md.acc }]), ...still])) };
+    const r = phases.map((off, i) => {
+      const cov = rotSample(tex[i], N, Pd, ang, off);
+      if (sw.floorClip) cov.fill(0, y1 * N);
+      return measure(C([...glow, { cov, col: md.acc }, ...still]));
+    });
+    return { t, ang, w: Math.max(...r.map(m => m.w)), at: r.reduce((a, m) => (m.w > a.w ? m : a)).at, wc: Math.max(...r.map(m => m.wc)), b: Math.max(...r.map(m => m.b)), bat: r.reduce((a, m) => (m.b > a.b ? m : a)).bat };
+  };
+  const rest = opt.times ? null : measure(C(covs(restLayers(q, mode, inkD))));
+  const say = (res, label) => `${label}: in the joint band (rows ${y0}..${y1 - 1}, columns ${x0}..${xP}: the left wall, the collar, the hub's left half and its centre column ${xP}) no page over ${pc1(MV_PAGE)}, in the row under the floor (row ${y1}, columns ${x0}..${xB - 1}) no ink or wine over ${pc1(MV_BELOW)}: ${res.map(r => `${r.t} ms (${r.ang.toFixed(2)} deg) ${pc1(r.w)}${r.w > 0.005 ? ` at (${r.at.join(', ')})` : ''} / ${pc1(r.b)}${r.b > 0.005 ? ` at (${r.bat.join(', ')})` : ''}`).join(', ')}${rest ? `; at rest ${pc1(rest.w)} / ${pc1(rest.b)}` : ''}; centre column at most ${pc1(Math.max(...res.map(r => r.wc)))}`;
+  const ex = (opt.times || MV_T).map(t => frame(t, false)), co = (opt.times || MV_T).map(t => frame(t, true));
+  ok(ex.every(r => r.w <= MV_PAGE && r.b <= MV_BELOW), say(ex, 'frozen frames, exact geometry'));
+  ok(co.every(r => r.w <= MV_PAGE && r.b <= MV_BELOW), say(co, `frozen frames, composited (the turning group resampled bilinearly at texel phase ${phases.map(o => o.map(v => r4(v)).join('/')).join(' and ')}, the floor clip after)`));
 }
 
 /* ================================================================ wordmark outlines */
@@ -1110,7 +1302,7 @@ function lockupChecks(L, q, name, want, out) {
 }
 
 /* ================================================================ run */
-export { M, build, svg, body, guards, raster, layersOf, pixelChecks, MODES, heroLockup, headerLockup, ogCard, ARC_PAPER, ARC_WHITE, ARC_REVERSE, DUR, EASE, EASE_CSS };
+export { M, build, svg, body, guards, raster, layersOf, pixelChecks, motionChecks, splitChecks, pathCov, composeCov, rotSample, mvLayers, restLayers, drawnWall, MODES, heroLockup, headerLockup, ogCard, ARC_PAPER, ARC_WHITE, ARC_REVERSE, DUR, EASE, EASE_CSS };
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) main();
 
@@ -1167,14 +1359,18 @@ function main() {
     const closed = polygons(sw.turn).flat().map(rot), cy = closed.map(p => p[1]), reach = Math.max(...closed.map(p => p[0]));
     ok(Math.min(...cy) >= q.py - 1e-6 && Math.max(...cy) <= q.pyB + 1e-6 && reach > q.xr && reach < q.xr + q.L,
       `closed: turned ${sw.deg} deg about the hub P (${P2(sw.P)}), the needle lies in the wall band, y ${r4(Math.min(...cy))} to ${r4(Math.max(...cy))} within the walls' ${q.py} and ${q.pyB}, across the doorway; its top ends at x ${r4(reach)}, under the right wall`);
-    if (q.kind === 'hub' || !sw.still) ok(sw.turn === q.needle, 'rest: the turning needle is the master needle, byte for byte');
+    if (q.split) splitChecks(q, checks);
+    else if (q.kind === 'hub') ok(sw.turn === q.needle, 'rest: the turning needle is the master needle, byte for byte');
     if (q.kind === 'hub') {
-      ok(!!sw.still && sw.still === q.collarD && (q.notch ? sw.notch === q.notch.d : !sw.notch), `rest: what stays still while the needle turns is the master's whole collar, byte for byte (its strip along the needle's left edge included), painted after the turning needle as the collar is painted after the needle at rest${q.notch ? `, then the notch square ${q.notch.d}` : ''}: at 0 degrees the motion layer is the master's own paths`);
-    } else if (sw.still && q.native <= 128) {
-      const n = q.native, lay = ds => raster([{ ds, col: ACC }, ...(q.arc ? [{ ds: [q.arc], col: arcColour(q, 'color') }] : []), { ds: [q.ink], col: INK }], n, q.vb);
-      const A0 = lay([q.needle]), B0 = lay([sw.still, sw.turn]);
-      let worst = 0, wi = 0; for (let i = 0; i < n * n; i++) { const d = Math.abs(A0.browser.amb[i] - B0.browser.amb[i]); if (d > worst) { worst = d; wi = i; } }
-      ok(worst <= 0.5, `rest: the still foot plus the turning hull against the master needle at ${n} px, largest difference ${pct(worst)} wine in one pixel (${wi % n}, ${Math.floor(wi / n)}): the foot's corner, rounded by the hub circle instead of the corner radius`);
+      ok(!!sw.still && sw.still === q.collarD && (q.notch ? sw.notch === q.notch.d : !sw.notch), `rest: the master's whole collar holds still too, byte for byte (its strip along the needle's left edge included), painted after the turning needle${sw.hub ? ' and the still hub part' : ''} as the collar is painted after the needle at rest${q.notch ? `, then the notch square ${q.notch.d}` : ''}`);
+    }
+    if (sw.floorClip) {
+      // the clip at the floor cuts nothing of the turning geometry at any angle (only the compositor's resampled bleed)
+      const fl = polygons(sw.floorClip)[0], ys = fl.map(p => p[1]), xs = fl.map(p => p[0]), sizes = q.mult || [q.native];
+      let lowest = -Infinity, span = [Infinity, -Infinity];
+      for (let d = 0; d <= sw.deg + 1e-9; d += sw.deg / 120) for (const p of polygons(sw.turn).flat()) { const r = rotAbout(sw.P, d, p); lowest = Math.max(lowest, r[1]); span = [Math.min(span[0], r[0], r[1]), Math.max(span[1], r[0])]; }
+      ok(fl.length === 4 && Math.max(...ys) === q.pyB && sizes.every(m => Number.isInteger(q.pyB * m / q.vb)) && lowest <= q.pyB + 2e-4 && Math.min(...xs) < span[0] && Math.max(...xs) > span[1] && Math.min(...ys) < span[0],
+        `clip at the floor: the turning needle is clipped to the rectangle ${sw.floorClip}, its bottom on the floor y ${q.pyB} (device row ${sizes.map(m => q.pyB * m / q.vb).join(', ')} at ${sizes.join(', ')}); at every angle from ${sw.deg} deg to rest the turning paths reach down to y ${r4(lowest)} (the floor, to the 4-decimal rounding of the path data), so it cuts nothing of them, only the resampled edge the compositor would bleed under the floor`);
     }
     const rg = polygons(q.region), sc = polygons(sw.sector), cl = polygons(sw.clip);
     let inR = 0, miss = 0; const G = 240;
@@ -1183,9 +1379,15 @@ function main() {
   }
   // the motion layer on the device grid, as the component draws the hero-large family (the home hero swings the 128):
   // identical to the master at 0 degrees, and no page in the joint band in frozen frames of the swing
-  for (const mode of ['color', 'reverse']) for (const [n, dpr] of [[128, 1], [128, 2], [256, 1], [256, 2]]) {
+  for (const mode of ['color', 'reverse']) for (const [n, dpr] of [[128, 1], [128, 2], [128, 3], [256, 1], [256, 2]]) {
     const w = drawnWall(Q, n, dpr);
     motionChecks(Q[w.id], n, dpr, Q[w.wallId].ink, checks, { mode, wall: w.wallId });
+  }
+  // the moving pixel masters: the 64 (the home hero on phones) in colour and reverse, the 48 and the 32 (never swung by
+  // the app, but the component lets them move), at devicePixelRatio 1, 2 and 3
+  for (const [id, modes] of [['hero', ['color', 'reverse']], ['m48', ['color']], ['m32', ['color']]]) for (const mode of modes) for (const dpr of [1, 2, 3]) {
+    const q = Q[id];
+    motionChecks(q, q.native, dpr, q.ink, checks, { mode });
   }
   // mutation self-tests: undo one joint at a time; the same checks must object
   const mutants = [
@@ -1216,11 +1418,20 @@ function main() {
       (q, res) => nubCheck({ mutant: q }, 128, 2, res, { id: 'mutant', wallId: 'mutant', d: q.wallL, tag: 'mutant' })],
     ['hero-large 512 scaled up from the 128 staircase', 'heroL', {}, [], /no nub/,
       (q, res) => nubCheck({ mutant: q }, 512, 1, res, { id: 'mutant', wallId: 'mutant', d: q.wallL, tag: 'mutant' })],
-    // the motion layer: da1d0cb's still collar (round the hub only), and the notch square left out
+    // the motion layer: da1d0cb's still collar (round the hub only); a6b0991's motion (the whole needle turning, the
+    // collar and a notch square still), whose hub rim and floor the compositor resamples; the still hub part cut back;
+    // the floor clip dropped; the whole hub disc held still and added to the rest collar; the phone hero's old layer
     ['the motion\'s still collar cut back to the part round the hub (the page in the wall band while the needle turns, a pop at the hand-over)', 'heroL', { foot: { ...M.heroL.foot, stillHub: 1 } }, [], /motion (at 0 degrees|frozen frames)/,
       (q, res) => motionChecks(q, 128, 1, q.ink, res, { tag: 'mutant' })],
-    ['the motion without its notch square (a sliver of page under the hub\'s top while the needle is far from rest)', 'heroL256', { foot: { ...M.heroL256.foot, notch: 0 } }, [], /motion frozen frames/,
-      (q, res) => motionChecks(q, 256, 2, Q.heroL512.ink, res, { tag: 'mutant', times: [0, 150] })],
+    ['a6b0991\'s motion put back: the whole needle turns over the still collar and a notch square (the compositor resamples the hub\'s bottom rim and the needle\'s edge on the datum: the page in the joint band while it turns)', 'heroL', { foot: { ...M.heroL.foot, still: null, notch: 0.25 } }, [], /motion frozen frames, composited/,
+      (q, res) => motionChecks(q, 128, 1, q.ink, res, { tag: 'mutant', times: [0, 150, 300] })],
+    ['the still hub part cut back to the hub\'s bottom (the band left of x 5.75 turning with the needle: its resampled edge shows the page in the joint band)', 'heroL', { foot: { ...M.heroL.foot, still: { y: 27, x: 0 } } }, [], /motion frozen frames, composited/,
+      (q, res) => motionChecks(q, 128, 1, q.ink, res, { tag: 'mutant', times: [0, 150, 300] })],
+    ['the turning needle not clipped at the floor (its resampled edge bleeds wine into the row under the floor)', 'heroL', { noFloor: 1 }, [], /motion frozen frames, composited/,
+      (q, res) => motionChecks(q, 128, 1, q.ink, res, { tag: 'mutant', times: [0, 150, 300] })],
+    ['the whole hub disc held still over the turning needle and added to the rest collar (the hub\'s visible rim drawn twice: the master itself changes at 128)', 'heroL', { foot: { ...M.heroL.foot, still: null, discCollar: 1 } }, [128], /peeks/],
+    ['the phone hero\'s a6b0991 motion layer put back (the hull turning whole over the foot box minus its quadrant past P: the hub\'s bottom right changes shape at the hand-over)', 'hero', { foot: { ...M.hero.foot, oldSwing: 1 } }, [], /motion at 0 degrees/,
+      (q, res) => motionChecks(q, 64, 2, q.ink, res, { tag: 'mutant', identityOnly: true })],
     ['a ring put back, 0.35 at 64 px (0.7 px band)', 'hero', { ring: { ri: 12, w: 0.35, op: 0.5 } }, [], /ring band/, (q, res) => guards(q, res)],
     ['the hairline arc put back at 128 (0.25 of the grid, 1 px against 6 px walls)', 'heroL', { aw: 0.25 }, [], /arc rule/, (q, res) => guards(q, res)],
   ];
@@ -1240,7 +1451,7 @@ function main() {
     checks.push(`FAIL files: not written, building them threw ${e && e.name}: ${e && e.message} (the FAIL lines above say which master is broken)`);
     const fails = checks.filter(c => c.startsWith('FAIL'));
     console.log(checks.join('\n'));
-    console.log(`${checks.filter(c => c.startsWith('ok')).length} ok, ${fails.length} FAIL`);
+    console.log(`${checks.filter(c => c.startsWith('ok')).length} ok, ${fails.length} FAIL: nothing written`);
     console.error(fails.join('\n'));
     process.exitCode = 1;
   }
@@ -1369,7 +1580,7 @@ function files(Q, checks) {
   const swingKey = q => q.swing ? JSON.stringify({ ...q.swing, P: q.swing.P.map(r4) }) : '';
   const sharedSwing = LARGE.every(q => swingKey(q) === swingKey(hL));
   // stillRef: the name the still part is written by when it is the shared collar (the same path, written once)
-  const swingLit = (q, stillRef) => `{ P: [${q.swing.P.map(r4).join(', ')}], deg: ${q.swing.deg}, turn: "${q.swing.turn}",${q.swing.still ? ` still: ${stillRef && q.swing.still === q.collarD ? stillRef : `"${q.swing.still}"`},` : ''}${q.swing.notch ? ` notch: "${q.swing.notch}",` : ''} sector: "${q.swing.sector}", clip: "${q.swing.clip}" }`;
+  const swingLit = (q, stillRef) => `{ P: [${q.swing.P.map(r4).join(', ')}], deg: ${q.swing.deg}, turn: "${q.swing.turn}",${q.swing.hub ? ` hub: "${q.swing.hub}",` : ''}${q.swing.still ? ` still: ${stillRef && q.swing.still === q.collarD ? stillRef : `"${q.swing.still}"`},` : ''} sector: "${q.swing.sector}", clip: "${q.swing.clip}", floorClip: "${q.swing.floorClip}" }`;
   const mBlock = (key, q, note, glowId, glowRef, swingRef, collarRef) => `  // ${note}
   ${key}: {
     vb: ${q.vb},
@@ -1420,13 +1631,21 @@ function files(Q, checks) {
 // needle, collar, arc, ink.
 // MOTION (personality "live"). motion swings the needle open once, when the mark is first drawn: from closed (the
 // needle lying in the wall line, across the doorway) to rest in ${DUR} ms, ${EASE_CSS}, about the hub
-// centre, the afterglow carried round behind it and clipped to the floor line. While it turns, what stays is painted
-// after it: the foot of a pixel master, or a hub master's whole collar (the same path as at rest) and a notch square at
-// the hub's top-left, all inside the wall band, so the joint never shows the page. At ${DUR - 1} ms the motion layer hands
-// over to the master paths; at 0 degrees it is those very paths in the same order, so the hand-over changes no pixel
-// and the rest state is the master, pixel for pixel. prefers-reduced-motion: reduce (or no
-// CSS animation) draws the rest state only. The masters with a tapered needle carry it (32, 48, 64, 128, 256, 512);
-// the 16 and the 20 never move. Use it once per page, on the home hero lockup; the header mark stays still. Freeze a
+// centre, the afterglow carried round behind it and clipped to the floor line. The needle is split on whole device
+// pixel lines into what turns and what holds still: in the hero-large family the needle above y ${hL.split?.y} turns while the
+// needle in the wall band left of x ${hL.split?.x} or below y ${hL.split?.y} (the hub but its top right) and the whole collar
+// hold still; in the pixel masters the hull of the hub and the leaf turns while the foot holds still. What holds
+// still is painted after the turning group, and the turning group is clipped at the floor. The browser composites the
+// turning group as its own layer and resamples it while it turns; the joint is drawn by the still paths, crisp, so it
+// shows no page in any frame and no wine falls under the floor. At ${DUR - 1} ms the motion layer hands over to the
+// master paths: at 0 degrees the two pieces cover every pixel as the master needle does (within half an 8-bit level,
+// checked by the generator at every size that moves, at devicePixelRatio 1, 2 and 3), so the joint does not change at
+// the hand-over and the rest state is the master. Edge pixels of the turning group itself (the leaf, its flank in the
+// doorway) can change tone at the hand-over, because the browser rasterises that layer apart from the page; at 64 px
+// and devicePixelRatio 1 the layer lies half a pixel off the device grid, so its edges stay soft until the hand-over
+// and the foot's corner pixel changes tone with them. prefers-reduced-motion: reduce (or no CSS animation) draws the
+// rest state only. The masters with a tapered needle carry it (32, 48, 64, 128, 256, 512); the 16 and the 20 never
+// move. Use it once per page, on the home hero lockup; the header mark stays still. Freeze a
 // frame for review with the custom properties turnout-t (a time, e.g. 300ms) and turnout-ps (paused), each with the
 // usual two-hyphen prefix, on an ancestor. The swing is a CSS animation, so it would start again if its subtree left
 // the render tree: the Wordmark's hidden lockup (phone or wide, across the 640 px switch) is therefore never
@@ -1434,9 +1653,9 @@ function files(Q, checks) {
 // resize past 640 px shows the other lockup already at rest. A full-page capture with captureBeyondViewport re-lays out
 // the page and can catch the needle closed: for review captures freeze the frame (turnout-t 900ms, turnout-ps paused
 // on the hero wrapper) or capture a viewport-sized clip with captureBeyondViewport false.
-// The motion's clip path and keyframes are named after the afterglow (turnout-swing-<glowId>), not per instance: ids
-// from useId repeat across separately rendered server segments (after a client-side navigation two marks shared one
-// id). Copies with the same id are identical, so any one of them renders correctly.
+// The motion's clip paths and keyframes are named after the afterglow (turnout-swing-<glowId>, turnout-floor-<glowId>),
+// not per instance: ids from useId repeat across separately rendered server segments (after a client-side navigation
+// two marks shared one id). Copies with the same id are identical, so any one of them renders correctly.
 import type { CSSProperties, ReactNode } from "react";
 
 type Master = {
@@ -1451,11 +1670,12 @@ type Master = {
   ink: string;
   collar?: string; // the hidden collar of wine under the wall's cut (flush inlay), painted after the needle, under the ink
   ink2x?: string; // ink with the joint as the true curve, drawn instead of ink at ${RETINA_DPPX} dppx and up
-  // the motion layer: the needle that turns about the hub P by deg (closed) to 0 (rest); what stays, painted after it
-  // (the foot of a pixel master; a hub master's whole collar, the same path as collar, and its notch square at the
-  // hub's top-left, so the wall band shows no page while the needle turns); the afterglow sector that turns with it,
-  // and the half disc above the floor that clips it
-  swing?: { P: [x: number, y: number]; deg: number; turn: string; still?: string; notch?: string; sector: string; clip: string };
+  // the motion layer: turn, the part of the needle that turns about the hub P by deg (closed) to 0 (rest), clipped to
+  // floorClip (everything above the floor); what holds still, painted after it: hub, a hub master's still hub part (the
+  // needle in the wall band left of x 5.75 or below y 27), and still (a hub master's whole collar, the same path as
+  // collar; a pixel master's foot); turn plus hub (or still) is the master needle, split on whole device pixel lines.
+  // sector: the afterglow sector that turns with it; clip: the half disc above the floor that clips it
+  swing?: { P: [x: number, y: number]; deg: number; turn: string; hub?: string; still?: string; sector: string; clip: string; floorClip: string };
 };
 ${sharedGlow ? `
 // The afterglow of the hero-large family (the same needle and arc centreline at 128, 256 and 512).
@@ -1465,9 +1685,10 @@ const GLOW_LARGE: Master["glow"] = ${glowLit(hL)};
 // the hub to the floor; it shows only where it completes the joint.
 const COLLAR_LARGE: NonNullable<Master["collar"]> = "${hL.collarD}";
 ` : ''}${sharedSwing ? `
-// The motion layer of the hero-large family (the same needle, hub and afterglow at 128, 256 and 512): the needle turns;
-// the whole collar (the same path) and the notch square stay still, painted after it, so the wall band never shows the
-// page and at 0 degrees the layer is the master path for path.
+// The motion layer of the hero-large family (the same needle, hub and afterglow at 128, 256 and 512): the needle above
+// y 27 turns; the still hub part (the needle in the wall band left of x 5.75 or below y 27) and the whole collar (the
+// same path) hold still, painted after it, so the joint never shows the page; the split lines are whole device pixels
+// at every size drawn, so at 0 degrees the layer covers every pixel as the master does.
 const SWING_LARGE: NonNullable<Master["swing"]> = ${swingLit(hL, sharedCollar && 'COLLAR_LARGE')};
 ` : ''}
 export const SWING: Record<"px16" | "px20" | "px32" | "px48" | "hero" | "heroLarge" | "heroLarge256" | "heroLarge512" | "heroLargeOne256" | "heroLargeOne512", Master> = {
@@ -1537,6 +1758,7 @@ export function Mark({ size = 32, tone = "color", ground = "paper", motion = fal
         <>
           <style>{swingCss(m.glowId, sw.deg)}</style>
           <clipPath id={\`turnout-swing-\${m.glowId}\`} clipPathUnits="userSpaceOnUse"><path d={sw.clip} /></clipPath>
+          <clipPath id={\`turnout-floor-\${m.glowId}\`} clipPathUnits="userSpaceOnUse"><path d={sw.floorClip} /></clipPath>
           <g className="turnout-rs">{glow(m.glow)}</g>
           <g className="turnout-mv" clipPath={\`url(#turnout-swing-\${m.glowId})\`}>{turn(sw, glow(sw.sector))}</g>
         </>
@@ -1546,7 +1768,7 @@ export function Mark({ size = 32, tone = "color", ground = "paper", motion = fal
       {sw ? (
         <>
           <g className="turnout-rs"><path d={m.needle} fill={t.needle} />{m.collar && <path d={m.collar} fill={t.needle} />}</g>
-          <g className="turnout-mv">{turn(sw, <path d={sw.turn} fill={t.needle} />)}{sw.still && <path d={sw.still} fill={t.needle} />}{sw.notch && <path d={sw.notch} fill={t.needle} />}</g>
+          <g className="turnout-mv"><g clipPath={\`url(#turnout-floor-\${m.glowId})\`}>{turn(sw, <path d={sw.turn} fill={t.needle} />)}</g>{sw.hub && <path d={sw.hub} fill={t.needle} />}{sw.still && <path d={sw.still} fill={t.needle} />}</g>
         </>
       ) : (
         <>
@@ -1679,11 +1901,14 @@ export function Wordmark({ size = 44, phone, tone = "color", live = false, motio
     // the collar is drawn after the needle in both the still and the moving state, under the arc and the ink
     const collarOk = /<g className="turnout-rs"><path d=\{m\.needle\} fill=\{t\.needle\} \/>\{m\.collar && <path d=\{m\.collar\} fill=\{t\.needle\} \/>\}<\/g>/.test(jsx) && /<path d=\{m\.needle\} fill=\{t\.needle\} \/>\n\s*\{m\.collar && <path d=\{m\.collar\} fill=\{t\.needle\} \/>\}/.test(jsx) && jsx.indexOf('{m.collar &&') < jsx.indexOf('{m.arc &&');
     checks.push(`${collarOk ? 'ok  ' : 'FAIL'} Logo.tsx: the hidden collar is its own path, painted after the needle and before the arc and the ink, at rest and in the rest layer of the motion`);
-    // the motion layer paints the turning needle first, then what stays (the hero-large family: the collar itself, by
-    // reference, then the notch square), as the rest layer paints needle then collar
-    const mvOk = /<g className="turnout-mv">\{turn\(sw, <path d=\{sw\.turn\} fill=\{t\.needle\} \/>\)\}\{sw\.still && <path d=\{sw\.still\} fill=\{t\.needle\} \/>\}\{sw\.notch && <path d=\{sw\.notch\} fill=\{t\.needle\} \/>\}<\/g>/.test(jsx)
-      && (!sharedSwing || !sharedCollar || (/const SWING_LARGE[^\n]* still: COLLAR_LARGE, notch: "/.test(jsx) && hL.swing.still === hL.collarD && hL.swing.notch === hL.notch.d));
-    checks.push(`${mvOk ? 'ok  ' : 'FAIL'} Logo.tsx: the motion layer paints the turning needle, then what stays: for the hero-large family the collar itself (SWING_LARGE.still is COLLAR_LARGE, the same path) and the notch square ${hL.notch ? hL.notch.d : '(none)'}, in the rest layer's order (needle, then collar), so at 0 degrees it is the master`);
+    // the motion layer paints the turning needle first, clipped at the floor, then what holds still (the hero-large
+    // family: the still hub part, then the collar itself, by reference; a pixel master: its foot)
+    const mvOk = /<g className="turnout-mv"><g clipPath=\{`url\(#turnout-floor-\$\{m\.glowId\}\)`\}>\{turn\(sw, <path d=\{sw\.turn\} fill=\{t\.needle\} \/>\)\}<\/g>\{sw\.hub && <path d=\{sw\.hub\} fill=\{t\.needle\} \/>\}\{sw\.still && <path d=\{sw\.still\} fill=\{t\.needle\} \/>\}<\/g>/.test(jsx)
+      && /<clipPath id=\{`turnout-floor-\$\{m\.glowId\}`\} clipPathUnits="userSpaceOnUse"><path d=\{sw\.floorClip\} \/><\/clipPath>/.test(jsx)
+      && (!sharedSwing || !sharedCollar || (jsx.includes(`hub: "${hL.swing.hub}", still: COLLAR_LARGE,`) && hL.swing.still === hL.collarD))
+      && !/notch/.test(jsx.slice(jsx.indexOf('export const SWING'), jsx.indexOf('export const SWING_SIZES')))
+      && pairs.filter(([, q]) => q.swing).every(([k2, q]) => { const b = /swing: SWING_LARGE/.test(block(k2)) ? jsx.slice(jsx.indexOf('const SWING_LARGE'), jsx.indexOf('\n', jsx.indexOf('const SWING_LARGE'))) : block(k2); return b.includes(`turn: "${q.swing.turn}"`) && b.includes(`floorClip: "${q.swing.floorClip}"`) && (q.swing.hub ? b.includes(`hub: "${q.swing.hub}"`) : !/hub: "/.test(b)) && (q.kind === 'hub' || b.includes(`still: "${q.foot.d}"`)); });
+    checks.push(`${mvOk ? 'ok  ' : 'FAIL'} Logo.tsx: the motion layer paints the turning needle clipped at the floor (turnout-floor-<glowId>, everything above y ${hL.pyB}), then what holds still: for the hero-large family the still hub part and the collar itself (SWING_LARGE.still is COLLAR_LARGE, the same path), for the pixel masters their foot; no notch square; every swing literal carries the generator's split byte for byte`);
     // the public API kept: swingMaster(size, _tone?) (the tone ignored) and the former one-colour master names as aliases
     const apiOk = /export function swingMaster\(size: number, _tone\?: MarkTone\): Master \{/.test(jsx) && /\| "heroLargeOne256" \| "heroLargeOne512", Master> = \{/.test(jsx)
       && /get heroLargeOne256\(\) \{ return SWING\.heroLarge256; \}/.test(jsx) && /get heroLargeOne512\(\) \{ return SWING\.heroLarge512; \}/.test(jsx) && pickJsx(300, 'mono') === 'heroLarge256';
@@ -1993,8 +2218,15 @@ document.querySelectorAll('canvas.px').forEach(c => {
   const retired = sheetText.match(/Fraunces|\bInter\b|IBM Plex Mono|#111114|#E0115F|#F2F3F3|#F7F4EE|#B4530A|#17150F|text-transform:\s*uppercase|letter-spacing:\s*\.1\de?m|border-radius:\s*[1-9]|box-shadow:\s*0 \d+px \d+px/gi) || [];
   checks.push(`${retired.length ? 'FAIL' : 'ok  '} sheet: no font, colour, tracked caps, rounded corners or soft shadow of the retired look${retired.length ? ': ' + retired.join(', ') : ''}`);
   const fails = checks.filter(c => c.startsWith('FAIL'));
-  if (fails.length) { console.error(fails.join('\n')); process.exitCode = 1; }
   const nOk = checks.filter(c => c.startsWith('ok')).length;
+  if (fails.length) {
+    // a check failed: write nothing (no mark, no sheet, no app file), so a broken master never reaches a file
+    console.log(checks.join('\n'));
+    console.log(`${nOk} ok, ${fails.length} FAIL: nothing written`);
+    console.error(fails.join('\n'));
+    process.exitCode = 1;
+    return;
+  }
   out['swing-final.html'] = page(checks.join('\n'), nOk, fails.length);
   for (const [rel, s] of Object.entries(out)) fs.writeFileSync(path.join(OUT, rel), s);
   const app = { 'src/components/Logo.tsx': jsx, 'src/app/icon.svg': icon, 'public/logo.svg': out['01-swing-final.svg'] };

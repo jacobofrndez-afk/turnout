@@ -179,11 +179,11 @@ export default function RadarView({ merchant, items, nowIso }: Props) {
         days.push({ left: pct(dayStart), right: pct(t), start: dayStart });
         dayStart = t;
       }
-      if (h % 6 === 0) ticks.push({ left: pct(t), label: `${String(h).padStart(2, "0")}:00`, major: h === 0 });
+      if (h % 6 === 0) ticks.push({ left: pct(t), label: clock(t, tz), major: h === 0 });
     }
     days.push({ left: pct(dayStart), right: 100, start: dayStart });
     return { days, ticks };
-  }, [t0, t1]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [t0, t1, tz]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const trackWidth = `max(100%, ${Math.round((span / H) * PX_PER_HOUR)}px)`;
   const clampT = (t: number) => Math.min(t1, Math.max(t0, t));

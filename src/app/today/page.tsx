@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { nb } from "@/lib/nbsp";
 import { clock, clockRange, clockText } from "@/lib/clock";
-import { firstSentences, noScores, plainWords } from "@/lib/text";
+import { firstSentences, noScores, plainWords, unshout } from "@/lib/text";
 import { getMerchant, listMerchants, radarFor, type RadarItem } from "@/server/events/radar";
 import { presenceWindow } from "@/server/events/concentration";
 import { getDb } from "@/server/db/client";
@@ -47,7 +47,9 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   // The headline is the strongest moment of the coming twelve hours (the one worth a campaign now), not merely the next one.
   const soon = upcoming.filter((it) => presenceWindow(it.event).arrive <= now + 12 * 3_600_000);
   const next = (soon.length ? soon : upcoming).slice().sort((a, b) => b.potentialGuests - a.potentialGuests)[0];
-  const later = upcoming.filter((it) => it !== next).sort((a, b) => presenceWindow(a.event).start - presenceWindow(b.event).start).slice(0, 3);
+  // A campaign already written whose first window is still ahead leads Coming next: it is one click from Publish.
+  const ready = new Map((getDb().prepare("SELECT id, event_id FROM campaigns WHERE merchant_id = ? AND status = 'drafted' ORDER BY created_at ASC").all(merchant.id) as { id: string; event_id: string }[]).filter((r) => { const e = getEvent(r.event_id); return !!e && campaignWindows(e)[0].end > now; }).map((r) => [r.event_id, r.id] as const));
+  const later = upcoming.filter((it) => it !== next).sort((a, b) => Number(ready.has(b.event.id)) - Number(ready.has(a.event.id)) || presenceWindow(a.event).start - presenceWindow(b.event).start).slice(0, 3);
   const tz = merchant.timezone;
   const fmtHour = new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: tz });
   const fmtDayKey = new Intl.DateTimeFormat("en-CA", { timeZone: tz });
@@ -85,15 +87,14 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const fresh = campaign?.status === "awaiting_operator" && now - Date.parse(campaign.created_at.replace(" ", "T") + "Z") < 15 * 60_000;
   const offer = draft ? offers.find((o) => o.id === draft.chosen_offer_id) : undefined;
   const brief = getBrief(latestPulse(merchant.id));
-  const weekOffer = brief ? offers.find((o) => o.id === brief.featured_offer_id) : undefined;
   const alerts = listAlerts(merchant.id, 3);
-  const dateLine = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: tz }).format(new Date(now));
+  const dateLine = new Intl.DateTimeFormat(tz.startsWith("America/") ? "en-US" : "en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: tz }).format(new Date(now));
 
   const w0 = next ? presenceWindow(next.event) : undefined;
   const others = merchants.filter((m) => m.id !== merchant.id);
   // A Ticketmaster show (live events carry no origin, stored ones say "ticketmaster"): the act is the headline, the house goes in the sentence.
   const isShow = !!next && (next.event.origin ?? "ticketmaster") === "ticketmaster";
-  const around = next ? (next.event.origin === "tv" || next.event.origin === "calendar" ? "around you" : `${isShow ? `at ${next.event.venue.name}, ` : ""}${next.distanceKm.toFixed(1)}\u00A0km from your door`) : "";
+  const around = next ? (next.event.origin === "tv" || next.event.origin === "calendar" ? "around you" : `${isShow ? `at ${unshout(next.event.venue.name)}, ` : next.event.origin === "wave" ? `${next.event.meta?.kind === "arrival" ? "heading to" : "leaving"} ${Number(next.event.meta?.count ?? 0)} shows ` : ""}${next.distanceKm.toFixed(1)}\u00A0km from your door`) : "";
   const guestsLine = next ? (next.fill >= 1 ? `enough to fill your ${seats} seats` : next.fill >= 0.5 ? "enough for half your seats" : "enough for a few tables") : "";
   // When the crowd is there: still to come, or already outside (then only the end matters).
   const whenLine = w0 ? (w0.arrive <= now ? <>right now, until <span className="mono">{clock(w0.leave, tz)}</span></> : <>from <span className="mono">{clockRange(w0.arrive, w0.leave, tz)}</span></>) : null;
@@ -106,7 +107,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   // An offer title inside a sentence: "Your pre-show happy hour is ready". An acronym keeps its capitals.
   const lowerFirst = (t: string) => (/^[A-Z][A-Z]/.test(t) ? t : t.charAt(0).toLowerCase() + t.slice(1));
   // The crowd named the way the merchant says it: the act and the house, or the wave itself.
-  const crowdName = next ? (isShow ? next.headliner.name : next.event.name) : "";
+  const crowdName = next ? unshout(isShow ? next.headliner.name : next.event.name) : "";
   const plateClass = "plate min-[1152px]:-mx-[68px] min-[1152px]:px-[68px]!";
 
   return (
@@ -144,16 +145,16 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
             </div>
             {sendsTo.includes("whatsapp") && (
               <div>
-                <p className="eyebrow">To your regulars, on WhatsApp</p>
+                <p className="eyebrow">To your regulars on WhatsApp</p>
                 <p className="t-body mt-4 whitespace-pre-wrap">{nb(draft.whatsapp.message)}</p>
               </div>
             )}
             {sendsTo.includes("geofenced_ad") && (
               <div>
-                <p className="eyebrow">To strangers, <span className="mono">{draft.geofenced_ad.radius_m}&nbsp;m</span> around the venue</p>
+                <p className="eyebrow">To strangers nearby</p>
                 <p className="t-name mt-4">{nb(draft.geofenced_ad.headline)}</p>
                 <p className="t-body mt-3">{nb(draft.geofenced_ad.body)}</p>
-                <p className="mt-4 text-sm text-[var(--muted)] tnum">{nb(`Shown ${draft.windows.map((w) => `${lowerFirst(w.label)}, ${clockRange(w.start_local, w.end_local, tz)}`).join(", and ")}`)}. Snapchat, up to ${draft.geofenced_ad.daily_budget_usd}&nbsp;a&nbsp;day once you switch it on. Publish costs nothing.</p>
+                <p className="mt-4 text-sm text-[var(--muted)] tnum">Within <span className="mono">{draft.geofenced_ad.radius_m}&nbsp;m</span> of the venue. {nb(`Shown ${draft.windows.map((w) => `${lowerFirst(w.label)}, ${clockRange(w.start_local, w.end_local, tz)}`).join(", and ")}`)}. Snapchat, up to ${draft.geofenced_ad.daily_budget_usd}&nbsp;a&nbsp;day once you switch it on. Publish costs nothing.</p>
               </div>
             )}
             {sendsTo.includes("google_post") && (
@@ -188,19 +189,14 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
                   <p className="t-name">{offer?.title ?? "Your campaign"} is published.</p>
                   <Link href={`/campaigns/${campaign.id}`} className="text-base link">See where it goes</Link>
                 </div>
-              ) : campaign?.status === "awaiting_operator" ? (
+              ) : fresh ? (
                 <>
                   <p className="t-name">Turnout is writing your campaign.</p>
-                  {fresh ? (
-                    <div className="mt-4 max-w-2xl" aria-hidden="true"><span className="skeleton skeleton-line" /><span className="skeleton skeleton-line" /></div>
-                  ) : (
-                    <p className="t-body mt-3 max-w-2xl">The crowd is read. The offer and the words follow.</p>
-                  )}
+                  <div className="mt-4 max-w-2xl" aria-hidden="true"><span className="skeleton skeleton-line" /><span className="skeleton skeleton-line" /></div>
                   <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4">
                     <Link href={`/campaigns/new?merchant=${merchant.id}&event=${next.event.id}`} className="btn btn-accent btn-lg">See who is coming</Link>
-                    <Link href={`/campaigns/${campaign.id}`} className="text-base link">Follow it</Link>
                   </div>
-                  {fresh && <RefreshEvery seconds={15} />}
+                  <RefreshEvery seconds={15} />
                 </>
               ) : campaign?.status === "needs_input" ? (
                 <>
@@ -242,8 +238,8 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
               const w = presenceWindow(it.event);
               return (
                 <li key={it.event.id} className="t-body">
-                  <span className="mono">{w.arrive <= now ? <>Now, until {clock(w.leave, tz)}</> : <>{dayOf(w.start) === "Today" || dayOf(w.start) === "Tomorrow" ? dayOf(w.start) : fmtShort.format(new Date(w.start))} {clock(w.start, tz)}</>}</span> · <b>{it.headliner.name}</b> · about {it.potentialGuests} guests{it.fill >= 1 ? ", enough to fill your seats" : ""} ·{" "}
-                  <Link href={`/campaigns/new?merchant=${merchant.id}&event=${it.event.id}`} className="link">See who is coming</Link>
+                  <span className="mono">{w.arrive <= now ? <>Now, until {clock(w.leave, tz)}</> : <>{dayOf(w.start) === "Today" || dayOf(w.start) === "Tomorrow" ? dayOf(w.start) : fmtShort.format(new Date(w.start))} {clock(w.start, tz)}</>}</span> · <b>{unshout(it.headliner.name)}</b> · about {it.potentialGuests} guests{it.fill >= 1 ? ", enough to fill your seats" : ""} ·{" "}
+                  {ready.has(it.event.id) ? <Link href={`/campaigns/${ready.get(it.event.id)}`} className="link">Your campaign is ready</Link> : <Link href={`/campaigns/new?merchant=${merchant.id}&event=${it.event.id}`} className="link">See who is coming</Link>}
                 </li>
               );
             })}
@@ -255,7 +251,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         <h2 className="t-title">Every day this week</h2>
         {brief ? (
           <>
-            <p className="t-body mt-5"><b>{weekOffer?.title ?? brief.featured_offer_id}.</b> {nb(noScores(brief.street_in_one_line))}</p>
+            <p className="t-body mt-5">{nb(noScores(brief.street_in_one_line))}</p>
             <p className="t-name mt-5 whitespace-pre-wrap">{nb(brief.chalkboard)}</p>
             <p className="t-body mt-2 text-[var(--muted)]">Your chalkboard line for a normal weekday.</p>
           </>
@@ -276,7 +272,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
               {alerts.map((a) => (
                 <li key={a.id} className="grid grid-cols-[6.5rem_1fr] items-baseline gap-x-6 sm:grid-cols-[6.5rem_1fr_auto]">
                   <span className="t-clock text-[var(--muted)]">{(() => { const at = new Date(a.created_at.endsWith("Z") ? a.created_at : a.created_at.replace(" ", "T") + "Z"); return `${fmtShort.format(at)} ${clock(at, tz)}`; })()}</span>
-                  <span>{clockText(a.message.split("\n")[1]?.replace(/,.*$/, "") ?? "Alert", tz)}</span>
+                  <span>{clockText(unshout(a.message.split("\n")[1]?.replace(/,.*$/, "") ?? "Alert"), tz)}</span>
                   {a.status === "failed" && <span className="col-start-2 text-sm text-[var(--danger)] sm:col-start-auto">Failed to send</span>}
                 </li>
               ))}

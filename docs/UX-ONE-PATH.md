@@ -51,7 +51,7 @@ Every secondary page starts with one link back: "Today" (not "Back to the radar"
    in the merchant's clock (`src/lib/clock.ts`): "5:30 pm" in New York, "17:30" in Paris.
 2. "What goes out": the same blocks as the campaign page: the chalkboard, then only the channels Publish sends (the merchant's channels), with the same eyebrows.
 3. "Why": three lines, `.t-body .measure`, then the link "The rest of the reasoning".
-4. "Coming next": up to three lines, each "Sat 8 pm · Harry Styles · about 100 guests" + link "See who is coming".
+4. "Coming next": up to three lines, each "Sat 8 pm · Harry Styles · about 100 guests" + link "See who is coming"; a crowd whose campaign waits for Publish comes first, with the link "Your campaign is ready".
 5. "Every day this week": the weekly offer in two lines + link "This week's plan".
 6. "What Turnout found on its own": three alerts + link "All alerts".
 7. Footer links in one line: "Explore the map", "Your place and offers".

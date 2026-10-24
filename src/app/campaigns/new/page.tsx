@@ -1,10 +1,10 @@
 import { isCommercialBrand } from "@/lib/brands";
 import Link from "next/link";
-import { haversineKm, scoreConcentration } from "@/server/events/concentration";
+import { haversineKm, presenceWindow, scoreConcentration } from "@/server/events/concentration";
 import { getMerchant, rowToEvent } from "@/server/events/radar";
 import { clock } from "@/lib/clock";
 import { tagId } from "@/server/qloo/api";
-import { buildCrowdProfile, describeDemographics, getEvent, hasSignal, type CrowdProfile } from "@/server/qloo/crowd";
+import { buildCrowdProfile, describeDemographics, getEvent, hasSignal, momentMeta, type CrowdProfile } from "@/server/qloo/crowd";
 import { nb } from "@/lib/nbsp";
 import { getDb } from "@/server/db/client";
 import { getCampaign, getDraft } from "@/server/agent/run";
@@ -132,7 +132,10 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
   // The three facts: who, what they like, what fits.
   const who = whoFact(profile);
   const isTaste = (n: string) => !GENERIC_TAG.test(n) && !CUISINE_TAG.test(n);
-  let likeTags = shownTags.map((t) => t.name).filter(isTaste).slice(0, 3);
+  // "Musicals", "Musical Theater", "Musical Drama", "Music and Theater" are one taste in a title: keep the first.
+  const seenStem = new Set<string>();
+  const oneStem = (n: string) => { const k = n.toLowerCase().replace(/[^a-z]/g, "").slice(0, 5); if (seenStem.has(k)) return false; seenStem.add(k); return true; };
+  let likeTags = shownTags.map((t) => t.name).filter(isTaste).filter(oneStem).slice(0, 3);
   if (likeTags.length < 2) likeTags = profile.tags.filter((t) => !NOISE_TAG_ID.test(tagId(t))).map((t) => t.name).filter(isTaste).slice(0, 3);
   // "Moderately expensive" is the one price word Qloo gives; it leads the title when it exists.
   const costTag = profile.tags.find((t) => tagId(t).includes(":cost_description:"))?.name;
@@ -140,7 +143,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
   const bars = profile.places.slice(0, 3).map((p) => p.name);
   const like: Fact = {
     title: likeTitle.length >= 2 ? cap(andList(likeTitle)) : andList(brands.slice(0, 3)) || "Their tastes, through Qloo",
-    sentence: bars.length && brands.length ? `They already go to ${andList(bars)}, and like ${andList(brands.slice(0, 3))}.` : bars.length ? `They already go to ${andList(bars)}.` : brands.length ? `They like ${andList(brands.slice(0, 3))}.` : "Qloo lists no bar nearby and no brand for this crowd yet.",
+    sentence: bars.length ? `They already go to ${andList(bars)}.` : brands.length ? `They like ${andList(brands.slice(0, 3))}.` : "Qloo lists no bar nearby and no brand for this crowd yet.",
   };
   // When Turnout already wrote the campaign for this crowd, its choice is the one that fits (it weighs the ages and the
   // brands too); otherwise the offer whose places this crowd likes most.
@@ -148,10 +151,13 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
   // The number Explore and Today show for this crowd: the extra guests it could bring this place.
   const guests = scoreConcentration(rowToEvent(event as Parameters<typeof rowToEvent>[0]), { lat: merchant.lat, lon: merchant.lon, radiusM: merchant.radius_m, seats: merchant.seats ?? 60 }).potentialGuests;
   const chosenId = written ? getDraft(getCampaign(written.id)!)?.chosen_offer_id : undefined;
-  const top = profile.offerFits.find((f) => f.offerId === chosenId) ?? profile.offerFits[0];
+  // A crowd letting out (an exit wave, or a show past its before-doors window) cannot take a pre-show offer.
+  const leaving = momentMeta(event).kind === "exit" || (isShow && now > starts.getTime() - 30 * 60_000);
+  const fits = leaving ? profile.offerFits.filter((f) => !/\bpre-(show|game|concert)\b|avant-(concert|spectacle|match)|\bbefore (the )?(show|game|doors)\b/i.test(f.title)) : profile.offerFits;
+  const top = profile.offerFits.find((f) => f.offerId === chosenId) ?? fits[0];
   const topFits = !!top && (top.matches > 0 && top.affinity > 0 || top.offerId === chosenId);
   // Two offers within a hair of each other, and no campaign yet: say so, rather than crown one on a compressed score.
-  const second = profile.offerFits[1];
+  const second = fits[1];
   const tooClose = !chosenId && !!top && !!second && second.matches > 0 && top.affinity - second.affinity <= 0.02;
   const fit: Fact = tooClose
     ? { title: `Your ${inSentence(top.title)} or your ${inSentence(second.title)}`, sentence: `Both match places they already like. Turnout picks one from their ages and their brands when it writes your campaign.` }
@@ -167,7 +173,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
         <div className="plate min-[1152px]:-mx-[68px] min-[1152px]:px-[68px]!">
           <h1 className="t-display">{profile.headlinerName}</h1>
           <p className="t-lead mt-5">
-            {event.venue_name}, {day} {isShow ? "at" : "from"} <span className="mono">{clock(starts, tz)}</span>
+            {event.venue_name}, {starts.getTime() <= now ? <>now until <span className="mono">{clock(presenceWindow(rowToEvent(event as Parameters<typeof rowToEvent>[0])).leave, tz)}</span></> : <>{day} {isShow ? "at" : "from"} <span className="mono">{clock(starts, tz)}</span></>}
             {isShow && <>, {walk ?? <><span className="mono">{nb(km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`)}</span> from</>} {merchant.name}</>}.
             {guests > 0 && <> It could bring you about {guests} guests.</>}
           </p>

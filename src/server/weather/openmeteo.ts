@@ -85,8 +85,8 @@ export async function weatherWindow(lat: number, lon: number, startIso: string, 
   const parts = [KIND_LABEL[kind]];
   if (kind === "rain" || kind === "storm") {
     // Past or nowcast hours can carry measured rain with a 0% probability: show millimetres then.
-    if (base.precipProb > 0) parts[0] = `${base.precipProb >= 50 || kind === "storm" ? KIND_LABEL[kind] : "Showers possible"} (${base.precipProb}%)`;
-    else parts[0] = `Rain (${base.precipMm} mm)`;
+    // No percentage on screen: "Rain likely (100%)" contradicts itself. The probability stays in the summary for the agent.
+    parts[0] = base.precipProb === 0 || base.precipProb >= 80 ? (kind === "storm" ? KIND_LABEL.storm : "Rain") : base.precipProb >= 50 || kind === "storm" ? KIND_LABEL[kind] : "Showers possible";
   }
   parts.push(formatTemp(base.tempC, timezone));
   if (Math.abs(base.feelsC - base.tempC) >= 3) parts.push(`feels ${formatTemp(base.feelsC, timezone)}`);

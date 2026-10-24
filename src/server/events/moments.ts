@@ -73,7 +73,7 @@ export function detectWaves(
       const iso = new Date(peak).toISOString().slice(0, 16);
       waves.push({
         id: `wave_${merchant.id}_${kind}_${iso.replace(/[^0-9]/g, "")}`,
-        name: `${label} ${kind === "arrival" ? "arriving" : "letting out"}, ${members.length} shows`,
+        name: `${label} ${kind === "arrival" ? "arriving" : "letting out"}`,
         startsAt: new Date(peak).toISOString(),
         windowStart: new Date(windowStart).toISOString(),
         windowEnd: new Date(windowEnd).toISOString(),

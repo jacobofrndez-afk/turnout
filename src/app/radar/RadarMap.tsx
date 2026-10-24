@@ -293,7 +293,7 @@ export default function RadarMap({ merchant, points, onSelect, onRadiusChange }:
     if (sel && window.matchMedia("(min-width: 640px)").matches) {
       const el = document.createElement("div");
       el.className = `tm-peek${sel.hot ? " hot" : ""}`;
-      el.innerHTML = `<p class="tm-peek-k">${escapeHtml(sel.time)}${sel.active ? ` · <span class="on">on the timeline</span>` : ""}</p><p class="tm-peek-t">${escapeHtml(sel.label)}</p><p class="tm-peek-s">~<span class="mono">${sel.capacity.toLocaleString("en-US")}</span>&nbsp;people · <span class="mono">${walkMin(sel.distanceKm * 1000)}&nbsp;min</span> walk · ${escapeHtml(sel.venue)}</p>${sel.href && sel.hot ? `<a class="tm-peek-a" href="${sel.href}">See who is coming, with Qloo</a>` : ""}`;
+      el.innerHTML = `<p class="tm-peek-k">${escapeHtml(sel.time)}</p><p class="tm-peek-t">${escapeHtml(sel.label)}</p><p class="tm-peek-s">~<span class="mono">${sel.capacity.toLocaleString("en-US")}</span>&nbsp;people · <span class="mono">${walkMin(sel.distanceKm * 1000)}&nbsp;min</span> walk · ${escapeHtml(sel.venue)}</p>${sel.href && sel.hot ? `<a class="tm-peek-a" href="${sel.href}">See who is coming</a>` : ""}`;
       // Anchored at the centre; the placement pass below moves it to the free side of the venue.
       card.current = new ml.Marker({ element: el, anchor: "center", offset: [0, 0] }).setLngLat([sel.lon, sel.lat]).addTo(m);
     }

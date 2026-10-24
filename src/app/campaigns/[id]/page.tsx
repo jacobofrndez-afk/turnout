@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCampaign, getDraft, getProvenance, pollOperatorDraft } from "@/server/agent/run";
+import { getCampaign, getDraft, getProvenance, pollOperatorDraft, provider } from "@/server/agent/run";
 import { campaignWindows } from "@/server/agent/prompt";
 import { getMerchant } from "@/server/events/radar";
 import { getEvent, getOffers } from "@/server/qloo/crowd";
@@ -9,7 +9,7 @@ import { getSends, type ChannelId, type SendRow } from "@/server/channels";
 import { nb } from "@/lib/nbsp";
 import { clock, clockRange, clockText } from "@/lib/clock";
 import { whatsappConfigured } from "@/server/channels/twilio";
-import { firstSentences, noScores, plainWords } from "@/lib/text";
+import { firstSentences, noScores, plainList, plainWords } from "@/lib/text";
 import { getDb } from "@/server/db/client";
 
 const SIMULATED_NOTE: Partial<Record<ChannelId, string>> = {
@@ -24,7 +24,7 @@ const CHANNEL_ORDER: ChannelId[] = ["storefront", "whatsapp", "geofenced_ad", "g
 const CHANNEL_NAME: Record<ChannelId, string> = {
   storefront: "On your chalkboard",
   whatsapp: "To your regulars on WhatsApp",
-  geofenced_ad: "To strangers around the venue",
+  geofenced_ad: "To strangers nearby",
   google_post: "On your Google listing",
   dooh: "On the screens near the venue",
 };
@@ -96,25 +96,24 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
 
       <section className="stack-block">
         <div className="plate min-[1152px]:-mx-[68px] min-[1152px]:px-[68px]!">
-          <p className="eyebrow">Your campaign for {dayword}, {actName} at {event.venue_name}</p>
+          <p className="eyebrow">Your campaign for {dayword}{!draft && stale ? "" : (event.origin ?? "ticketmaster") === "ticketmaster" ? `, ${actName} at ${event.venue_name}` : event.origin === "wave" ? `, ${lowerFirst(actName)}` : `, ${actName}`}</p>
           {draft ? (
             <>
-              <h1 className="t-display mt-5">{offer?.title ?? draft.chosen_offer_id}</h1>
+              <h1 className="t-display mt-5">{firstOver ? wins[wins.length - 1].label : (offer?.title ?? draft.chosen_offer_id)}</h1>
               {out ? (
                 <>
                   <p className="t-lead mt-5">{outSentence}</p>
                   <p className="t-body mt-4">{offerLine}</p>
                 </>
               ) : (
-                <p className="t-lead mt-5">{offerLine}</p>
+                <p className="t-lead mt-5">{firstOver ? <>The crowd went in at <span className="mono">{clock(wins[0].end, tz)}</span> and comes out at <span className="mono">{clock(wins[wins.length - 1].start, tz)}</span>. These words were for {lowerFirst(wins[0].label)}, so nothing goes out until Turnout writes new ones.</> : offerLine}</p>
               )}
               {campaign.status === "drafted" && !nightOver && !firstOver && (
                 <form action={`/api/campaigns/${campaign.id}/approve`} method="post" className="mt-10"><button className="btn btn-accent btn-lg">Publish</button></form>
               )}
               {firstOver && (
                 <>
-                  <p className="t-body mt-10">{wins[0].label} closed at <span className="mono">{clock(wins[0].end, tz)}</span>. These words were written for it, so they stay here.{wins.length > 1 ? ` The crowd comes out at ${clock(wins[wins.length - 1].start, tz)}.` : ""}</p>
-                  <form action="/api/campaigns" method="post" className="mt-6"><input type="hidden" name="merchant" value={merchant.id} /><input type="hidden" name="event" value={event.id} /><button className="btn btn-accent btn-lg">Write it for the rest of the night</button></form>
+                  <form action="/api/campaigns" method="post" className="mt-10"><input type="hidden" name="merchant" value={merchant.id} /><input type="hidden" name="event" value={event.id} /><button className="btn btn-accent btn-lg">{`Write it for ${lowerFirst(wins[wins.length - 1].label)}`}</button></form>
                 </>
               )}
               {nightOver && (
@@ -123,8 +122,8 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
             </>
           ) : stale ? (
             <>
-              <h1 className="t-display mt-5">Not written yet</h1>
-              <p className="t-lead mt-5">Turnout started this campaign at {clock(parseUtc(campaign.created_at), tz)} and has not finished it. The crowd is read: see who is coming while it waits.</p>
+              <h1 className="t-display mt-5">{actName}</h1>
+              <p className="t-lead mt-5">Turnout started your campaign at {clock(parseUtc(campaign.created_at), tz)} and has not finished it.{lastWindowEnd < now ? "" : " See who is coming, then write it again."}</p>
               {lastWindowEnd < now
                 ? <p className="t-body mt-10">This night has passed. Write a new campaign for the next crowd from <Link href={`/today?merchant=${merchant.id}`} className="link">Today</Link>.</p>
                 : <Link href={`/campaigns/new?merchant=${merchant.id}&event=${event.id}`} className="btn btn-accent btn-lg mt-10">See who is coming</Link>}
@@ -132,7 +131,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
           ) : campaign.status === "awaiting_operator" ? (
             <div aria-busy="true">
               <h1 className="t-display mt-5">Writing your campaign</h1>
-              <p className="t-lead mt-5">Turnout reads the crowd through Qloo and writes every channel. A few minutes; this page refreshes on its own.</p>
+              <p className="t-lead mt-5">{provider() === "operator" ? "Turnout has started this campaign. It appears here as soon as it is written; this page refreshes on its own." : "Turnout reads the crowd through Qloo and writes every channel. A few minutes; this page refreshes on its own."}</p>
               <div className="mt-8 max-w-2xl" aria-hidden="true"><span className="skeleton skeleton-title" /><span className="skeleton skeleton-line mt-6" /><span className="skeleton skeleton-line" /><span className="skeleton skeleton-line" /></div>
               <RefreshEvery seconds={20} />
             </div>
@@ -155,7 +154,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
 
       {channels.length > 0 && (
         <section className="stack-section">
-          <h2 className="t-title">What goes out</h2>
+          <h2 className="t-title">{firstOver ? `Written for ${lowerFirst(wins[0].label)}` : nightOver ? "What was written" : "What goes out"}</h2>
           <div className="mt-8 grid gap-x-16 gap-y-12 md:grid-cols-2">
             {channels.map((c) => {
               const send = sendByChannel.get(c);
@@ -170,15 +169,15 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                           <p className="t-body text-[var(--muted)]">Your staff say: “{nb(draft.storefront.staff_line)}”</p>
                         </>
                       )}
-                      {c === "whatsapp" && (<><p className="t-body whitespace-pre-wrap">{nb(draft.whatsapp.message)}</p>{campaign.status === "drafted" && !send && !firstOver && <p className="t-body text-[var(--muted)]">{whatsappLive ? "Sent to your regulars the moment you press Publish." : "WhatsApp is not connected yet, so Publish keeps this message here instead of sending it."}</p>}</>)}
+                      {c === "whatsapp" && (<><p className="t-body whitespace-pre-wrap">{nb(draft.whatsapp.message)}</p>{campaign.status === "drafted" && !send && !firstOver && !nightOver && <p className="t-body text-[var(--muted)]">{whatsappLive ? "Sent to your regulars the moment you press Publish." : "WhatsApp is not connected yet, so Publish keeps this message here instead of sending it."}</p>}</>)}
                       {c === "geofenced_ad" && (
                         <>
                           <p className="t-name">{nb(draft.geofenced_ad.headline)}</p>
                           <p className="t-body">{nb(draft.geofenced_ad.body)}</p>
                           <p className="t-body text-[var(--muted)]">
-                            Within <span className="mono">{draft.geofenced_ad.radius_m} m</span> of the venue, on {draft.geofenced_ad.platform === "meta" ? "Meta" : "Snapchat"}, up to <span className="mono">${draft.geofenced_ad.daily_budget_usd}</span>&nbsp;a&nbsp;day once you switch it on. Publish costs nothing. Button: {nb(draft.geofenced_ad.cta)}.
+                            Within <span className="mono">{draft.geofenced_ad.radius_m} m</span> of the venue, on {draft.geofenced_ad.platform === "meta" ? "Meta" : "Snapchat"}, up to <span className="mono">${draft.geofenced_ad.daily_budget_usd}</span>&nbsp;a&nbsp;day once you switch it on.{campaign.status === "drafted" && !firstOver && !nightOver ? " Publish costs nothing." : ""}
                           </p>
-                          <p className="t-body text-[var(--muted)]">Aimed at people into: {nb(draft.geofenced_ad.interests.join(", "))}.</p>
+                          <p className="t-body text-[var(--muted)]">Aimed at people into: {nb(plainList(draft.geofenced_ad.interests))}.</p>
                         </>
                       )}
                       {c === "google_post" && (
@@ -209,22 +208,20 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
           <section className="stack-section">
             <h2 className="t-title">Why</h2>
             <p className="t-body measure mt-6">{nb(whyLead)}</p>
-            {(whyRest || draft.windows.length > 0) && (
-              <details className="mt-4">
-                <summary className="link w-fit text-base">The rest of the reasoning</summary>
-                {whyRest && <p className="t-body measure mt-3">{nb(whyRest)}</p>}
-                {draft.windows.map((w) => {
-                  const weather = weatherByWindow.get(w.label);
-                  return (
-                    <p key={w.label} className="t-body measure mt-3">
-                      {w.label}, <span className="mono">{clockRange(w.start_local, w.end_local, tz)}</span>{weather ? `, ${lowerFirst(weather)}` : ""}. {nb(clockText(w.why, tz))}
-                    </p>
-                  );
-                })}
-              </details>
-            )}
-            <p className="t-body measure mt-6">Who they are: {nb(plainWords(noScores(draft.audience_summary)))}</p>
-            <p className="t-body measure mt-6">{draft.confidence >= 0.75 ? "Turnout is fairly sure of this choice." : "Turnout is less sure of this choice; read it closely."}</p>
+            <p className="t-body measure mt-4">{draft.confidence >= 0.75 ? "Turnout is fairly sure of this choice." : "Turnout is less sure of this choice; read it closely."}</p>
+            <details className="mt-4">
+              <summary className="link w-fit text-base">The rest of the reasoning</summary>
+              {whyRest && <p className="t-body measure mt-3">{nb(whyRest)}</p>}
+              {draft.windows.map((w) => {
+                const weather = weatherByWindow.get(w.label);
+                return (
+                  <p key={w.label} className="t-body measure mt-3">
+                    {w.label}, <span className="mono">{clockRange(w.start_local, w.end_local, tz)}</span>{weather ? `, ${lowerFirst(weather)}` : ""}. {nb(clockText(w.why, tz))}
+                  </p>
+                );
+              })}
+              <p className="t-body measure mt-3">Who they are: {nb(plainWords(noScores(draft.audience_summary)))}</p>
+            </details>
           </section>
 
           <section className="stack-section">

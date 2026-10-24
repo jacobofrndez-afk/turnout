@@ -38,6 +38,7 @@ export function noScores(s: string): string {
 // Analyst words read as a system talking. The agent is told not to use them; this catches stored drafts.
 export function plainWords(s: string): string {
   return s
+    .replace(/\baggregate (tastes?)\b/gi, "shared $1")
     .replace(/The offer fits are affinities of places with the offer's tags nearby;\s*they compare offers, they do not forecast sales\./gi, "The offer matches only compare your offers with each other; they do not forecast sales.")
     .replace(/\ba high affinity\b/gi, "a strong match")
     .replace(/[^.]*\bwins on (?:two|three|four) (?:signals|reasons) that agree\.\s*/gi, "")
@@ -60,5 +61,15 @@ export function plainWords(s: string): string {
     .replace(/\baffinities\b/gi, "tastes")
     .replace(/\baffinity\b/gi, "taste")
     .trim();
+}
+
+// Ad interests arrive in Qloo's capitals. A common phrase of two or more words with no capital after the first letter gets
+// lowercased. Single words keep their capital, because they are often names (Broadway, Aladdin, Hamilton, Gradur).
+export const plainList = (xs: string[]) => xs.map((t) => (/^\p{Lu}[\p{Ll}-]+( [\p{Ll}&-]+)+$/u.test(t) ? t.toLowerCase() : t)).join(", ");
+
+// Ticketmaster shouts some names ("ASAKE", "ACCOR ARENA"): a run of capitals with a word of four letters or more is
+// title-cased; short acronyms (UFC, NBA, AC/DC) keep their capitals.
+export function unshout(s: string): string {
+  return s.replace(/\b\p{Lu}[\p{Lu}'’.&\/-]*(?:\s+\p{Lu}[\p{Lu}'’.&\/-]*)*\b/gu, (run) => (/\p{Lu}{4,}/u.test(run) ? run.toLowerCase().replace(/(^|[\s\-'’\/&])(\p{L})/gu, (_, p, c) => p + c.toUpperCase()) : run));
 }
 

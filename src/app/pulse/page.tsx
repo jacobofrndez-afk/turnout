@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { clockRange } from "@/lib/clock";
 import { nb } from "@/lib/nbsp";
-import { firstSentences, noScores, plainWords } from "@/lib/text";
+import { firstSentences, noScores, plainList, plainWords } from "@/lib/text";
 import { getMerchant, listMerchants } from "@/server/events/radar";
 import { buildNeighborhoodPulse, type NeighborhoodPulse, type PulseOfferFit } from "@/server/qloo/neighborhood";
 import { getBrief, latestPulse } from "@/server/agent/pulse";
@@ -37,14 +37,14 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
   const briefAction = brief ? "Write this week's plan again" : row?.status === "awaiting_operator" ? "Ask for this week's plan again" : "Write this week's plan";
 
   return (
-    <main className="mx-auto max-w-6xl px-5 py-10">
+    <main className="mx-auto max-w-5xl px-6 py-10">
       <Link href={`/today?merchant=${merchant.id}`} className="link text-base">Today</Link>
       {brief ? (
-        <section className="plate stack-block">
+        <section className="stack-block"><div className="plate min-[1152px]:-mx-[68px] min-[1152px]:px-[68px]!">
           <p className="eyebrow">This week at {merchant.name}</p>
-          <h1 className="t-display mt-5">{featured?.title ?? brief.featured_offer_id}</h1>
+          <h1 className="t-display mt-5">{nb(brief.always_on_ad.headline.replace(/[.!]$/, ""))}</h1>
           <p className="t-lead mt-5">{nb(plainWords(noScores(brief.street_in_one_line)))}</p>
-        </section>
+        </div></section>
       ) : (
         <h1 className="t-display mt-6">Every day at {merchant.name}</h1>
       )}
@@ -92,7 +92,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
               >
                 <p className="t-body font-semibold text-[var(--ink)]">{nb(brief.always_on_ad.headline)}</p>
                 <p className="t-body">{nb(brief.always_on_ad.body)}</p>
-                <p className="t-body text-[var(--muted)]">Interests: {brief.always_on_ad.interests.join(", ")}</p>
+                <p className="t-body text-[var(--muted)]">Aimed at people into: {nb(plainList(brief.always_on_ad.interests))}.</p>
               </Block>
             </div>
           </section>

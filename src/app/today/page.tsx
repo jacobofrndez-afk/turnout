@@ -6,10 +6,10 @@ import { firstSentences, noScores, plainWords, unshout } from "@/lib/text";
 import { getMerchant, listMerchants, radarFor, type RadarItem } from "@/server/events/radar";
 import { presenceWindow } from "@/server/events/concentration";
 import { getDb } from "@/server/db/client";
-import { getCampaign, getDraft, pollOperatorDraft, type CampaignRow } from "@/server/agent/run";
+import { getCampaign, getDraft, pollOperatorDraft, provider, type CampaignRow } from "@/server/agent/run";
 import { getEvent, getOffers } from "@/server/qloo/crowd";
-import { campaignWindows } from "@/server/agent/prompt";
-import { getBrief, latestPulse } from "@/server/agent/pulse";
+import { draftFirstWindow } from "@/server/agent/prompt";
+import { shownBrief } from "@/server/agent/pulse";
 import { listAlerts } from "@/server/agent/scan";
 import { weatherWindow } from "@/server/weather/openmeteo";
 import { RefreshEvery } from "./RefreshEvery";
@@ -48,7 +48,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const soon = upcoming.filter((it) => presenceWindow(it.event).arrive <= now + 12 * 3_600_000);
   const next = (soon.length ? soon : upcoming).slice().sort((a, b) => b.potentialGuests - a.potentialGuests)[0];
   // A campaign already written whose first window is still ahead leads Coming next: it is one click from Publish.
-  const ready = new Map((getDb().prepare("SELECT id, event_id FROM campaigns WHERE merchant_id = ? AND status = 'drafted' ORDER BY created_at ASC").all(merchant.id) as { id: string; event_id: string }[]).filter((r) => { const e = getEvent(r.event_id); return !!e && campaignWindows(e)[0].end > now; }).map((r) => [r.event_id, r.id] as const));
+  const ready = new Map((getDb().prepare("SELECT id, event_id FROM campaigns WHERE merchant_id = ? AND status = 'drafted' ORDER BY created_at ASC").all(merchant.id) as { id: string; event_id: string }[]).filter((r) => { const e = getEvent(r.event_id); const d = getDraft(getCampaign(r.id)!); return !!e && !!d && draftFirstWindow(e, d.windows, merchant.timezone).end > now; }).map((r) => [r.event_id, r.id] as const));
   const later = upcoming.filter((it) => it !== next).sort((a, b) => Number(ready.has(b.event.id)) - Number(ready.has(a.event.id)) || presenceWindow(a.event).start - presenceWindow(b.event).start).slice(0, 3);
   const tz = merchant.timezone;
   const fmtHour = new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: tz });
@@ -81,12 +81,12 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const draft = campaign ? getDraft(campaign) : undefined;
   // Words written for the first window ("until 7 pm") must not be offered once it has closed: the plate falls back to the crowd and "Write my campaign".
   const campaignEvent = campaign ? getEvent(campaign.event_id) : undefined;
-  const draftLive = !!campaignEvent && campaignWindows(campaignEvent)[0].end > now;
+  const draftLive = !!campaignEvent && !!draft && draftFirstWindow(campaignEvent, draft.windows, tz).end > now;
   // What Publish really sends for this place (the merchant's channels), so Today lists the same blocks as the campaign page.
   const sendsTo = JSON.parse((getDb().prepare("SELECT channels_json FROM merchants WHERE id = ?").get(merchant.id) as { channels_json: string } | undefined)?.channels_json ?? "[]") as string[];
   const fresh = campaign?.status === "awaiting_operator" && now - Date.parse(campaign.created_at.replace(" ", "T") + "Z") < 15 * 60_000;
   const offer = draft ? offers.find((o) => o.id === draft.chosen_offer_id) : undefined;
-  const brief = getBrief(latestPulse(merchant.id));
+  const brief = shownBrief(merchant.id);
   const alerts = listAlerts(merchant.id, 3);
   const dateLine = new Intl.DateTimeFormat(tz.startsWith("America/") ? "en-US" : "en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: tz }).format(new Date(now));
 
@@ -95,13 +95,13 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   // A Ticketmaster show (live events carry no origin, stored ones say "ticketmaster"): the act is the headline, the house goes in the sentence.
   const isShow = !!next && (next.event.origin ?? "ticketmaster") === "ticketmaster";
   const around = next ? (next.event.origin === "tv" || next.event.origin === "calendar" ? "around you" : `${isShow ? `at ${unshout(next.event.venue.name)}, ` : next.event.origin === "wave" ? `${next.event.meta?.kind === "arrival" ? "heading to" : "leaving"} ${Number(next.event.meta?.count ?? 0)} shows ` : ""}${next.distanceKm.toFixed(1)}\u00A0km from your door`) : "";
-  const guestsLine = next ? (next.fill >= 1 ? `enough to fill your ${seats} seats` : next.fill >= 0.5 ? "enough for half your seats" : "enough for a few tables") : "";
+  const guestsLine = next ? (next.fill >= 1 ? `enough to fill your ${seats} seats` : next.fill >= 0.5 ? "enough for half your seats" : "enough for a few tables") : "";
   // When the crowd is there: still to come, or already outside (then only the end matters).
   const whenLine = w0 ? (w0.arrive <= now ? <>right now, until <span className="mono">{clock(w0.leave, tz)}</span></> : <>from <span className="mono">{clockRange(w0.arrive, w0.leave, tz)}</span></>) : null;
   // The crowd in one sentence: how many, when, what it could bring.
   const peopleLine = next && w0 ? (
     <>
-      About {(Math.round(next.capacity / 100) * 100).toLocaleString("en-US")} people {around} {whenLine}. Turnout expects <b style={{ color: "inherit" }}>about {next.potentialGuests} extra guests</b>, {guestsLine}.
+      About {(Math.round(next.capacity / 100) * 100).toLocaleString("en-US")} people {around} {whenLine}. Turnout expects <b style={{ color: "inherit" }}>about {next.potentialGuests}&nbsp;extra&nbsp;guests</b>, {guestsLine}.
     </>
   ) : null;
   // An offer title inside a sentence: "Your pre-show happy hour is ready". An acronym keeps its capitals.
@@ -138,37 +138,34 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           </div>
 
           <h2 className="t-title stack-block">What goes out</h2>
-          <div className="mt-8 grid gap-x-16 gap-y-12 md:grid-cols-2">
+          <div className="tone mt-8 grid gap-x-16 gap-y-12 md:grid-cols-2">
             <div>
               <p className="eyebrow">On your chalkboard</p>
-              <p className="t-name mt-4 whitespace-pre-wrap">{nb(draft.storefront.chalkboard)}</p>
+              <div className="preview preview-board mt-4"><p className="t-name whitespace-pre-wrap">{nb(draft.storefront.chalkboard)}</p></div>
             </div>
             {sendsTo.includes("whatsapp") && (
               <div>
                 <p className="eyebrow">To your regulars on WhatsApp</p>
-                <p className="t-body mt-4 whitespace-pre-wrap">{nb(draft.whatsapp.message)}</p>
+                <div className="preview preview-bubble mt-4"><p className="t-body whitespace-pre-wrap">{nb(draft.whatsapp.message)}</p></div>
               </div>
             )}
             {sendsTo.includes("geofenced_ad") && (
               <div>
                 <p className="eyebrow">To strangers nearby</p>
-                <p className="t-name mt-4">{nb(draft.geofenced_ad.headline)}</p>
-                <p className="t-body mt-3">{nb(draft.geofenced_ad.body)}</p>
+                <div className="preview mt-4"><p className="preview-by">{merchant.name} · Sponsored</p><p className="t-name mt-2">{nb(draft.geofenced_ad.headline)}</p><p className="t-body mt-2">{nb(draft.geofenced_ad.body)}</p></div>
                 <p className="mt-4 text-sm text-[var(--muted)] tnum">Within <span className="mono">{draft.geofenced_ad.radius_m}&nbsp;m</span> of the venue. {nb(`Shown ${draft.windows.map((w) => `${lowerFirst(w.label)}, ${clockRange(w.start_local, w.end_local, tz)}`).join(", and ")}`)}. Snapchat, up to ${draft.geofenced_ad.daily_budget_usd}&nbsp;a&nbsp;day once you switch it on. Publish costs nothing.</p>
               </div>
             )}
             {sendsTo.includes("google_post") && (
               <div>
                 <p className="eyebrow">On your Google listing</p>
-                <p className="t-name mt-4">{nb(draft.google_post.title)}</p>
-                <p className="t-body mt-3">{nb(draft.google_post.body)}</p>
+                <div className="preview mt-4"><p className="t-name">{nb(draft.google_post.title)}</p><p className="t-body mt-2">{nb(draft.google_post.body)}</p></div>
               </div>
             )}
             {sendsTo.includes("dooh") && (
               <div>
                 <p className="eyebrow">On the screens near the venue</p>
-                <p className="t-name mt-4">{nb(draft.dooh.headline)}</p>
-                <p className="t-body mt-3">{nb(draft.dooh.body)}</p>
+                <div className="preview preview-screen mt-4"><p className="t-name">{nb(draft.dooh.headline)}</p><p className="t-body mt-2">{nb(draft.dooh.body)}</p></div>
               </div>
             )}
           </div>
@@ -180,7 +177,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
       ) : next && w0 ? (
         <section className="stack-block">
           <div className={plateClass}>
-            <p className="eyebrow flex items-center gap-3"><span className="live-dot" aria-hidden="true" />{whenWord(w0.start)} at your door</p>
+            <p className="eyebrow flex items-center gap-3"><span className="live-dot" aria-hidden="true" />{whenWord(w0.start)} near you</p>
             <h1 className="t-display mt-5">{crowdName}</h1>
             <p className="t-lead mt-5">{peopleLine}{weather ? ` ${weather}.` : ""}</p>
             <div className="mt-10">
@@ -191,7 +188,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
                 </div>
               ) : fresh ? (
                 <>
-                  <p className="t-name">Turnout is writing your campaign.</p>
+                  <p className="t-name">{provider() === "operator" ? "Turnout has started your campaign." : "Turnout is writing your campaign."}</p>
                   <div className="mt-4 max-w-2xl" aria-hidden="true"><span className="skeleton skeleton-line" /><span className="skeleton skeleton-line" /></div>
                   <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4">
                     <Link href={`/campaigns/new?merchant=${merchant.id}&event=${next.event.id}`} className="btn btn-accent btn-lg">See who is coming</Link>
@@ -238,8 +235,8 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
               const w = presenceWindow(it.event);
               return (
                 <li key={it.event.id} className="t-body">
-                  <span className="mono">{w.arrive <= now ? <>Now, until {clock(w.leave, tz)}</> : <>{dayOf(w.start) === "Today" || dayOf(w.start) === "Tomorrow" ? dayOf(w.start) : fmtShort.format(new Date(w.start))} {clock(w.start, tz)}</>}</span> · <b>{unshout(it.headliner.name)}</b> · about {it.potentialGuests} guests{it.fill >= 1 ? ", enough to fill your seats" : ""} ·{" "}
-                  {ready.has(it.event.id) ? <Link href={`/campaigns/${ready.get(it.event.id)}`} className="link">Your campaign is ready</Link> : <Link href={`/campaigns/new?merchant=${merchant.id}&event=${it.event.id}`} className="link">See who is coming</Link>}
+                  <span className="mono">{w.arrive <= now ? ((it.event.origin ?? "ticketmaster") === "ticketmaster" && w.start <= now && now < w.end ? <>Out at {clock(w.end, tz)}</> : <>Now, until {clock(w.leave, tz)}</>) : <>{dayOf(w.start) === "Today" || dayOf(w.start) === "Tomorrow" ? dayOf(w.start) : fmtShort.format(new Date(w.start))} {clock(w.start, tz)}</>}</span> · <b>{unshout(it.headliner.name)}</b> · about {it.potentialGuests}&nbsp;guests{it.fill >= 1 ? ", enough to fill your seats" : ""} ·{" "}
+                  {ready.has(it.event.id) ? <Link href={`/campaigns/${ready.get(it.event.id)}`} className="link whitespace-nowrap">Your campaign is ready</Link> : <Link href={`/campaigns/new?merchant=${merchant.id}&event=${it.event.id}`} className="link whitespace-nowrap">See who is coming</Link>}
                 </li>
               );
             })}
@@ -265,15 +262,15 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
       <section className="stack-section">
         <h2 className="t-title">What Turnout found on its own</h2>
         {alerts.length === 0 ? (
-          <p className="t-body mt-5 text-[var(--muted)]">Nothing yet. Every hour Turnout looks for the crowds worth a campaign and starts writing the strongest one.</p>
+          <p className="t-body mt-5 text-[var(--muted)]">Nothing yet. Every hour Turnout looks for the crowds worth a campaign near you.</p>
         ) : (
           <>
             <ul className="mt-6 space-y-4 text-base">
               {alerts.map((a) => (
-                <li key={a.id} className="grid grid-cols-[6.5rem_1fr] items-baseline gap-x-6 sm:grid-cols-[6.5rem_1fr_auto]">
-                  <span className="t-clock text-[var(--muted)]">{(() => { const at = new Date(a.created_at.endsWith("Z") ? a.created_at : a.created_at.replace(" ", "T") + "Z"); return `${fmtShort.format(at)} ${clock(at, tz)}`; })()}</span>
+                <li key={a.id} className="grid grid-cols-1 items-baseline gap-x-6 gap-y-1 sm:grid-cols-[9.5rem_1fr_auto]">
+                  <span className="t-clock text-[var(--muted)]">{(() => { const at = new Date(a.created_at.endsWith("Z") ? a.created_at : a.created_at.replace(" ", "T") + "Z"); return `Found ${dayOf(at.getTime()) === "Today" ? "" : `${fmtShort.format(at)} `}${clock(at, tz)}`; })()}</span>
                   <span>{clockText(unshout(a.message.split("\n")[1]?.replace(/,.*$/, "") ?? "Alert"), tz)}</span>
-                  {a.status === "failed" && <span className="col-start-2 text-sm text-[var(--danger)] sm:col-start-auto">Failed to send</span>}
+                  {a.status === "failed" && <span className="text-sm text-[var(--danger)]">Failed to send</span>}
                 </li>
               ))}
             </ul>

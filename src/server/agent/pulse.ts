@@ -46,6 +46,14 @@ export function latestPulse(merchantId: string): PulseRow | undefined {
   return row ? pollOperator(row) : undefined;
 }
 
+// The plan on screen: the newest written one, even while a newer one is still being written.
+export function shownBrief(merchantId: string): PulseBrief | undefined {
+  const row = latestPulse(merchantId);
+  if (row?.status === "drafted") return getBrief(row);
+  ensurePulseTable();
+  return getBrief(getDb().prepare("SELECT * FROM pulses WHERE merchant_id = ? AND status = 'drafted' ORDER BY created_at DESC LIMIT 1").get(merchantId) as PulseRow | undefined);
+}
+
 export async function createPulseBrief(merchant: Merchant, pulse?: NeighborhoodPulse): Promise<PulseRow> {
   ensurePulseTable();
   const p = pulse ?? (await buildNeighborhoodPulse(merchant));

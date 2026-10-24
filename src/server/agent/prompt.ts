@@ -58,6 +58,14 @@ export function timeWindows(event: EventRow, merchant: Merchant): { label: strin
   return campaignWindows(event).filter((w, i, all) => w.end > Date.now() || i === all.length - 1).map((w) => ({ label: w.label, start_local: fmt.format(new Date(w.start)), end_local: fmt.format(new Date(w.end)), why: w.why }));
 }
 
+// The first window a draft was written for, as instants. A rewrite after doors carries only "After the show".
+// Match on the label or on the local start time (same formatter as timeWindows), so a relabelled window still matches.
+export function draftFirstWindow(event: EventRow, draftWindows: { label: string; start_local: string }[], timeZone: string) {
+  const all = campaignWindows(event);
+  const fmt = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone });
+  return all.find((w) => draftWindows.some((d) => d.label === w.label || d.start_local === fmt.format(new Date(w.start)))) ?? all[0];
+}
+
 // The same windows as ISO instants, for the weather lookup.
 export function windowsIso(event: EventRow): { label: string; startIso: string; endIso: string }[] {
   return campaignWindows(event).map((w) => ({ label: w.label, startIso: new Date(w.start).toISOString(), endIso: new Date(w.end).toISOString() }));

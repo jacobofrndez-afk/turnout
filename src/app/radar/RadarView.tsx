@@ -381,14 +381,14 @@ export default function RadarView({ merchant, items, nowIso }: Props) {
     return (
       <li key={it.id} className={isSel ? "tone" : undefined}>
         <button type="button" className="tm-item t-body" onClick={() => selectCrowd(it.id)} aria-pressed={isSel}>
-          <span className="mono">{it.w.arrive <= now ? `Now, until ${clock(it.w.leave, tz)}` : `${dayLabel(it.w.start, true)} ${clock(it.w.start, tz)}`}</span> · <b>{it.headliner}</b> ·{" "}
+          <span className="mono">{it.w.arrive <= now ? (it.kind === "venue" && it.w.start <= now && now < it.w.end ? `Out at ${clock(it.w.end, tz)}` : `Now, until ${clock(it.w.leave, tz)}`) : `${dayLabel(it.w.start, true)} ${clock(it.w.start, tz)}`}</span> · <b>{it.headliner}</b> ·{" "}
           {onMap ? <>{it.venue}, <span className="mono">{it.distanceKm.toFixed(1)}&nbsp;km</span></> : (it.blurb ?? it.venue)}
         </button>
         <p className="t-body mt-1 text-[var(--muted)]">
-          About <span className="mono">{(Math.round(it.capacity / 100) * 100).toLocaleString("en-US")}</span> people, could bring about {it.guests} guests
-          {it.guests >= merchant.seats ? `, enough to fill your ${merchant.seats} seats` : it.guests * 2 >= merchant.seats ? ", enough for half your seats" : ", enough for a few tables"}.
+          About <span className="mono">{(Math.round(it.capacity / 100) * 100).toLocaleString("en-US")}</span> {it.kind === "tv" ? it.venue : "people"}, could bring about {it.guests}&nbsp;guests
+          {it.guests >= merchant.seats ? `, enough to fill your ${merchant.seats} seats` : it.guests * 2 >= merchant.seats ? ", enough for half your seats" : ", enough for a few tables"}.
           {isSel && it.weather ? ` Weather at your door: ${it.weather.label}.` : ""}{" "}
-          <Link href={`/campaigns/new?merchant=${merchant.id}&event=${it.id}`} className="link">See who is coming</Link>
+          <Link href={`/campaigns/new?merchant=${merchant.id}&event=${it.id}`} className="link whitespace-nowrap">See who is coming</Link>
         </p>
       </li>
     );

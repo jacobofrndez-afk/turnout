@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCampaign, getDraft, getProvenance, pollOperatorDraft, provider } from "@/server/agent/run";
-import { campaignWindows } from "@/server/agent/prompt";
+import { campaignWindows, draftFirstWindow } from "@/server/agent/prompt";
 import { getMerchant } from "@/server/events/radar";
 import { getEvent, getOffers } from "@/server/qloo/crowd";
 import { RefreshEvery } from "@/app/today/RefreshEvery";
@@ -67,7 +67,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   const lastWindowEnd = Math.max(...wins.map((w) => w.end));
   const nightOver = campaign.status === "drafted" && lastWindowEnd < now;
   // The first window closed but the night goes on: the words were written for "until 7 pm", so Publish waits for a rewrite.
-  const firstOver = campaign.status === "drafted" && !nightOver && wins[0].end < now;
+  const firstOver = campaign.status === "drafted" && !nightOver && !!draft && draftFirstWindow(event, draft.windows, tz).end < now;
   const out = campaign.status === "approved" || campaign.status === "sent";
   const sentAt = sends.length ? Math.min(...sends.map((s) => parseUtc(s.sent_at))) : undefined;
   const outSentence = sends.length === 0 ? "Going out now." : sends.some((s) => s.simulated) ? `Published at ${clock(sentAt!, tz)}. Each channel goes out as soon as it is connected.` : `Out since ${clock(sentAt!, tz)} on ${fmtDay.format(sentAt)}.`;
@@ -89,6 +89,8 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   const merchantChannels = JSON.parse((getDb().prepare("SELECT channels_json FROM merchants WHERE id = ?").get(merchant.id) as { channels_json: string } | undefined)?.channels_json ?? "[]") as ChannelId[];
   const channels: ChannelId[] = CHANNEL_ORDER.filter((c) => sendByChannel.has(c) || (draft && (c === "storefront" || merchantChannels.includes(c))));
   const whatsappLive = whatsappConfigured() && Boolean(process.env.DEMO_WHATSAPP_TO); // same test as publishCampaign and the alerts page
+  // Once the first window is over, the old words fold away under the plate: the page is about the rewrite.
+  const ChannelsWrap = firstOver ? "details" : "section";
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
@@ -96,7 +98,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
 
       <section className="stack-block">
         <div className="plate min-[1152px]:-mx-[68px] min-[1152px]:px-[68px]!">
-          <p className="eyebrow">Your campaign for {dayword}{!draft && stale ? "" : (event.origin ?? "ticketmaster") === "ticketmaster" ? `, ${actName} at ${event.venue_name}` : event.origin === "wave" ? `, ${lowerFirst(actName)}` : `, ${actName}`}</p>
+          <p className="eyebrow">Your campaign for {dayword}{!draft && campaign.status === "awaiting_operator" ? "" : (event.origin ?? "ticketmaster") === "ticketmaster" ? `, ${actName} at ${event.venue_name}` : event.origin === "wave" ? `, ${lowerFirst(actName)}` : `, ${actName}`}</p>
           {draft ? (
             <>
               <h1 className="t-display mt-5">{firstOver ? wins[wins.length - 1].label : (offer?.title ?? draft.chosen_offer_id)}</h1>
@@ -130,7 +132,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
             </>
           ) : campaign.status === "awaiting_operator" ? (
             <div aria-busy="true">
-              <h1 className="t-display mt-5">Writing your campaign</h1>
+              <h1 className="t-display mt-5">{actName}</h1>
               <p className="t-lead mt-5">{provider() === "operator" ? "Turnout has started this campaign. It appears here as soon as it is written; this page refreshes on its own." : "Turnout reads the crowd through Qloo and writes every channel. A few minutes; this page refreshes on its own."}</p>
               <div className="mt-8 max-w-2xl" aria-hidden="true"><span className="skeleton skeleton-title" /><span className="skeleton skeleton-line mt-6" /><span className="skeleton skeleton-line" /><span className="skeleton skeleton-line" /></div>
               <RefreshEvery seconds={20} />
@@ -153,9 +155,9 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
       </section>
 
       {channels.length > 0 && (
-        <section className="stack-section">
-          <h2 className="t-title">{firstOver ? `Written for ${lowerFirst(wins[0].label)}` : nightOver ? "What was written" : "What goes out"}</h2>
-          <div className="mt-8 grid gap-x-16 gap-y-12 md:grid-cols-2">
+        <ChannelsWrap className="stack-section">
+          {firstOver ? <summary className="link w-fit text-base">{`The words written for ${lowerFirst(wins[0].label)}`}</summary> : <h2 className="t-title">{nightOver ? "What was written" : "What goes out"}</h2>}
+          <div className="tone mt-8 grid gap-x-16 gap-y-12 md:grid-cols-2">
             {channels.map((c) => {
               const send = sendByChannel.get(c);
               return (
@@ -165,15 +167,14 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                     <div className="mt-4 space-y-3">
                       {c === "storefront" && (
                         <>
-                          <p className="t-name whitespace-pre-wrap">{nb(draft.storefront.chalkboard)}</p>
+                          <div className="preview preview-board"><p className="t-name whitespace-pre-wrap">{nb(draft.storefront.chalkboard)}</p></div>
                           <p className="t-body text-[var(--muted)]">Your staff say: “{nb(draft.storefront.staff_line)}”</p>
                         </>
                       )}
-                      {c === "whatsapp" && (<><p className="t-body whitespace-pre-wrap">{nb(draft.whatsapp.message)}</p>{campaign.status === "drafted" && !send && !firstOver && !nightOver && <p className="t-body text-[var(--muted)]">{whatsappLive ? "Sent to your regulars the moment you press Publish." : "WhatsApp is not connected yet, so Publish keeps this message here instead of sending it."}</p>}</>)}
+                      {c === "whatsapp" && (<><div className="preview preview-bubble"><p className="t-body whitespace-pre-wrap">{nb(draft.whatsapp.message)}</p></div>{campaign.status === "drafted" && !send && !firstOver && !nightOver && <p className="t-body text-[var(--muted)]">{whatsappLive ? "Sent to your regulars the moment you press Publish." : "WhatsApp is not connected yet, so Publish keeps this message here instead of sending it."}</p>}</>)}
                       {c === "geofenced_ad" && (
                         <>
-                          <p className="t-name">{nb(draft.geofenced_ad.headline)}</p>
-                          <p className="t-body">{nb(draft.geofenced_ad.body)}</p>
+                          <div className="preview"><p className="preview-by">{merchant.name} · Sponsored</p><p className="t-name mt-2">{nb(draft.geofenced_ad.headline)}</p><p className="t-body mt-2">{nb(draft.geofenced_ad.body)}</p></div>
                           <p className="t-body text-[var(--muted)]">
                             Within <span className="mono">{draft.geofenced_ad.radius_m} m</span> of the venue, on {draft.geofenced_ad.platform === "meta" ? "Meta" : "Snapchat"}, up to <span className="mono">${draft.geofenced_ad.daily_budget_usd}</span>&nbsp;a&nbsp;day once you switch it on.{campaign.status === "drafted" && !firstOver && !nightOver ? " Publish costs nothing." : ""}
                           </p>
@@ -182,15 +183,13 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                       )}
                       {c === "google_post" && (
                         <>
-                          <p className="t-name">{nb(draft.google_post.title)}</p>
-                          <p className="t-body">{nb(draft.google_post.body)}</p>
+                          <div className="preview"><p className="t-name">{nb(draft.google_post.title)}</p><p className="t-body mt-2">{nb(draft.google_post.body)}</p></div>
                           <p className="t-body text-[var(--muted)]">{nb(draft.google_post.offer_terms)}</p>
                         </>
                       )}
                       {c === "dooh" && (
                         <>
-                          <p className="t-name">{nb(draft.dooh.headline)}</p>
-                          <p className="t-body">{nb(draft.dooh.body)}</p>
+                          <div className="preview preview-screen"><p className="t-name">{nb(draft.dooh.headline)}</p><p className="t-body mt-2">{nb(draft.dooh.body)}</p></div>
                         </>
                       )}
                     </div>
@@ -200,12 +199,12 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
               );
             })}
           </div>
-        </section>
+        </ChannelsWrap>
       )}
 
       {draft && (
         <>
-          <section className="stack-section">
+          {!firstOver && (<section className="stack-section">
             <h2 className="t-title">Why</h2>
             <p className="t-body measure mt-6">{nb(whyLead)}</p>
             <p className="t-body measure mt-4">{draft.confidence >= 0.75 ? "Turnout is fairly sure of this choice." : "Turnout is less sure of this choice; read it closely."}</p>
@@ -222,10 +221,10 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
               })}
               <p className="t-body measure mt-3">Who they are: {nb(plainWords(noScores(draft.audience_summary)))}</p>
             </details>
-          </section>
+          </section>)}
 
           <section className="stack-section">
-            <h2 className="t-title">What this does not establish</h2>
+            <h2 className="t-title">What Turnout cannot know</h2>
             <p className="t-body measure mt-6">{nb(plainWords(noScores(draft.limitations)))}</p>
           </section>
         </>

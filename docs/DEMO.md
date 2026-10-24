@@ -31,7 +31,7 @@ Click **Draft the campaign →**.
 
 The chosen offer with the rationale citing Qloo evidence by name. Say the line: "the sports-bar offer had the highest raw score; the agent picked the cocktail happy hour because this crowd skews women 25 to 34 and over-indexes on rooftop cocktail bars and luxury brands."
 
-Scroll: geofenced ad with interests derived from Qloo tags, Google post, WhatsApp to regulars, chalkboard and staff line, screen. Then **What this does not establish**.
+Scroll: geofenced ad with interests derived from Qloo tags, Google post, WhatsApp to regulars, chalkboard and staff line, screen. Then **What Turnout cannot know**.
 
 Click **Approve and publish →**. The Published block lists one send per channel with its status: real (WhatsApp on the judge's phone when the sandbox is joined), created-paused (Snapchat when an ad account is wired) or simulated with the exact payload.
 

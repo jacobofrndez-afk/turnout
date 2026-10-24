@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { clockRange } from "@/lib/clock";
+import { clock, clockRange } from "@/lib/clock";
 import { nb } from "@/lib/nbsp";
 import { firstSentences, noScores, plainList, plainWords } from "@/lib/text";
 import { getMerchant, listMerchants } from "@/server/events/radar";
 import { buildNeighborhoodPulse, type NeighborhoodPulse, type PulseOfferFit } from "@/server/qloo/neighborhood";
-import { getBrief, latestPulse } from "@/server/agent/pulse";
+import { latestPulse, shownBrief } from "@/server/agent/pulse";
 import { getOffers } from "@/server/qloo/crowd";
 import { eveningsThisWeek } from "@/server/weather/openmeteo";
 
@@ -24,7 +24,9 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
   const tz = merchant.timezone;
   const pulse = await buildNeighborhoodPulse(merchant);
   const row = latestPulse(merchant.id);
-  const brief = getBrief(row);
+  const brief = shownBrief(merchant.id);
+  const waitingSince = row?.status === "awaiting_operator" ? Date.parse(`${row.created_at.replace(" ", "T")}Z`) : undefined;
+  const stale = waitingSince !== undefined && Date.now() - waitingSince > 15 * 60_000;
   const offers = getOffers(merchant.id);
   const featured = offers.find((o) => o.id === brief?.featured_offer_id);
   const why = brief ? plainWords(noScores(brief.rationale)) : "";
@@ -54,9 +56,9 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
         <button className="link text-base">{briefAction}</button>
       </form>
 
-      {row?.status === "awaiting_operator" && (
+      {waitingSince !== undefined && (
         <section className="tone stack-block">
-          <p className="t-body">Turnout is writing this week's plan. Reload in a moment.</p>
+          <p className="t-body">{stale ? `Turnout started a new plan at ${clock(waitingSince, tz)} and has not finished it.${brief ? " The plan below stays." : ""}` : `Turnout is writing a new plan.${brief ? " The plan below stays until it is ready." : ""} Reload in a moment.`}</p>
         </section>
       )}
       {row?.status === "failed" && (
@@ -116,7 +118,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
 
       {brief && (
         <section className="stack-section">
-          <h2 className="t-title">What this does not establish</h2>
+          <h2 className="t-title">What Turnout cannot know</h2>
           <p className="t-body mt-4">{nb(plainWords(noScores(brief.limitations)))}</p>
         </section>
       )}
@@ -125,7 +127,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
         <summary className="link w-fit text-base">All the evidence from Qloo</summary>
         {pulse.rhythm && pulse.rhythm.moments.length > 0 && (
           <section className="stack-block">
-            <h2 className="t-title">The rhythm of your street</h2>
+            <h2 className="t-name">The rhythm of your street</h2>
             <p className="t-body mt-4 text-[var(--muted)]">
               When the everyday flow peaks, read from {pulse.rhythm.placesRead} places around your door, {pulse.rhythm.hospitality} of them bars and restaurants, {pulse.rhythm.withHours} with opening hours.
             </p>
@@ -155,7 +157,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
 
         <section className={`${pulse.rhythm && pulse.rhythm.moments.length > 0 ? "stack-section" : "stack-block"} grid gap-x-16 gap-y-16 md:grid-cols-3`}>
           <div>
-            <h2 className="t-title">Who walks past</h2>
+            <h2 className="t-name">Who walks past</h2>
             <p className="t-body mt-4">
               {pulse.audienceTags.length ? pulse.audienceTags.map((t) => t.name.toLowerCase()).join(", ") : <span className="text-[var(--muted)]">No one described yet.</span>}
             </p>
@@ -166,13 +168,13 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
             )}
           </div>
           <div>
-            <h2 className="t-title">What they like in a place</h2>
+            <h2 className="t-name">What they like in a place</h2>
             <p className="t-body mt-4">
               {pulse.ambienceTags.length ? pulse.ambienceTags.map((t) => t.name.toLowerCase()).join(", ") : <span className="text-[var(--muted)]">Nothing described yet.</span>}
             </p>
           </div>
           <div>
-            <h2 className="t-title">Brands they like</h2>
+            <h2 className="t-name">Brands they like</h2>
             <p className="t-body mt-4">
               {pulse.brands.length ? pulse.brands.slice(0, 10).map((b) => b.name).join(", ") : <span className="text-[var(--muted)]">No brand stands out yet.</span>}
             </p>
@@ -181,7 +183,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
 
         <section className="stack-section grid gap-x-24 gap-y-16 lg:grid-cols-2">
           <div>
-            <h2 className="t-title">Where they already go</h2>
+            <h2 className="t-name">Where they already go</h2>
             <p className="t-body mt-4 text-[var(--muted)]">Within reach of your door, strongest fit first.</p>
             <ol className="mt-6 space-y-2">
               {pulse.places.slice(0, 10).map((p) => {
@@ -196,7 +198,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
             </ol>
           </div>
           <div>
-            <h2 className="t-title">Your offers for them</h2>
+            <h2 className="t-name">Your offers for them</h2>
             <table className="data mt-6 w-full text-base">
               <tbody>
                 {pulse.offerFits.map((f) => (

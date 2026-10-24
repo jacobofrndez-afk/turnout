@@ -67,7 +67,8 @@ Every secondary page starts with one link back: "Today" (not "Back to the radar"
    window, button "Publish" (hidden when the night has passed or the campaign is already out).
 2. "What goes out": one block per channel, an eyebrow names the channel in merchant words (as on Today), the copy in `.t-body` (`.t-name` for a headline). Only the channels Publish sends, plus the chalkboard.
 3. "Why": three lines + "The rest of the reasoning".
-4. "What this does not establish": `.t-body`.
+4. "What Turnout cannot know": `.t-body`.
+   When the first window is over, "What goes out" folds into a closed link and "Why" is dropped: the page is about the rewrite.
 5. "How Turnout got here" (provenance) stays a closed disclosure at the end.
 
 ### Who is coming

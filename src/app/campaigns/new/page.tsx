@@ -2,7 +2,7 @@ import { isCommercialBrand } from "@/lib/brands";
 import Link from "next/link";
 import { haversineKm, presenceWindow, scoreConcentration } from "@/server/events/concentration";
 import { getMerchant, rowToEvent } from "@/server/events/radar";
-import { clock } from "@/lib/clock";
+import { clock, clockRange } from "@/lib/clock";
 import { tagId } from "@/server/qloo/api";
 import { buildCrowdProfile, describeDemographics, getEvent, hasSignal, momentMeta, type CrowdProfile } from "@/server/qloo/crowd";
 import { nb } from "@/lib/nbsp";
@@ -112,6 +112,11 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
   const isShow = (event.origin ?? "ticketmaster") === "ticketmaster";
   const km = haversineKm(merchant.lat, merchant.lon, event.lat, event.lon);
   const walk = km <= 0.25 ? "a block from" : km <= 0.5 ? "two blocks from" : km <= 0.9 ? "a few blocks from" : undefined;
+  // A wave is shows on the move: say it the way Today does ("leaving 23 shows 1.2 km from ..."), over its own window.
+  const ev = rowToEvent(event as Parameters<typeof rowToEvent>[0]);
+  const win = presenceWindow(ev);
+  const isWave = event.origin === "wave";
+  const kmText = nb(km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`);
   const radius = merchant.radius_m >= 1000 ? `${(merchant.radius_m / 1000).toLocaleString("en-US")} km` : `${merchant.radius_m} m`;
 
   const ageLabel = (k: string) => k.replace("24_and_younger", "<25").replace("55_and_older", "55+").replace("_to_", "‑");
@@ -154,7 +159,9 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
   // A crowd letting out (an exit wave, or a show past its before-doors window) cannot take a pre-show offer.
   const leaving = momentMeta(event).kind === "exit" || (isShow && now > starts.getTime() - 30 * 60_000);
   const fits = leaving ? profile.offerFits.filter((f) => !/\bpre-(show|game|concert)\b|avant-(concert|spectacle|match)|\bbefore (the )?(show|game|doors)\b/i.test(f.title)) : profile.offerFits;
-  const top = profile.offerFits.find((f) => f.offerId === chosenId) ?? fits[0];
+  const chosenFit = profile.offerFits.find((f) => f.offerId === chosenId);
+  // After doors a written pre-show choice is over. The campaign page now says "After the show", so the after-show offer leads, then the best one left.
+  const top = chosenFit && fits.includes(chosenFit) ? chosenFit : (chosenFit && fits.find((f) => /\bafter-(show|game|concert)\b|\blate\b|après/i.test(f.title) && f.matches > 0 && f.affinity > 0)) || fits[0];
   const topFits = !!top && (top.matches > 0 && top.affinity > 0 || top.offerId === chosenId);
   // Two offers within a hair of each other, and no campaign yet: say so, rather than crown one on a compressed score.
   const second = fits[1];
@@ -173,8 +180,8 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
         <div className="plate min-[1152px]:-mx-[68px] min-[1152px]:px-[68px]!">
           <h1 className="t-display">{profile.headlinerName}</h1>
           <p className="t-lead mt-5">
-            {event.venue_name}, {starts.getTime() <= now ? <>now until <span className="mono">{clock(presenceWindow(rowToEvent(event as Parameters<typeof rowToEvent>[0])).leave, tz)}</span></> : <>{day} {isShow ? "at" : "from"} <span className="mono">{clock(starts, tz)}</span></>}
-            {isShow && <>, {walk ?? <><span className="mono">{nb(km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`)}</span> from</>} {merchant.name}</>}.
+            {isWave ? <>{ev.meta?.kind === "arrival" ? "Heading to" : "Leaving"} {Number(ev.meta?.count ?? 0)} shows <span className="mono">{kmText}</span> from {merchant.name}</> : event.venue_name}, {(isWave ? win.arrive : starts.getTime()) <= now ? <>now until <span className="mono">{clock(win.leave, tz)}</span></> : <>{day} {isShow ? "at" : "from"} <span className="mono">{isWave ? clockRange(win.arrive, win.leave, tz) : clock(starts, tz)}</span></>}
+            {isShow && <>, {walk ?? <><span className="mono">{kmText}</span> from</>} {merchant.name}</>}.
             {guests > 0 && <> It could bring you about {guests} guests.</>}
           </p>
           {hasSignal(profile) && (written ? (
@@ -193,13 +200,13 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
       {profile.status === "needs_input" && (
         <section className="stack-section">
           <h2 className="t-title">Which one plays tonight?</h2>
-          <p className="t-body mt-3">Qloo knows several entities named like “{profile.headlinerName}”. Pick the right one so the taste data describes the right crowd.</p>
+          <p className="t-body mt-3">Qloo knows several acts named like “{profile.headlinerName}”. Pick the right one so the taste data describes the right crowd.</p>
           <ul className="mt-8 grid gap-x-10 gap-y-3 sm:grid-cols-2">
             {profile.candidates.map((c) => (
               <li key={c.id}>
                 <Link href={`/campaigns/new?merchant=${merchant.id}&event=${event.id}&pick=${c.id}`} className="block bg-[var(--tone)] px-5 py-4 transition-colors hover:bg-[var(--tone-2)]">
-                  <p className="t-body font-semibold text-[var(--ink)]">{c.name} <span className="chip ml-2">{c.type.replace("urn:entity:", "")}</span></p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">{c.description || "no description"} · popularity {((c.popularity ?? 0) * 100).toFixed(0)}%</p>
+                  <p className="t-body font-semibold text-[var(--ink)]">{c.name} <span className="chip ml-2">{c.type.replace("urn:entity:", "").replace(/_/g, " ")}</span></p>
+                  <p className="mt-1 text-sm text-[var(--muted)]">{c.description || "No description"}</p>
                 </Link>
               </li>
             ))}
@@ -209,8 +216,8 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
 
       {profile.status === "unresolved" && (
         <section className="stack-section">
-          <h2 className="t-title">Qloo does not know this headliner</h2>
-          <p className="t-body mt-3">No entity matched “{profile.headlinerName}”. The campaign can still run on the event's genre and venue, but without taste evidence.</p>
+          <h2 className="t-title">Qloo does not know this act</h2>
+          <p className="t-body mt-3">Qloo found no act named “{profile.headlinerName}”. The campaign can still run on the event's genre and venue, but without taste evidence.</p>
         </section>
       )}
 
@@ -233,7 +240,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
         {hasSignal(profile) && (
           <>
             <section className="stack-block">
-              <h3 className="t-title">What Qloo was asked about</h3>
+              <h3 className="t-name">What Qloo was asked about</h3>
               {profile.entity ? (
                 <p className="t-body mt-3">
                   {profile.entity.name}{READ_THROUGH[profile.entity.subtype?.replace("urn:entity:", "") ?? ""] ? `, ${READ_THROUGH[profile.entity.subtype?.replace("urn:entity:", "") ?? ""]}` : ""}, {profile.status === "auto" ? "found by Qloo" : "picked by you"}.
@@ -255,7 +262,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
 
             {profile.demographics && (
               <section className="stack-block">
-                <h3 className="t-title">Each age, against everyone</h3>
+                <h3 className="t-name">Each age, against everyone</h3>
                 <p className="t-body mt-3 text-[var(--muted)]">A bar that rises means more of that age than in the city as a whole, a bar that hangs means fewer.</p>
                 <div className="mt-8 grid max-w-2xl grid-cols-6 gap-3 text-center text-sm">
                   {Object.entries(profile.demographics.age).map(([k, v]) => (
@@ -263,7 +270,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
                       <div className="mx-auto flex h-14 w-full items-end justify-center">{v >= 0 && <div className="w-12" style={{ height: `${Math.max(4, Math.min(100, v * 100))}%`, background: "var(--bar-hot)" }} />}</div>
                       <div className="mx-auto flex h-14 w-full items-start justify-center">{v < 0 && <div className="w-12" style={{ height: `${Math.max(4, Math.min(100, -v * 100))}%`, background: "var(--muted)" }} />}</div>
                       <p className="mt-1.5 font-semibold text-[var(--ink)]">{ageLabel(k)}</p>
-                      <p className="tnum text-[var(--muted)]">{v >= 0 ? "+" : "−"}{Math.abs(v).toFixed(2)}</p>
+                      
                     </div>
                   ))}
                 </div>
@@ -271,17 +278,17 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
             )}
 
             <section className="stack-block">
-              <h3 className="t-title">Brands this crowd likes</h3>
+              <h3 className="t-name">Brands this crowd likes</h3>
               <p className="t-body mt-3">{brands.join(", ") || "None that Qloo names."}</p>
             </section>
 
             <section className="stack-block">
-              <h3 className="t-title">{placesKnown ? "Kinds of places this crowd likes" : "What this crowd likes"}</h3>
+              <h3 className="t-name">{placesKnown ? "Kinds of places this crowd likes" : "What this crowd likes"}</h3>
               <p className="t-body mt-3">{shownTags.map((t) => t.name).join(", ") || "Nothing Qloo names."}</p>
             </section>
 
             <section className="stack-block">
-              <h3 className="t-title">Bars within <span className="mono">{radius}</span> this crowd already likes, in order of affinity</h3>
+              <h3 className="t-name">Bars within <span className="mono">{radius}</span> this crowd already likes, the best match first</h3>
               <ol className="mt-4 space-y-2 text-base">
                 {profile.places.slice(0, 8).map((p) => (
                   <li key={p.entity_id} className="truncate">
@@ -292,7 +299,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
             </section>
 
             <section className="stack-block">
-              <h3 className="t-title">Your offers against this crowd</h3>
+              <h3 className="t-name">Your offers against this crowd</h3>
               <p className="t-body mt-3 text-[var(--muted)]">How much this crowd already seeks places near you that carry each offer's tags. One clue among several: Turnout also weighs the ages and the brands.</p>
               <table className="data mt-6 w-full text-base">
                 <tbody>
@@ -311,7 +318,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
         )}
 
         <section className="stack-block">
-          <h3 className="t-title">How Turnout got here, {profile.provenance.length} steps</h3>
+          <h3 className="t-name">How Turnout got here, {profile.provenance.length} steps</h3>
           <table className="data mt-6 w-full text-sm">
             <thead>
               <tr><th>#</th><th>Kind</th><th>Workflow</th><th>Status</th><th className="text-right">Results</th><th>Source</th><th>Note</th></tr>
@@ -327,7 +334,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
           </table>
           <p className="t-meta mt-6 tnum">Qloo calls: {profile.qlooCalls.live} live, {profile.qlooCalls.cached} cached.</p>
           <p className="t-body mt-6 text-[var(--muted)]">
-            What this does not establish: Qloo describes what people who like {signalNames || "this crowd"} tend to like as a group. It says nothing about any individual guest, and a strong taste is not a promise that anyone will visit.
+            What Turnout cannot know: Qloo describes what people who like {signalNames || "this crowd"} tend to like as a group. It says nothing about any individual guest, and a strong taste is not a promise that anyone will visit.
           </p>
         </section>
       </details>

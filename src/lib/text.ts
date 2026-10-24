@@ -39,10 +39,12 @@ export function noScores(s: string): string {
 export function plainWords(s: string): string {
   return s
     .replace(/\baggregate (tastes?)\b/gi, "shared $1")
-    .replace(/The offer fits are affinities of places with the offer's tags nearby;\s*they compare offers, they do not forecast sales\./gi, "The offer matches only compare your offers with each other; they do not forecast sales.")
+    .replace(/The offer fits are affinities of places with the offer's tags nearby;\s*they compare offers, they do not forecast sales\./gi, "Which of your offers fits best only compares them with each other; it is not a sales forecast.")
     .replace(/\ba high affinity\b/gi, "a strong match")
     .replace(/[^.]*\bwins on (?:two|three|four) (?:signals|reasons) that agree\.\s*/gi, "")
     .replace(/\bDemographics: an? (female|male)-skew(?:ing|ed)\b/g, "A mostly $1")
+    .replace(/\b(?:Demographics|Places|Brands): (\p{L})/gu, (_m, c: string) => c.toUpperCase())
+    .replace(/\band the ([^.,;]+?)'s own tags map to the same places(?:, a strong fit)?/gi, "and your $1 suits the same places")
     .replace(/\b(female|male)-skew(?:ing|ed)\b/gi, "mostly $1")
     .replace(/[^.]*\bcompressed\b[^.]*\./gi, "")
     .replace(/\bover-?index(?:es|ed)? on ([^,.;]*?) and on\b/gi, "lean toward $1 and toward")

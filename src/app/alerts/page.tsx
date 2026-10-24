@@ -34,7 +34,7 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
       <div className="max-w-3xl">
         <Link href={`/today?merchant=${merchant.id}`} className="link text-base">Today</Link>
         <h1 className="t-display mt-6">What Turnout found on its own</h1>
-        <p className="t-lead mt-5">Every hour Turnout looks for the crowds worth a campaign and starts writing the strongest one. Here is what it found.</p>
+        <p className="t-lead mt-5">Every hour Turnout looks for the crowds worth a campaign near you. Here is what it found.</p>
         <form action="/api/scan" method="post" className="mt-4">
           <input type="hidden" name="merchant" value={merchant.id} />
           <button className="link text-base">Look for a crowd now</button>
@@ -43,7 +43,7 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
         {alerts.length === 0 && (
           <div className="empty stack-block">
             <p className="empty-title">Nothing yet</p>
-            <p>When a crowd worth a campaign is coming in the next two days, Turnout finds it and starts writing the campaign here.</p>
+            <p>When a crowd worth a campaign is coming in the next two days, Turnout finds it and lists it here.</p>
           </div>
         )}
 
@@ -61,7 +61,7 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
             const what = first.slice(when.length + 2).split(", about ")[0];
             const tail = what ? first.slice(when.length + 2 + what.length + 2) : first;
             // A tour title ("Harry Styles: Together, Together at MSG") reads as the act, as on Today.
-            const name = what.replace(/^([^:]*[^\d:]): .*? at /, "$1 at ");
+            const name = what.replace(/^([^:]*[^\d:]): .*? at /, "$1 at ").replace(/, \d+ shows$/, "");
             const camp = a.campaign_id ? getCampaign(a.campaign_id) : undefined;
             const unwritten = camp?.status === "awaiting_operator" && Date.now() - Date.parse(camp.created_at.replace(" ", "T") + "Z") > 15 * 60_000;
             const href = unwritten ? `/campaigns/new?merchant=${merchant.id}&event=${a.event_id}` : a.campaign_id ? `/campaigns/${a.campaign_id}` : `/radar?merchant=${merchant.id}`;

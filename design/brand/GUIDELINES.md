@@ -26,6 +26,7 @@ Rules:
 
 - Wine is a dot or a mark: hot crowds, map signs (white words 9.15), the logo needle, the score needle on the chosen moment, link hover, errors. Never a button fill, never a word, never an arrow, never decoration.
 - At most one aubergine plate (`.plate`, `.card-live`) and one tone surface (`.tone`) per screen. The radar has no plate: the map is in charge.
+- An object that depicts a real dark thing (the chalkboard, a screen near the venue) may be dark: ink #1D1424 slate or glass, a `--bar-hot` frame, on-plum lettering. It is an object in "What goes out", not a plate, and never takes aubergine (`.preview-board`, `.preview-screen`).
 - Status folds into muted: weather is information, not an alarm. Only an error speaks wine (`--danger`).
 - Body text is AAA everywhere, the plate included. Muted (6.40) is for labels and meta only.
 
@@ -48,7 +49,7 @@ Rules:
 - Tailwind's `text-*` scale is retuned in `globals.css` (xs 13, sm 15, base 17, lg 20, xl 22, 2xl 26, 3xl 34, 4xl 46, 5xl 58, 6xl 72), so nothing renders under 13 px.
 - A paragraph never runs past `--measure` (32em, about 70 characters at any size; `ch` is the width of a 0, 0.665 em in Instrument Sans, so 66ch set about 97). `.measure-narrow` and `.empty` hold 25em. Wide `max-w-*` on a paragraph falls back to the measure.
 - Readability floor in `main`: a sentence set `text-sm` renders 17 px, a sentence set `text-xs` 15 px; 13 px stays for metadata (labels, tags, table heads, chips). Code is the size of the words around it. Clocks and distances 15 px tabular and never break across lines (`.mono`, `.tm-mono` are nowrap).
-- Sentence case everywhere. No uppercase, no tracked-out labels, no italics, no serif. IBM Plex Mono is retired; clocks and distances use tabular Instrument Sans.
+- Sentence case everywhere. No uppercase, no tracked-out labels, no italics, no serif. One exception: chalk on the chalkboard object is Big Shoulders 600 uppercase at the title size, because that is how a bar writes its board. IBM Plex Mono is retired; clocks and distances use tabular Instrument Sans.
 
 ## 4. Space and shape
 

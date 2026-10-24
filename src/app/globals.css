@@ -502,16 +502,127 @@ html:root {
     padding: var(--tone-pad);
   }
 
-  /* What goes out: each channel shown as the thing it becomes (a board, a message, an ad, a screen), white objects
-     on the screen's one tone surface. Corners 0, no lines, no shadow, no new type size: .t-name, .t-body, --fs-label. */
-  .preview { background: var(--paper); padding: 24px 28px; }
-  .preview-board { text-align: center; padding: 36px 28px 40px; max-width: 26rem; }
-  .preview-board .t-name { max-width: none; }
-  .preview-bubble { position: relative; max-width: 36ch; padding: 14px 18px 16px; margin-left: 10px; }
-  .preview-bubble::before { content: ""; position: absolute; left: -10px; bottom: 0; width: 10px; height: 14px; background: var(--paper); clip-path: polygon(100% 0, 100% 100%, 0 100%); }
-  .preview-bubble .t-body { max-width: none; }
-  .preview-by { font-size: var(--fs-label); line-height: 1.4; font-weight: 500; color: var(--muted); }
-  .preview-screen { aspect-ratio: 16 / 9; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; max-width: 32rem; }
+  /* What goes out: each channel drawn as the thing it becomes (a chalkboard, a message, an ad, a screen) on the
+     screen's one tone surface. A chalkboard and a screen are real dark things, so they may be dark: objects, not
+     plates (GUIDELINES.md, rules). Aubergine stays the page plate's: here it is only the ad's small avatar. One
+     width for the four, corners 0, no lines, no shadow, no new type size: .t-name, .t-body, the title size for chalk
+     and screen lettering, --fs-label. Each body sits on the shared edges; only the
+     board's feet and the bubble's tail hang past them. Legs and stand are cut from the object's own border with
+     clip-path, so no bottom margin is needed (the space-y-* utility in the markup wins vertical margins). */
+  .preview {
+    --object-w: min(100%, 32.5rem);   /* one width for the four objects (the full column up to 520 px): a set */
+    --bubble: #E7DDED;                /* the outgoing message tint: ink on it 13.55, 1.20 on the tone */
+    width: var(--object-w);
+    background: var(--paper);
+    padding: 24px 28px;
+  }
+
+  /* The chalkboard: an ink slate in a --bar-hot wooden frame whose rails run on into two splayed legs. The frame is
+     not aubergine, so the board never reads as a second plate (frame 2.37 on the slate, 6.83 on the tone).
+     6:5 with the legs keeps the slate itself near 4:3 at any width; longer chalk grows it. The box is 12 px wider
+     than the shared width so the frame meets the shared edges and the feet splay 6 px past them. */
+  .preview-board {
+    width: calc(var(--object-w) + 12px);
+    margin-inline: -6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    aspect-ratio: 6 / 5;
+    padding: 24px 8px;                /* chalk runs near the frame, as on a real board: one line per phrase at 375 up */
+    border: solid var(--bar-hot);
+    border-width: 14px 20px 50px;     /* sides 20 (14 seen, 6 cut for the splay), bottom 50: rail 14 plus legs 36 */
+    background-color: var(--ink);
+    background-clip: padding-box;
+    text-align: center;
+    clip-path: polygon(6px 0, calc(100% - 6px) 0, calc(100% - 6px) calc(100% - 36px), 100% 100%,
+      calc(100% - 14px) 100%, calc(100% - 20px) calc(100% - 36px), 20px calc(100% - 36px), 14px 100%, 0 100%,
+      6px calc(100% - 36px));
+  }
+  /* Chalk: the one uppercase, Big Shoulders 600 at the title size. On-plum on the slate 16.01. Pretty, not balance:
+     Chrome does not balance a paragraph that holds a written line break, and pretty still keeps a lone "1." off the
+     last line. */
+  .preview-board .t-name {
+    max-width: none;
+    font-family: var(--font-display), "Arial Narrow", sans-serif;
+    font-size: var(--fs-title);
+    font-weight: 600;
+    line-height: 1.12;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    text-wrap: pretty;
+    color: var(--on-plum);
+  }
+
+  /* The WhatsApp message: an outgoing bubble indented from the left only, its tail at the top right hanging past the
+     shared edge. No ticks: the message has not been sent. Ink on the tint 13.55. */
+  .preview-bubble {
+    position: relative;
+    width: calc(var(--object-w) - 24px);
+    margin-left: 24px;
+    padding: 14px 18px 16px;
+    background: var(--bubble);
+  }
+  .preview-bubble::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: -14px;
+    width: 14px;
+    height: 18px;
+    background: var(--bubble);
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+  }
+  .preview-bubble .t-body { max-width: none; color: var(--ink); }
+  @media (max-width: 767px) {   /* a 16 px indent on the phone: the message sets 6 lines, not 7 */
+    .preview-bubble { width: calc(var(--object-w) - 16px); margin-left: 16px; padding: 12px 16px 14px; }
+  }
+
+  /* The ad: a sponsored post in a phone feed. Square avatar, the brand line, headline, caption. No drawn button: CSS
+     cannot know each draft's own call to action (a French draft says "Itinéraire"), and the sentence under the card
+     says what the ad does. */
+  .preview:has(> .preview-by) { padding: 16px 18px 18px; }
+  .preview-by {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: var(--fs-label);
+    line-height: 1.4;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .preview-by::before { content: ""; flex: none; width: 32px; height: 32px; background: var(--plum); }
+  .preview:has(> .preview-by) > .t-name { max-width: none; padding-top: 6px; }   /* + the mt-2 in the markup: 14 */
+  .preview:has(> .preview-by) > .t-body { max-width: none; }
+
+  /* The screen near the venue: lit glass (the body ink, one step above the bezel) in an ink bezel on a stand. 3:2
+     with the 30 px stand keeps the glass near 16:9. On-plum headline 10.89 and sentences 9.29 on the glass. */
+  .preview-screen {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    aspect-ratio: 3 / 2;
+    padding: 20px 24px;
+    border: solid var(--ink);
+    border-width: 10px 10px 40px;     /* bezel 10, the bottom one plus the 30 px stand (neck 14, foot 88) */
+    background-color: var(--text);
+    background-clip: padding-box;
+    text-align: center;
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 30px), calc(50% + 7px) calc(100% - 30px),
+      calc(50% + 7px) calc(100% - 6px), calc(50% + 44px) calc(100% - 6px), calc(50% + 44px) 100%,
+      calc(50% - 44px) 100%, calc(50% - 44px) calc(100% - 6px), calc(50% - 7px) calc(100% - 6px),
+      calc(50% - 7px) calc(100% - 30px), 0 calc(100% - 30px));
+  }
+  .preview-screen .t-name {
+    max-width: none;
+    font-family: var(--font-display), "Arial Narrow", sans-serif;
+    font-size: var(--fs-title);
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: 0.01em;
+    color: var(--on-plum);
+  }
+  .preview-screen .t-body { color: var(--on-plum-text); }
 
   .plate,
   .card-live {

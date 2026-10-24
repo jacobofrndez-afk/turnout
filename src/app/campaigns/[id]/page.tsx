@@ -94,7 +94,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
-      <Link href={`/today?merchant=${merchant.id}`} className="link text-sm">Today</Link>
+      <Link href={`/today?merchant=${merchant.id}`} className="link">Today</Link>
 
       <section className="stack-block">
         <div className="plate min-[1152px]:-mx-[68px] min-[1152px]:px-[68px]!">
@@ -108,7 +108,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                   <p className="t-body mt-4">{offerLine}</p>
                 </>
               ) : (
-                <p className="t-lead mt-5">{firstOver ? <>The crowd went in at <span className="mono">{clock(wins[0].end, tz)}</span> and comes out at <span className="mono">{clock(wins[wins.length - 1].start, tz)}</span>. These words were for {lowerFirst(wins[0].label)}, so nothing goes out until Turnout writes new ones.</> : offerLine}</p>
+                <p className="t-lead mt-5">{firstOver ? <>{wins[wins.length - 1].start <= now ? <>The crowd came out at <span className="mono">{clock(wins[wins.length - 1].start, tz)}</span> and is near you until <span className="mono">{clock(wins[wins.length - 1].end, tz)}</span>.</> : <>The crowd went in at <span className="mono">{clock(wins[0].end, tz)}</span> and comes out at <span className="mono">{clock(wins[wins.length - 1].start, tz)}</span>.</>} These words were for {lowerFirst(wins[0].label)}, so nothing goes out until Turnout writes new ones.</> : offerLine}</p>
               )}
               {campaign.status === "drafted" && !nightOver && !firstOver && (
                 <form action={`/api/campaigns/${campaign.id}/approve`} method="post" className="mt-10"><button className="btn btn-accent btn-lg">Publish</button></form>
@@ -157,7 +157,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
       {channels.length > 0 && (
         <ChannelsWrap className="stack-section">
           {firstOver ? <summary className="link w-fit text-base">{`The words written for ${lowerFirst(wins[0].label)}`}</summary> : <h2 className="t-title">{nightOver ? "What was written" : "What goes out"}</h2>}
-          <div className="tone mt-8 grid gap-x-16 gap-y-12 md:grid-cols-2">
+          <div className="tone mt-8 gap-x-16 md:columns-2 *:break-inside-avoid [&>*:not(:last-child)]:mb-12">
             {channels.map((c) => {
               const send = sendByChannel.get(c);
               return (
@@ -190,6 +190,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                       {c === "dooh" && (
                         <>
                           <div className="preview preview-screen"><p className="t-name">{nb(draft.dooh.headline)}</p><p className="t-body mt-2">{nb(draft.dooh.body)}</p></div>
+                          {campaign.status === "drafted" && !send && !firstOver && !nightOver && <p className="t-body text-[var(--muted)]">No screen network is connected yet, so Publish keeps this here instead of showing it.</p>}
                         </>
                       )}
                     </div>

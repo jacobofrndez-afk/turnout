@@ -16,7 +16,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
   if (!merchant) {
     return (
       <main className="mx-auto max-w-3xl px-5 py-16">
-        <h1 className="t-title">No place yet</h1>
+        <h1 className="t-display">No place yet</h1>
         <Link href="/start" className="link mt-6 inline-flex text-base">Set up your place</Link>
       </main>
     );
@@ -33,8 +33,6 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
   const whyLead = firstSentences(why, 320);
   const whyRest = why.startsWith(whyLead) ? why.slice(whyLead.length).trim() : "";
   const evenings = await eveningsThisWeek(merchant.lat, merchant.lon, merchant.timezone).catch(() => []);
-  // Qloo reads the street within the merchant radius, never under 1.5 km (see buildNeighborhoodPulse).
-  const radiusKm = (Math.max(merchant.radius_m, 1500) / 1000).toLocaleString("en-US");
   const bestFit = pulse.offerFits.find((f) => f.matches > 0);
   const briefAction = brief ? "Write this week's plan again" : row?.status === "awaiting_operator" ? "Ask for this week's plan again" : "Write this week's plan";
 
@@ -50,19 +48,23 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
       ) : (
         <h1 className="t-display mt-6">Every day at {merchant.name}</h1>
       )}
-      <p className="t-body mt-6">The people who walk past your door on a normal day, read by Qloo within <span className="mono">{nb(`${radiusKm} km`)}</span>.</p>
-      <form action="/api/pulse" method="post" className="mt-4">
-        <input type="hidden" name="merchant" value={merchant.id} />
-        <button className="link text-base">{briefAction}</button>
-      </form>
+      {!brief && (
+        <>
+          <p className="t-body mt-6">The people who walk past your door on a normal day.</p>
+          <form action="/api/pulse" method="post" className="mt-4">
+            <input type="hidden" name="merchant" value={merchant.id} />
+            <button className="link text-base">{briefAction}</button>
+          </form>
+        </>
+      )}
 
       {waitingSince !== undefined && (
-        <section className="tone stack-block">
+        <section className={brief ? "stack-block" : "tone stack-block"}>
           <p className="t-body">{stale ? `Turnout started a new plan at ${clock(waitingSince, tz)} and has not finished it.${brief ? " The plan below stays." : ""}` : `Turnout is writing a new plan.${brief ? " The plan below stays until it is ready." : ""} Reload in a moment.`}</p>
         </section>
       )}
       {row?.status === "failed" && (
-        <section className="tone stack-block">
+        <section className={brief ? "stack-block" : "tone stack-block"}>
           <p className="t-body">This week's plan could not be written: {row.error}</p>
         </section>
       )}
@@ -97,6 +99,11 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
                 <p className="t-body text-[var(--muted)]">Aimed at people into: {nb(plainList(brief.always_on_ad.interests))}.</p>
               </Block>
             </div>
+            <p className="t-body mt-14 text-[var(--muted)]">Written from the people who pass your door on a normal day.</p>
+            <form action="/api/pulse" method="post" className="mt-4">
+              <input type="hidden" name="merchant" value={merchant.id} />
+              <button className="link text-base">{briefAction}</button>
+            </form>
           </section>
         </>
       )}

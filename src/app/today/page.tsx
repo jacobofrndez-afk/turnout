@@ -12,6 +12,8 @@ import { draftFirstWindow } from "@/server/agent/prompt";
 import { shownBrief } from "@/server/agent/pulse";
 import { listAlerts } from "@/server/agent/scan";
 import { weatherWindow } from "@/server/weather/openmeteo";
+import { whatsappConfigured } from "@/server/channels/twilio";
+import { fromDoor } from "@/lib/distance";
 import { RefreshEvery } from "./RefreshEvery";
 
 export const dynamic = "force-dynamic";
@@ -94,14 +96,14 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const others = merchants.filter((m) => m.id !== merchant.id);
   // A Ticketmaster show (live events carry no origin, stored ones say "ticketmaster"): the act is the headline, the house goes in the sentence.
   const isShow = !!next && (next.event.origin ?? "ticketmaster") === "ticketmaster";
-  const around = next ? (next.event.origin === "tv" || next.event.origin === "calendar" ? "around you" : `${isShow ? `at ${unshout(next.event.venue.name)}, ` : next.event.origin === "wave" ? `${next.event.meta?.kind === "arrival" ? "heading to" : "leaving"} ${Number(next.event.meta?.count ?? 0)} shows ` : ""}${next.distanceKm.toFixed(1)}\u00A0km from your door`) : "";
+  const around = next ? (next.event.origin === "tv" || next.event.origin === "calendar" ? "around you" : `${isShow ? `at ${unshout(next.event.venue.name)}, ` : next.event.origin === "wave" ? `${next.event.meta?.kind === "arrival" ? "heading to" : "leaving"} ${Number(next.event.meta?.count ?? 0)}\u00A0shows ` : ""}${fromDoor(next.distanceKm)} from your door`) : "";
   const guestsLine = next ? (next.fill >= 1 ? `enough to fill your ${seats} seats` : next.fill >= 0.5 ? "enough for half your seats" : "enough for a few tables") : "";
   // When the crowd is there: still to come, or already outside (then only the end matters).
   const whenLine = w0 ? (w0.arrive <= now ? <>right now, until <span className="mono">{clock(w0.leave, tz)}</span></> : <>from <span className="mono">{clockRange(w0.arrive, w0.leave, tz)}</span></>) : null;
   // The crowd in one sentence: how many, when, what it could bring.
   const peopleLine = next && w0 ? (
     <>
-      About {(Math.round(next.capacity / 100) * 100).toLocaleString("en-US")} people {around} {whenLine}. Turnout expects <b style={{ color: "inherit" }}>about {next.potentialGuests}&nbsp;extra&nbsp;guests</b>, {guestsLine}.
+      About {(Math.round(next.capacity / 100) * 100).toLocaleString("en-US")}&nbsp;people {around} {whenLine}. Turnout expects <b style={{ color: "inherit" }}>about {next.potentialGuests}&nbsp;extra&nbsp;guests</b>, {guestsLine}.
     </>
   ) : null;
   // An offer title inside a sentence: "Your pre-show happy hour is ready". An acronym keeps its capitals.
@@ -127,7 +129,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
             <p className="eyebrow flex items-center gap-3"><span className="live-dot" aria-hidden="true" />{whenWord(w0.start)}</p>
             <h1 className="t-display mt-5">{crowdName}</h1>
             <p className="t-lead mt-5">
-              About {(Math.round(next.capacity / 100) * 100).toLocaleString("en-US")} people {around} {w0.arrive <= now ? <>right now, until <span className="mono">{clock(w0.leave, tz)}</span></> : <>from <span className="mono">{clock(w0.arrive, tz)}</span></>}. Your {offer ? lowerFirst(offer.title) : "campaign"} is ready.
+              About {(Math.round(next.capacity / 100) * 100).toLocaleString("en-US")}&nbsp;people {around} {w0.arrive <= now ? <>right now, until <span className="mono">{clock(w0.leave, tz)}</span></> : <>from <span className="mono">{clock(w0.arrive, tz)}</span></>}. Your {offer ? lowerFirst(offer.title) : "campaign"} is ready.
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
               <form action={`/api/campaigns/${campaign.id}/approve`} method="post">
@@ -138,7 +140,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           </div>
 
           <h2 className="t-title stack-block">What goes out</h2>
-          <div className="tone mt-8 grid gap-x-16 gap-y-12 md:grid-cols-2">
+          <div className="tone mt-8 gap-x-16 md:columns-2 *:break-inside-avoid [&>*:not(:last-child)]:mb-12">
             <div>
               <p className="eyebrow">On your chalkboard</p>
               <div className="preview preview-board mt-4"><p className="t-name whitespace-pre-wrap">{nb(draft.storefront.chalkboard)}</p></div>
@@ -147,6 +149,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
               <div>
                 <p className="eyebrow">To your regulars on WhatsApp</p>
                 <div className="preview preview-bubble mt-4"><p className="t-body whitespace-pre-wrap">{nb(draft.whatsapp.message)}</p></div>
+                <p className="mt-4 text-sm text-[var(--muted)]">{whatsappConfigured() && process.env.DEMO_WHATSAPP_TO ? "Sent to your regulars the moment you press Publish." : "WhatsApp is not connected yet, so Publish keeps this message here instead of sending it."}</p>
               </div>
             )}
             {sendsTo.includes("geofenced_ad") && (
@@ -166,6 +169,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
               <div>
                 <p className="eyebrow">On the screens near the venue</p>
                 <div className="preview preview-screen mt-4"><p className="t-name">{nb(draft.dooh.headline)}</p><p className="t-body mt-2">{nb(draft.dooh.body)}</p></div>
+                <p className="mt-4 text-sm text-[var(--muted)]">No screen network is connected yet, so Publish keeps this here instead of showing it.</p>
               </div>
             )}
           </div>
@@ -235,7 +239,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
               const w = presenceWindow(it.event);
               return (
                 <li key={it.event.id} className="t-body">
-                  <span className="mono">{w.arrive <= now ? ((it.event.origin ?? "ticketmaster") === "ticketmaster" && w.start <= now && now < w.end ? <>Out at {clock(w.end, tz)}</> : <>Now, until {clock(w.leave, tz)}</>) : <>{dayOf(w.start) === "Today" || dayOf(w.start) === "Tomorrow" ? dayOf(w.start) : fmtShort.format(new Date(w.start))} {clock(w.start, tz)}</>}</span> · <b>{unshout(it.headliner.name)}</b> · about {it.potentialGuests}&nbsp;guests{it.fill >= 1 ? ", enough to fill your seats" : ""} ·{" "}
+                  <span className="mono">{w.arrive <= now ? ((it.event.origin ?? "ticketmaster") === "ticketmaster" && w.start <= now && now < w.end ? <>Out at {clock(w.end, tz)}</> : <>Now, until {clock(w.leave, tz)}</>) : <>{dayOf(w.start) === "Today" || dayOf(w.start) === "Tomorrow" ? dayOf(w.start) : fmtShort.format(new Date(w.start))} {clock(w.start, tz)}</>}</span>&nbsp;· <b>{unshout(it.headliner.name)}</b>&nbsp;· about {it.potentialGuests}&nbsp;guests{it.fill >= 1 ? ", enough to fill your seats" : ""}&nbsp;·{" "}
                   {ready.has(it.event.id) ? <Link href={`/campaigns/${ready.get(it.event.id)}`} className="link whitespace-nowrap">Your campaign is ready</Link> : <Link href={`/campaigns/new?merchant=${merchant.id}&event=${it.event.id}`} className="link whitespace-nowrap">See who is coming</Link>}
                 </li>
               );
@@ -248,8 +252,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         <h2 className="t-title">Every day this week</h2>
         {brief ? (
           <>
-            <p className="t-body mt-5">{nb(noScores(brief.street_in_one_line))}</p>
-            <p className="t-name mt-5 whitespace-pre-wrap">{nb(brief.chalkboard)}</p>
+            {campaign?.status === "drafted" && draftLive ? <p className="t-name mt-5 whitespace-pre-wrap">{nb(brief.chalkboard)}</p> : <div className="preview preview-board mt-5"><p className="t-name whitespace-pre-wrap">{nb(brief.chalkboard)}</p></div>}
             <p className="t-body mt-2 text-[var(--muted)]">Your chalkboard line for a normal weekday.</p>
           </>
         ) : (
@@ -269,7 +272,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
               {alerts.map((a) => (
                 <li key={a.id} className="grid grid-cols-1 items-baseline gap-x-6 gap-y-1 sm:grid-cols-[9.5rem_1fr_auto]">
                   <span className="t-clock text-[var(--muted)]">{(() => { const at = new Date(a.created_at.endsWith("Z") ? a.created_at : a.created_at.replace(" ", "T") + "Z"); return `Found ${dayOf(at.getTime()) === "Today" ? "" : `${fmtShort.format(at)} `}${clock(at, tz)}`; })()}</span>
-                  <span>{clockText(unshout(a.message.split("\n")[1]?.replace(/,.*$/, "") ?? "Alert"), tz)}</span>
+                  <span>{clockText(unshout(a.message.split("\n")[1]?.replace(/,.*$/, "") ?? "Alert"), tz)}&nbsp;·{" "}{ready.has(a.event_id) ? <Link href={`/campaigns/${ready.get(a.event_id)}`} className="link whitespace-nowrap">Your campaign is ready</Link> : <Link href={`/campaigns/new?merchant=${merchant.id}&event=${a.event_id}`} className="link whitespace-nowrap">See who is coming</Link>}</span>
                   {a.status === "failed" && <span className="text-sm text-[var(--danger)]">Failed to send</span>}
                 </li>
               ))}

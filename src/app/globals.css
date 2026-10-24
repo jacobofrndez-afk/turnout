@@ -594,24 +594,25 @@ html:root {
   .preview:has(> .preview-by) > .t-name { max-width: none; padding-top: 6px; }   /* + the mt-2 in the markup: 14 */
   .preview:has(> .preview-by) > .t-body { max-width: none; }
 
-  /* The screen near the venue: lit glass (the body ink, one step above the bezel) in an ink bezel on a stand. 3:2
-     with the 30 px stand keeps the glass near 16:9. On-plum headline 10.89 and sentences 9.29 on the glass. */
+  /* The screen near the venue: lit glass (the body ink, one step above the bezel) in an ink bezel on a street pole,
+     not a desk stand. 10:7 with the 56 px pole keeps the glass near 16:9 at 412 px and under 2:1 at 342 px. On-plum
+     headline 10.89 and sentences 9.29 on the glass. */
   .preview-screen {
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    aspect-ratio: 3 / 2;
+    aspect-ratio: 10 / 7;
     padding: 20px 24px;
     border: solid var(--ink);
-    border-width: 10px 10px 40px;     /* bezel 10, the bottom one plus the 30 px stand (neck 14, foot 88) */
+    border-width: 10px 10px 66px;     /* bezel 10, the bottom one plus the 56 px pole (post 16 wide, base plate 44 by 5) */
     background-color: var(--text);
     background-clip: padding-box;
     text-align: center;
-    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 30px), calc(50% + 7px) calc(100% - 30px),
-      calc(50% + 7px) calc(100% - 6px), calc(50% + 44px) calc(100% - 6px), calc(50% + 44px) 100%,
-      calc(50% - 44px) 100%, calc(50% - 44px) calc(100% - 6px), calc(50% - 7px) calc(100% - 6px),
-      calc(50% - 7px) calc(100% - 30px), 0 calc(100% - 30px));
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 56px), calc(50% + 8px) calc(100% - 56px),
+      calc(50% + 8px) calc(100% - 5px), calc(50% + 22px) calc(100% - 5px), calc(50% + 22px) 100%,
+      calc(50% - 22px) 100%, calc(50% - 22px) calc(100% - 5px), calc(50% - 8px) calc(100% - 5px),
+      calc(50% - 8px) calc(100% - 56px), 0 calc(100% - 56px));
   }
   .preview-screen .t-name {
     max-width: none;

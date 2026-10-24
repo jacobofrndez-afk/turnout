@@ -12,3 +12,8 @@ export function clockRange(a: number | Date | string, b: number | Date | string,
   const same = (Number(sa.slice(0, 2)) >= 12) === (Number(sb.slice(0, 2)) >= 12);
   return `${say(sa, !same)} to ${say(sb, true)}`;
 }
+
+/** Text stored before clock.ts says "17:30" or "17:30 to 18:45"; say it the city's way. Text that already says am/pm is left alone. */
+export const clockText = (s: string, tz: string) =>
+  /\b[ap]m\b/i.test(s) ? s : s.replace(/\b((?:[01]\d|2[0-3]):[0-5]\d)(?: to ((?:[01]\d|2[0-3]):[0-5]\d))?\b/g, (_, a: string, b?: string) => (b ? clockRange(a, b, tz) : clock(a, tz))).replace(/\ba (8|11)\b/g, "an $1");
+

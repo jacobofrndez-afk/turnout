@@ -72,6 +72,7 @@
 
 /* the crowds worth a campaign: a plain list, the chosen one on the tone; each line a button that picks it on the map */
 .tm-crowds { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+@media (min-width: 1024px) { .tm-crowds { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 64px; row-gap: 32px; } }
 .tm-item { display: block; min-width: 0; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; color: inherit; }
 
 /* full screen button */

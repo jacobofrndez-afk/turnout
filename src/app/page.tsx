@@ -1,3 +1,4 @@
+import { clock } from "@/lib/clock";
 import { Wordmark } from "@/components/Logo";
 import Link from "next/link";
 import { getMerchant, listMerchants, radarFor, type RadarItem } from "@/server/events/radar";
@@ -20,7 +21,8 @@ async function tonightNear(merchantId: string): Promise<{ item: RadarItem; merch
 export default async function Home() {
   const demos = listMerchants().filter((m) => m.id === "m_penn_pour" || m.id === "m_quai_bercy");
   const live = await tonightNear("m_penn_pour");
-  const fmt = live ? new Intl.DateTimeFormat("en-GB", { weekday: "long", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: live.merchant.timezone }) : undefined;
+  const fmt = live ? new Intl.DateTimeFormat("en-GB", { weekday: "long", timeZone: live.merchant.timezone }) : undefined;
+  const when = live ? `${fmt!.format(new Date(live.item.event.startsAt))} ${clock(new Date(live.item.event.startsAt), live.merchant.timezone)}` : "";
 
   return (
     <main className="mx-auto max-w-6xl px-5">
@@ -33,7 +35,7 @@ export default async function Home() {
           <p className="text-[15px] font-medium text-[var(--muted)] tnum">
             {live ? (
               <>
-                <span className="mono">{live.item.capacity.toLocaleString("en-US")}</span> people, <span className="mono">{live.item.distanceKm.toFixed(1)}&nbsp;km</span> from a bar in Midtown, <span className="mono">{fmt!.format(new Date(live.item.event.startsAt))}</span>
+                <span className="mono">{live.item.capacity.toLocaleString("en-US")}</span> people, <span className="mono">{live.item.distanceKm.toFixed(1)}&nbsp;km</span> from a bar in Midtown, <span className="mono">{when}</span>
               </>
             ) : (
               "Tonight, thousands of people walk past your door"
@@ -58,7 +60,7 @@ export default async function Home() {
             <p className="eyebrow flex items-center gap-3"><span className="live-dot" aria-hidden="true" />Live · next crowd near {live.merchant.name}</p>
             <p className="t-name mt-4">{(live.item.event.origin === "wave" ? live.item.headliner.name : `${live.item.headliner.name} · ${live.item.event.venue.name}`).replace(/(\d) /g, "$1 ")}</p>
             <p className="mt-2 text-base text-[var(--muted)] tnum">
-              {fmt!.format(new Date(live.item.event.startsAt))}
+              {when}
               {live.item.event.origin === "wave" ? ` · ${live.item.event.venue.name}` : ""}
             </p>
             <dl className="mt-10 flex flex-wrap gap-x-12 gap-y-6">

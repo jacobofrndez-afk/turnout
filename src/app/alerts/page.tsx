@@ -3,6 +3,8 @@ import { getMerchant, listMerchants } from "@/server/events/radar";
 import { listAlerts } from "@/server/agent/scan";
 import { getCampaign } from "@/server/agent/run";
 import { whatsappConfigured } from "@/server/channels/twilio";
+import { clock, clockText } from "@/lib/clock";
+import { nb } from "@/lib/nbsp";
 
 export const dynamic = "force-dynamic";
 
@@ -24,15 +26,15 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
   const weekday = new Intl.DateTimeFormat("en-GB", { weekday: "long", timeZone: merchant.timezone });
   const todayKey = dayKey.format(new Date());
   const sentAs = live ? "sent" : "simulated";
-  const fmt = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: merchant.timezone });
+  const fmtDay = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: merchant.timezone });
   const statusLabel: Record<string, string> = { sent: "Sent on WhatsApp", simulated: "Kept here, WhatsApp not connected", failed: "WhatsApp failed" };
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
       <div className="max-w-3xl">
         <Link href={`/today?merchant=${merchant.id}`} className="link text-base">Today</Link>
-        <h1 className="t-display mt-6">What Turnout did on its own</h1>
-        <p className="t-lead mt-5">Every hour Turnout looks for a crowd worth a campaign, writes it and tells you.</p>
+        <h1 className="t-display mt-6">What Turnout found on its own</h1>
+        <p className="t-lead mt-5">Every hour Turnout looks for the crowds worth a campaign and starts writing the strongest one. Here is what it found.</p>
         <form action="/api/scan" method="post" className="mt-4">
           <input type="hidden" name="merchant" value={merchant.id} />
           <button className="link text-base">Look for a crowd now</button>
@@ -41,14 +43,14 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
         {alerts.length === 0 && (
           <div className="empty stack-block">
             <p className="empty-title">Nothing yet</p>
-            <p>When a crowd worth a campaign is coming in the next two days, Turnout writes the campaign and tells you here.</p>
+            <p>When a crowd worth a campaign is coming in the next two days, Turnout finds it and starts writing the campaign here.</p>
           </div>
         )}
 
         <section className="stack-block space-y-12">
           {alerts.map((a) => {
             const at = new Date(a.created_at.endsWith("Z") ? a.created_at : a.created_at.replace(" ", "T") + "Z");
-            const clean = a.message
+            const clean = clockText(a.message, merchant.timezone)
               .replace(/\n(Review and approve|See it on your radar):[\s\S]*$/, "")
               .replace(/^Turnout for [^\n]*\n/, "")
               .replace(/\nThe agent is writing the campaign now\./, "")
@@ -64,11 +66,11 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
             return (
               <article key={a.id}>
                 <p className="t-body">
-                  <span className="t-clock text-[var(--muted)]">{fmt.format(at)}</span>
+                  <span className="t-clock text-[var(--muted)]">{fmtDay.format(at)}, {clock(at, merchant.timezone)}</span>
                   {what && <> · <span className="font-semibold text-[var(--ink)]">{what}</span></>}
                 </p>
                 <p className="t-body mt-2">
-                  {what ? `${when} · ${tail}` : tail} {rest.join(" ")}
+                  {nb(`${what ? `${when} · ${tail}` : tail} ${rest.join(" ")}`)}
                 </p>
                 {a.status !== sentAs && (
                   <p className={a.status === "failed" ? "t-body mt-2 text-[var(--danger)]" : "t-body mt-2 text-[var(--muted)]"}>

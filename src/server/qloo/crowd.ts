@@ -135,7 +135,7 @@ export async function buildCrowdProfile(merchant: Merchant, event: EventRow, pic
     const mean = aff.length ? aff.reduce((a, b) => a + b, 0) / aff.length : 0;
     // Also credit direct overlap between the offer's tags and the crowd's taste tags.
     const overlap = profile.tags.filter((t) => urns.includes(tagId(t))).length;
-    profile.offerFits.push({ offerId: offer.id, title: offer.title, tagUrns: urns, tagNames: names, affinity: Math.round((mean + 0.05 * overlap) * 100) / 100, matches: places.length, topPlaces: places.slice(0, 3).map((p) => p.name) });
+    profile.offerFits.push({ offerId: offer.id, title: offer.title, tagUrns: urns, tagNames: names, affinity: Math.round((mean + 0.05 * overlap) * 100) / 100, matches: places.length, topPlaces: places.filter((p) => !(p.tags ?? []).some((t) => /:restaurant:(fast_food|donut_shop|coffee_shop)$/.test(tagId(t)))).slice(0, 3).map((p) => p.name) });
   }
   profile.offerFits.sort((a, b) => b.affinity - a.affinity || b.matches - a.matches);
   provenance.push({ seq: ++seq, kind: "decision", workflow: "offer_fit", input: {}, status: "ok", resultCount: profile.offerFits.length, cacheHit: false, durationMs: 0, note: profile.offerFits[0] ? `best: ${profile.offerFits[0].title} (${profile.offerFits[0].affinity})` : "no offers" });

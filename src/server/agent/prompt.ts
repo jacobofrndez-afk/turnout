@@ -1,4 +1,5 @@
 // Prompt construction. The system prompt is frozen (cacheable); everything volatile goes in the user turn.
+import { clock, clockRange } from "@/lib/clock";
 import type { Merchant } from "@/server/events/radar";
 import { momentMeta, type CrowdProfile, type EventRow, type OfferRow } from "@/server/qloo/crowd";
 import { describeDemographics } from "@/server/qloo/crowd";
@@ -23,7 +24,7 @@ Rules:
 - Copy is for the channel: short for ads and boards, warmer for WhatsApp regulars, factual for the Google post. Respect the merchant's voice. Mention the event by headliner name where natural.
 - Use the merchant's city language: English for US cities, French for France. Prices stay as given.
 - Interest keywords for the geofenced ad come from the Qloo tags and brands, phrased as ad-platform interests (e.g. "Cocktail bars", "Luxury fashion", "Pop music").
-- Time windows: use the suggested ones unless the evidence says otherwise; keep local HH:MM.
+- Time windows: use the suggested ones unless the evidence says otherwise; keep local HH:MM in start_local and end_local only. Everywhere else (copy, rationale, window why, limitations) say times the way the city says them: "6:30 pm", "8 pm", "5:30 to 7:30 pm" in US cities, "18:30" in France.
 - Day words: say "tonight" or "today" only when the event falls on the same local day as Now; otherwise name the weekday ("Saturday"). The WhatsApp message is sent the moment the merchant publishes, so it must read right on the day it is sent. Use the same day word in every channel.
 - Weather does not change who the crowd is; it changes what to offer and how to say it. Rain, storm, snow or cold favour shelter, warm food and indoor comfort; heat favours cold drinks and outdoor seating; a pleasant dry evening favours terraces and lingering. Say so in the rationale when it tips the choice, and use it in the copy only when it helps. Never invent weather that is not given.
 - No exclamation marks. No emojis. No hashtags.`;
@@ -54,7 +55,7 @@ export function campaignWindows(event: EventRow): { label: string; start: number
 
 export function timeWindows(event: EventRow, merchant: Merchant): { label: string; start_local: string; end_local: string; why: string }[] {
   const fmt = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: merchant.timezone });
-  return campaignWindows(event).map((w) => ({ label: w.label, start_local: fmt.format(new Date(w.start)), end_local: fmt.format(new Date(w.end)), why: w.why }));
+  return campaignWindows(event).filter((w, i, all) => w.end > Date.now() || i === all.length - 1).map((w) => ({ label: w.label, start_local: fmt.format(new Date(w.start)), end_local: fmt.format(new Date(w.end)), why: w.why }));
 }
 
 // The same windows as ISO instants, for the weather lookup.
@@ -66,17 +67,17 @@ export type WindowWeather = { label: string; summary: string };
 
 export function buildUserPrompt(merchant: Merchant, event: EventRow, profile: CrowdProfile, offers: OfferRow[], weather: WindowWeather[] = []): string {
   const demo = describeDemographics(profile.demographics);
-  const fmt = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: merchant.timezone });
+  const fmt = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: merchant.timezone });
   const lines: string[] = [];
   lines.push(`# Merchant`, `${merchant.name}, a ${merchant.kind} at ${merchant.address ?? merchant.city}. City: ${merchant.city}. Timezone: ${merchant.timezone}.`, `Voice: ${merchant.voice ?? "friendly and direct"}`, "");
   const fmtNow = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: merchant.timezone });
   lines.push(`# Now`, `${fmtNow.format(new Date())} local. The merchant may publish now or later the same day.`, "");
   const origin = event.origin ?? "ticketmaster";
   if (origin === "ticketmaster") {
-    lines.push(`# Event`, `${event.name} at ${event.venue_name}, ${fmt.format(new Date(event.starts_at))} local. Segment: ${event.segment ?? "?"}${event.genre ? ` / ${event.genre}` : ""}.`, `Headliner resolved in Qloo: ${profile.entity?.name ?? profile.headlinerName} (${profile.entity?.subtype?.replace("urn:entity:", "") ?? "unknown"}), popularity ${((profile.entity?.popularity ?? 0) * 100).toFixed(1)}%.`, "");
+    lines.push(`# Event`, `${event.name} at ${event.venue_name}, ${fmt.format(new Date(event.starts_at))} at ${clock(new Date(event.starts_at), merchant.timezone)} local. Segment: ${event.segment ?? "?"}${event.genre ? ` / ${event.genre}` : ""}.`, `Headliner resolved in Qloo: ${profile.entity?.name ?? profile.headlinerName} (${profile.entity?.subtype?.replace("urn:entity:", "") ?? "unknown"}), popularity ${((profile.entity?.popularity ?? 0) * 100).toFixed(1)}%.`, "");
   } else {
     const meta = momentMeta(event);
-    lines.push(`# Moment (${origin})`, `${event.name}, around ${fmt.format(new Date(event.starts_at))} local.${event.crowd_est ? ` About ${event.crowd_est.toLocaleString("en-US")} people around.` : ""}${meta.why ? ` ${meta.why}` : ""}`);
+    lines.push(`# Moment (${origin})`, `${event.name}, around ${fmt.format(new Date(event.starts_at))} at ${clock(new Date(event.starts_at), merchant.timezone)} local.${event.crowd_est ? ` About ${event.crowd_est.toLocaleString("en-US")} people around.` : ""}${meta.why ? ` ${meta.why}` : ""}`);
     if (meta.members?.length) lines.push(`Made of: ${meta.members.slice(0, 8).map((m) => `${m.name} (${m.venue})`).join("; ")}.`);
     lines.push(`Qloo signal for this crowd: ${[...profile.signal.entities.map((e) => `${e.name} (${e.type})`), ...profile.signal.tags.map((t) => `tag ${t.name}`)].join(", ")}. This is not one fan base: speak to the whole moment, not to one show.`, "");
   }
@@ -96,7 +97,7 @@ export function buildUserPrompt(merchant: Merchant, event: EventRow, profile: Cr
     lines.push(`- id=${o.id} | ${o.title} | ${o.description} | ${o.price} | tags: ${JSON.parse(o.tag_names_json).join(", ")} | fit ${fit ? fit.affinity.toFixed(2) : "n/a"}${fit?.topPlaces.length ? ` (places this crowd likes with these tags nearby: ${fit.topPlaces.join(", ")})` : ""}`);
   }
   lines.push("", `# Suggested windows (local time)`);
-  for (const w of timeWindows(event, merchant)) lines.push(`- ${w.label}: ${w.start_local} to ${w.end_local}. ${w.why}`);
+  for (const w of timeWindows(event, merchant)) lines.push(`- ${w.label}: ${w.start_local} to ${w.end_local} (say "${clockRange(w.start_local, w.end_local, merchant.timezone)}"). ${w.why}`);
   lines.push("", `# Weather at the merchant (Open-Meteo forecast)`);
   if (weather.length) for (const w of weather) lines.push(`- ${w.label}: ${w.summary}.`);
   else lines.push("Not available. Do not mention the weather.");

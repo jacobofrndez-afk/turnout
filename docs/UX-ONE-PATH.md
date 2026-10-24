@@ -22,7 +22,7 @@ Every secondary page starts with one link back: "Today" (not "Back to the radar"
 - **Level 2, at most four per screen (five on Today, the home carries two more sections)**: `.t-title` for section heads. Section heads are plain words a merchant
   says: "What goes out", "Why", "Coming next", "Every day this week".
 - **Level 3**: `.t-body` for everything else; `.t-lead` only for the one sentence under the headline.
-- Eyebrows (`.eyebrow`) only inside the plate and above the channel cards (three on Today, five on the campaign). Everywhere else a label becomes a
+- Eyebrows (`.eyebrow`) only inside the plate and above the channel cards (the chalkboard plus the channels Publish sends, on Today and on the campaign; the weekly plan's four channel blocks). Everywhere else a label becomes a
   `.t-title` or disappears. Dates and places go in `.t-body` sentences, not in labels.
 - Figures: at most two big figures per screen (`.t-figure`), both answering "how many people, when".
 - The plate (`.plate`): one per screen, holds the headline, the one sentence, the one button. Nothing else.
@@ -49,11 +49,11 @@ Every secondary page starts with one link back: "Today" (not "Back to the radar"
    Garden"), `.t-lead` "About 20,000 people 0.3 km from your door from 5:30 pm. Your pre-show happy hour is ready."
    Button "Publish" when a campaign exists, else "Write my campaign"; secondary link "Read every word first". Times
    in the merchant's clock (`src/lib/clock.ts`): "5:30 pm" in New York, "17:30" in Paris.
-2. "What goes out": the three channel cards (chalkboard, regulars, strangers), unchanged.
+2. "What goes out": the same blocks as the campaign page: the chalkboard, then only the channels Publish sends (the merchant's channels), with the same eyebrows.
 3. "Why": three lines, `.t-body .measure`, then the link "The rest of the reasoning".
 4. "Coming next": up to three lines, each "Sat 8 pm · Harry Styles · about 100 guests" + link "See who is coming".
 5. "Every day this week": the weekly offer in two lines + link "This week's plan".
-6. "What Turnout did on its own": three alerts + link "All alerts".
+6. "What Turnout found on its own": three alerts + link "All alerts".
 7. Footer links in one line: "Explore the map", "Your place and offers".
 
 ### Explore (radar)
@@ -80,4 +80,4 @@ Every secondary page starts with one link back: "Today" (not "Back to the radar"
    offers table and the provenance.
 
 ### Alerts and pulse pages
-Same rules: link "Today", one `.t-display`, `.t-title` sections, no eyebrows outside a plate.
+Same rules: link "Today", one `.t-display`, `.t-title` sections, no eyebrows outside a plate except above the weekly plan's four channel blocks, named in the same merchant words as on Today and the campaign.

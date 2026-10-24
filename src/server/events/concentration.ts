@@ -107,7 +107,7 @@ export function scoreConcentration(e: TmEvent, merchant: { lat: number; lon: num
   const radiusKm = merchant.radiusM / 1000;
   // Full weight inside the merchant radius, fades to 0 at 3x the radius. TV and calendar crowds are "around you" by construction.
   const walk = e.origin === "tv" || e.origin === "calendar" ? 1 : distanceKm <= radiusKm ? 1 : clamp(1 - (distanceKm - radiusKm) / (2 * radiusKm), 0, 1);
-  const timing = hoursUntil < -3 ? 0 : hoursUntil <= 24 ? 1 : clamp(1 - (hoursUntil - 24) / 96, 0.5, 1);
+  const timing = now.getTime() > presenceWindow(e).leave ? 0 : hoursUntil <= 24 ? 1 : clamp(1 - (hoursUntil - 24) / 96, 0.5, 1);
   const potentialGuests = Math.round(capacity * walk * (SHARE[e.origin ?? "ticketmaster"] ?? 0.005));
   const fill = potentialGuests / seats;
   const score = Math.round(100 * clamp(fill, 0, 1) * timing);

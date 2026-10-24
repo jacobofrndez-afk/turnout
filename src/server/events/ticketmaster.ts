@@ -47,7 +47,7 @@ const MAX_PAGES = 5; // size * page must stay <= 1000
 export type FetchArgs = { lat: number; lon: number; radiusKm: number; hoursAhead: number };
 
 export async function fetchEventsNear(args: FetchArgs): Promise<TmEvent[]> {
-  const cacheInput = { ...args, bucket: Math.floor(Date.now() / 3_600_000) }; // 1h buckets
+  const cacheInput = { ...args, lookbackH: 5, bucket: Math.floor(Date.now() / 3_600_000) }; // 1h buckets; lookbackH busts caches made before the 5 h lookback
   const cached = cacheGet<TmEvent[]>("ticketmaster", cacheInput);
   if (cached) return cached;
 
@@ -63,7 +63,7 @@ export async function fetchEventsNear(args: FetchArgs): Promise<TmEvent[]> {
       radius: String(Math.max(1, Math.round(args.radiusKm))),
       unit: "km",
       locale: "*", // required to see non-US markets (Paris returns 0 without it)
-      startDateTime: iso(now),
+      startDateTime: iso(new Date(now.getTime() - 5 * 3_600_000)), // shows that started still have their after-show crowd (presenceWindow leave = start + 4 h 15)
       endDateTime: iso(end),
       size: String(PAGE_SIZE),
       page: String(page),

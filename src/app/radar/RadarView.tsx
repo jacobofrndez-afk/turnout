@@ -80,7 +80,10 @@ export default function RadarView({ merchant, items, nowIso }: Props) {
     [items, t0, t1],
   );
 
-  const firstHot = all.find((c) => c.interesting && c.w.leave > now);
+  // The same pick as Today: the strongest crowd of the coming twelve hours with at least 45 minutes left, else the strongest ahead.
+  const pickable = all.filter((c) => c.interesting && c.w.leave > now + 45 * 60_000);
+  const soonPick = pickable.filter((c) => c.w.arrive <= now + 12 * 3_600_000);
+  const firstHot = [...(soonPick.length ? soonPick : pickable)].sort((a, b) => b.guests - a.guests || a.w.arrive - b.w.arrive)[0] ?? all.find((c) => c.interesting && c.w.leave > now);
   const [selected, setSelected] = useState<string | undefined>(firstHot?.id);
   const [cursor, setCursor] = useState(nowQ);
   const [hourly, setHourly] = useState(false);
@@ -378,7 +381,7 @@ export default function RadarView({ merchant, items, nowIso }: Props) {
     return (
       <li key={it.id} className={isSel ? "tone" : undefined}>
         <button type="button" className="tm-item t-body" onClick={() => selectCrowd(it.id)} aria-pressed={isSel}>
-          <span className="mono">{dayLabel(it.w.start, true)} {clock(it.w.start, tz)}</span> · <b>{it.headliner}</b> ·{" "}
+          <span className="mono">{it.w.arrive <= now ? `Now, until ${clock(it.w.leave, tz)}` : `${dayLabel(it.w.start, true)} ${clock(it.w.start, tz)}`}</span> · <b>{it.headliner}</b> ·{" "}
           {onMap ? <>{it.venue}, <span className="mono">{it.distanceKm.toFixed(1)}&nbsp;km</span></> : (it.blurb ?? it.venue)}
         </button>
         <p className="t-body mt-1 text-[var(--muted)]">

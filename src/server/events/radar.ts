@@ -1,7 +1,7 @@
 // Radar: events near a merchant, scored and persisted.
 import { getDb } from "@/server/db/client";
 import { fetchEventsNear, type TmEvent } from "./ticketmaster";
-import { scoreConcentration, headliner, type Scored } from "./concentration";
+import { scoreConcentration, headliner, presenceWindow, type Scored } from "./concentration";
 import { detectWaves } from "./moments";
 import { collectMoments } from "./sources";
 import "./tv"; // registers the games-on-TV source
@@ -42,6 +42,9 @@ export async function radarFor(merchant: Merchant, hoursAhead = 72): Promise<Rad
     events = await fetchEventsNear({ lat: merchant.lat, lon: merchant.lon, radiusKm, hoursAhead });
     tm.__tmFailedAt = undefined;
     persist(events);
+    // Ticketmaster stops listing a show once it starts; the stored row keeps its after-show crowd on the radar.
+    const seen = new Set(events.map((e) => e.id));
+    for (const e of storedEventsNear(merchant, radiusKm, hoursAhead)) if (!seen.has(e.id) && Date.parse(e.startsAt) <= Date.now()) events.push(e);
   } catch (e) {
     if (!/less than 5 minutes/.test(String(e))) tm.__tmFailedAt = Date.now();
     // Ticketmaster down or key missing: serve what we already stored around this point.
@@ -64,7 +67,7 @@ export async function radarFor(merchant: Merchant, hoursAhead = 72): Promise<Rad
   forgetStaleWaves(merchant.id, waves.map((w) => w.id));
   return [...scored, ...[...waves, ...moments].map((w) => scoreConcentration(w, m, now))]
     .map((s) => ({ ...s, headliner: headliner(s.event) }))
-    .filter((s) => s.hoursUntil > -3 || (s.event.windowEnd && Date.parse(s.event.windowEnd) > now.getTime()))
+    .filter((s) => presenceWindow(s.event).leave > now.getTime())
     .sort((a, b) => b.score - a.score || a.hoursUntil - b.hoursUntil);
 }
 
@@ -73,7 +76,7 @@ function storedEventsNear(merchant: Merchant, radiusKm: number, hoursAhead: numb
   const deg = radiusKm / 111;
   const rows = getDb()
     .prepare(
-      `SELECT * FROM events WHERE origin = 'ticketmaster' AND lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? AND starts_at BETWEEN datetime('now', '-3 hours') AND datetime('now', ?) ORDER BY starts_at`,
+      `SELECT * FROM events WHERE origin = 'ticketmaster' AND lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? AND starts_at BETWEEN datetime('now', '-5 hours') AND datetime('now', ?) ORDER BY starts_at`,
     )
     .all(merchant.lat - deg, merchant.lat + deg, merchant.lon - deg / Math.cos((merchant.lat * Math.PI) / 180), merchant.lon + deg / Math.cos((merchant.lat * Math.PI) / 180), `+${Math.round(hoursAhead)} hours`) as {
     id: string; name: string; venue_name: string; venue_id: string | null; lat: number; lon: number; starts_at: string; timezone: string | null; segment: string | null; genre: string | null; attractions_json: string; status: string | null; url: string | null; image_url: string | null;

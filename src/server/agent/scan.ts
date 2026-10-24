@@ -120,8 +120,8 @@ export function composeAlert(merchant: Merchant, it: RadarItem, campaign?: Campa
   const seats = Math.max(10, merchant.seats ?? 60);
   const lines = [
     `Turnout for ${merchant.name}`,
-    `${day} ${clock(w.start, merchant.timezone)}: ${it.event.name}${origin === "ticketmaster" ? ` at ${it.event.venue.name}` : ""}, about ${it.capacity.toLocaleString("en-US")} people ${where}, from ${clockRange(w.arrive, w.leave, merchant.timezone)}.`,
-    `Could bring about ${it.potentialGuests} guests, ${it.fill >= 1 ? `enough to fill your ${seats} seats` : `${Math.round(it.fill * 100)}% of your ${seats} seats`}.`,
+    `${day} ${clock(w.start, merchant.timezone)}: ${it.event.name}${origin === "ticketmaster" ? ` at ${it.event.venue.name}` : ""}, about ${(Math.round(it.capacity / 100) * 100).toLocaleString("en-US")} people ${where}, from ${clockRange(w.arrive, w.leave, merchant.timezone)}.`,
+    `Could bring about ${it.potentialGuests} guests, ${it.fill >= 1 ? `enough to fill your ${seats} seats` : it.fill >= 0.5 ? "enough for half your seats" : "enough for a few tables"}.`,
   ];
   if (campaign) {
     const draft = getDraft(campaign);

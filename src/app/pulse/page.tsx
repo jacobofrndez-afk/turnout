@@ -73,21 +73,22 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
             {whyRest && (<details className="mt-4"><summary className="link w-fit text-base">The rest of the reasoning</summary><p className="t-body mt-3">{nb(whyRest)}</p></details>)}
           </section>
           <section className="stack-section">
-            <h2 className="t-title">What goes out</h2>
+            <h2 className="t-title">Your words for this week</h2>
+            <p className="t-body mt-4">Turnout sends none of this for you. Copy what you want; the ad runs only if you set it up yourself.</p>
             <div className="mt-10 grid gap-x-16 gap-y-14 md:grid-cols-2">
-              <Block title="Chalkboard" tag="Every weekday">
+              <Block title="On your chalkboard" tag="Every weekday">
                 <p className="t-name whitespace-pre-wrap">{nb(brief.chalkboard)}</p>
               </Block>
-              <Block title="Google Business post" tag="This week">
+              <Block title="On your Google listing" tag="This week">
                 <p className="t-body font-semibold text-[var(--ink)]">{nb(brief.google_post.title)}</p>
                 <p className="t-body">{nb(brief.google_post.body)}</p>
               </Block>
-              <Block title="Note to regulars" tag="On WhatsApp">
+              <Block title="To your regulars on WhatsApp" tag="This week">
                 <p className="t-body">{nb(brief.whatsapp)}</p>
               </Block>
               <Block
-                title="Ad to strangers nearby"
-                tag={<>{adSlot(pulse.rhythm, tz)}, within <span className="mono">{nb(`${brief.always_on_ad.radius_m} m`)}</span>, ${brief.always_on_ad.daily_budget_usd} a day</>}
+                title="To strangers nearby"
+                tag={<>{adSlot(pulse.rhythm, tz)}, within <span className="mono">{nb(`${brief.always_on_ad.radius_m} m`)}</span>, up to ${brief.always_on_ad.daily_budget_usd}&nbsp;a&nbsp;day if you run it</>}
               >
                 <p className="t-body font-semibold text-[var(--ink)]">{nb(brief.always_on_ad.headline)}</p>
                 <p className="t-body">{nb(brief.always_on_ad.body)}</p>

@@ -136,7 +136,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
   if (likeTags.length < 2) likeTags = profile.tags.filter((t) => !NOISE_TAG_ID.test(tagId(t))).map((t) => t.name).filter(isTaste).slice(0, 3);
   // "Moderately expensive" is the one price word Qloo gives; it leads the title when it exists.
   const costTag = profile.tags.find((t) => tagId(t).includes(":cost_description:"))?.name;
-  const likeTitle = [...(costTag ? [`${costTag.toLowerCase()} places`] : []), ...likeTags.map((n) => n.toLowerCase())].slice(0, 3);
+  const likeTitle = [...(costTag ? [`${costTag.toLowerCase().replace("moderately expensive", "mid-priced")} places`] : []), ...likeTags.map((n) => n.toLowerCase().replace(/\s*\+\s*/g, " & "))].slice(0, 3);
   const bars = profile.places.slice(0, 3).map((p) => p.name);
   const like: Fact = {
     title: likeTitle.length >= 2 ? cap(andList(likeTitle)) : andList(brands.slice(0, 3)) || "Their tastes, through Qloo",
@@ -161,10 +161,10 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
   const signalNames = profile.entity ? profile.headlinerName : [...profile.signal.entities, ...profile.signal.tags].map((x) => x.name).join(", ");
 
   return (
-    <main className="mx-auto max-w-5xl px-5 py-10">
+    <main className="mx-auto max-w-5xl px-6 py-10">
       <Link href={`/today?merchant=${merchant.id}`} className="link text-sm">Today</Link>
       <section className="stack-block">
-        <div className="plate">
+        <div className="plate min-[1152px]:-mx-[68px] min-[1152px]:px-[68px]!">
           <h1 className="t-display">{profile.headlinerName}</h1>
           <p className="t-lead mt-5">
             {event.venue_name}, {day} {isShow ? "at" : "from"} <span className="mono">{clock(starts, tz)}</span>

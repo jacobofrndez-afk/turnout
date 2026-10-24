@@ -38,6 +38,11 @@ export function noScores(s: string): string {
 // Analyst words read as a system talking. The agent is told not to use them; this catches stored drafts.
 export function plainWords(s: string): string {
   return s
+    .replace(/The offer fits are affinities of places with the offer's tags nearby;\s*they compare offers, they do not forecast sales\./gi, "The offer matches only compare your offers with each other; they do not forecast sales.")
+    .replace(/\ba high affinity\b/gi, "a strong match")
+    .replace(/[^.]*\bwins on (?:two|three|four) (?:signals|reasons) that agree\.\s*/gi, "")
+    .replace(/\bDemographics: an? (female|male)-skew(?:ing|ed)\b/g, "A mostly $1")
+    .replace(/\b(female|male)-skew(?:ing|ed)\b/gi, "mostly $1")
     .replace(/[^.]*\bcompressed\b[^.]*\./gi, "")
     .replace(/\bover-?index(?:es|ed)? on ([^,.;]*?) and on\b/gi, "lean toward $1 and toward")
     .replace(/\bover-?index(?:es|ed)? on\b/gi, "lean toward")
@@ -48,6 +53,7 @@ export function plainWords(s: string): string {
     .replace(/\btaste tags\b/gi, "tastes")
     .replace(/\b(offer's|offers') tags\b/gi, "$1 kinds of places")
     .replace(/\btags\b/gi, "tastes")
+    .replace(/\b(crowds are|moods run) ([^:.;]+)/g, (_m: string, a: string, b: string) => `${a} ${b.toLowerCase()}`)
     .replace(/\bsignals\b/gi, "reasons")
     .replace(/\bsignal\b/gi, "reason")
     .replace(/\baggregate affinities\b/gi, "shared tastes")

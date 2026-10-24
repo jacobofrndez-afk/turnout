@@ -7,7 +7,8 @@ import { getEvent, getOffers } from "@/server/qloo/crowd";
 import { RefreshEvery } from "@/app/today/RefreshEvery";
 import { getSends, type ChannelId, type SendRow } from "@/server/channels";
 import { nb } from "@/lib/nbsp";
-import { clock, clockRange } from "@/lib/clock";
+import { clock, clockRange, clockText } from "@/lib/clock";
+import { whatsappConfigured } from "@/server/channels/twilio";
 import { firstSentences, noScores, plainWords } from "@/lib/text";
 import { getDb } from "@/server/db/client";
 
@@ -41,8 +42,10 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   campaign = pollOperatorDraft(campaign);
   const merchant = getMerchant(campaign.merchant_id)!;
   const event = getEvent(campaign.event_id)!;
+  // The act, as on Today and Who is coming; a tour title ("Harry Styles: Together, Together") reads like a stutter.
+  const actName = (event.origin ?? "ticketmaster") === "ticketmaster" ? ((JSON.parse(event.attractions_json) as { name?: string }[])[0]?.name ?? event.name) : event.name;
   const draft = getDraft(campaign);
-  const why = draft ? plainWords(noScores(draft.rationale)) : "";
+  const why = draft ? clockText(plainWords(noScores(draft.rationale)), merchant.timezone) : "";
   const whyLead = firstSentences(why, 320);
   const whyRest = why.startsWith(whyLead) ? why.slice(whyLead.length).trim() : "";
   const offers = getOffers(merchant.id);
@@ -60,20 +63,24 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   const dayword = eventKey === fmtDayKey.format(new Date(now)) ? "tonight" : eventKey === fmtDayKey.format(new Date(now + 86_400_000)) ? "tomorrow" : new Intl.DateTimeFormat("en-GB", { weekday: "long", timeZone: tz }).format(new Date(event.starts_at));
 
   // The night is over once every window has closed (instants, compared in UTC). A draft then has nothing left to publish.
-  const lastWindowEnd = Math.max(...campaignWindows(event).map((w) => w.end));
+  const wins = campaignWindows(event);
+  const lastWindowEnd = Math.max(...wins.map((w) => w.end));
   const nightOver = campaign.status === "drafted" && lastWindowEnd < now;
+  // The first window closed but the night goes on: the words were written for "until 7 pm", so Publish waits for a rewrite.
+  const firstOver = campaign.status === "drafted" && !nightOver && wins[0].end < now;
   const out = campaign.status === "approved" || campaign.status === "sent";
   const sentAt = sends.length ? Math.min(...sends.map((s) => parseUtc(s.sent_at))) : undefined;
   const outSentence = sends.length === 0 ? "Going out now." : sends.some((s) => s.simulated) ? `Published at ${clock(sentAt!, tz)}. Each channel goes out as soon as it is connected.` : `Out since ${clock(sentAt!, tz)} on ${fmtDay.format(sentAt)}.`;
   // Started in operator mode and never answered: the page must not promise "a few minutes" for hours.
   const stale = campaign.status === "awaiting_operator" && now - parseUtc(campaign.created_at) > 15 * 60_000;
 
-  // The offer in one line, then the windows: "Before doors 17:30 to 19:30, after the show 22:45 to 00:15."
+  // The offer in one line, then when the crowd is near, with a verb so it never reads as offer hours:
+  // "The crowd is near you before doors, 5:30 to 7:30 pm, and after the show, 10:45 pm to 12:15 am."
   const offerLine = draft && (
     <>
       {offer ? `${nb(`${offer.description.replace(/\.$/, "")}. ${offer.price.replace(/\.$/, "")}.`)} ` : ""}
       {draft.windows.map((w, i) => (
-        <span key={w.label}>{i > 0 ? `, ${lowerFirst(w.label)}` : w.label} <span className="mono">{clockRange(w.start_local, w.end_local, tz)}</span></span>
+        <span key={w.label}>{i > 0 ? ", and " : "The crowd is near you "}{lowerFirst(w.label)}, <span className="mono">{clockRange(w.start_local, w.end_local, tz)}</span></span>
       ))}.
     </>
   );
@@ -81,14 +88,15 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   // Only what Publish will send (the merchant's channels, as in publishCampaign), plus the chalkboard, which is the merchant's own.
   const merchantChannels = JSON.parse((getDb().prepare("SELECT channels_json FROM merchants WHERE id = ?").get(merchant.id) as { channels_json: string } | undefined)?.channels_json ?? "[]") as ChannelId[];
   const channels: ChannelId[] = CHANNEL_ORDER.filter((c) => sendByChannel.has(c) || (draft && (c === "storefront" || merchantChannels.includes(c))));
+  const whatsappLive = whatsappConfigured() && Boolean(process.env.DEMO_WHATSAPP_TO); // same test as publishCampaign and the alerts page
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
       <Link href={`/today?merchant=${merchant.id}`} className="link text-sm">Today</Link>
 
       <section className="stack-block">
-        <div className="plate">
-          <p className="eyebrow">Your campaign for {dayword}, {event.name} at {event.venue_name}</p>
+        <div className="plate min-[1152px]:-mx-[68px] min-[1152px]:px-[68px]!">
+          <p className="eyebrow">Your campaign for {dayword}, {actName} at {event.venue_name}</p>
           {draft ? (
             <>
               <h1 className="t-display mt-5">{offer?.title ?? draft.chosen_offer_id}</h1>
@@ -100,8 +108,14 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
               ) : (
                 <p className="t-lead mt-5">{offerLine}</p>
               )}
-              {campaign.status === "drafted" && !nightOver && (
+              {campaign.status === "drafted" && !nightOver && !firstOver && (
                 <form action={`/api/campaigns/${campaign.id}/approve`} method="post" className="mt-10"><button className="btn btn-accent btn-lg">Publish</button></form>
+              )}
+              {firstOver && (
+                <>
+                  <p className="t-body mt-10">{wins[0].label} closed at <span className="mono">{clock(wins[0].end, tz)}</span>. These words were written for it, so they stay here.{wins.length > 1 ? ` The crowd comes out at ${clock(wins[wins.length - 1].start, tz)}.` : ""}</p>
+                  <form action="/api/campaigns" method="post" className="mt-6"><input type="hidden" name="merchant" value={merchant.id} /><input type="hidden" name="event" value={event.id} /><button className="btn btn-accent btn-lg">Write it for the rest of the night</button></form>
+                </>
               )}
               {nightOver && (
                 <p className="t-body mt-10">This night has passed. The windows closed on {fmtDay.format(new Date(lastWindowEnd))}. Write a new campaign for the next crowd from <Link href={`/today?merchant=${merchant.id}`} className="link">Today</Link>.</p>
@@ -156,7 +170,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                           <p className="t-body text-[var(--muted)]">Your staff say: “{nb(draft.storefront.staff_line)}”</p>
                         </>
                       )}
-                      {c === "whatsapp" && (<><p className="t-body whitespace-pre-wrap">{nb(draft.whatsapp.message)}</p>{campaign.status === "drafted" && !send && <p className="t-body text-[var(--muted)]">Sent to your regulars the moment you press Publish.</p>}</>)}
+                      {c === "whatsapp" && (<><p className="t-body whitespace-pre-wrap">{nb(draft.whatsapp.message)}</p>{campaign.status === "drafted" && !send && !firstOver && <p className="t-body text-[var(--muted)]">{whatsappLive ? "Sent to your regulars the moment you press Publish." : "WhatsApp is not connected yet, so Publish keeps this message here instead of sending it."}</p>}</>)}
                       {c === "geofenced_ad" && (
                         <>
                           <p className="t-name">{nb(draft.geofenced_ad.headline)}</p>
@@ -203,7 +217,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                   const weather = weatherByWindow.get(w.label);
                   return (
                     <p key={w.label} className="t-body measure mt-3">
-                      {w.label}, <span className="mono">{clockRange(w.start_local, w.end_local, tz)}</span>{weather ? `, ${lowerFirst(weather)}` : ""}. {nb(w.why)}
+                      {w.label}, <span className="mono">{clockRange(w.start_local, w.end_local, tz)}</span>{weather ? `, ${lowerFirst(weather)}` : ""}. {nb(clockText(w.why, tz))}
                     </p>
                   );
                 })}

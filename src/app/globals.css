@@ -389,6 +389,8 @@ html:root {
     text-transform: none;
     color: var(--muted);
   }
+  /* The plate label is one line of context, not prose: it takes the plate's width, not the paragraph measure. */
+  .plate .eyebrow { max-width: none; }
 
   /* The scale as classes, for new markup. */
   .t-display {
@@ -499,6 +501,17 @@ html:root {
     background: var(--tone);
     padding: var(--tone-pad);
   }
+
+  /* What goes out: each channel shown as the thing it becomes (a board, a message, an ad, a screen), white objects
+     on the screen's one tone surface. Corners 0, no lines, no shadow, no new type size: .t-name, .t-body, --fs-label. */
+  .preview { background: var(--paper); padding: 24px 28px; }
+  .preview-board { text-align: center; padding: 36px 28px 40px; max-width: 26rem; }
+  .preview-board .t-name { max-width: none; }
+  .preview-bubble { position: relative; max-width: 36ch; padding: 14px 18px 16px; margin-left: 10px; }
+  .preview-bubble::before { content: ""; position: absolute; left: -10px; bottom: 0; width: 10px; height: 14px; background: var(--paper); clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+  .preview-bubble .t-body { max-width: none; }
+  .preview-by { font-size: var(--fs-label); line-height: 1.4; font-weight: 500; color: var(--muted); }
+  .preview-screen { aspect-ratio: 16 / 9; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; max-width: 32rem; }
 
   .plate,
   .card-live {

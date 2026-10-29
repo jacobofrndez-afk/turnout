@@ -49,24 +49,24 @@ export function provider(): "anthropic" | "operator" {
 
 // One generation per place/event in this Node process, even on double submit.
 const pendingCampaigns = new Map<string, Promise<CampaignRow>>();
-export async function createCampaign(merchant: Merchant, event: EventRow, pickedEntityId?: string): Promise<CampaignRow> {
+export async function createCampaign(merchant: Merchant, event: EventRow, pickedEntityId?: string, fresh = false): Promise<CampaignRow> {
   const dna = getDna(merchant.id);
   const key = `${merchant.id}:${event.id}:${pickedEntityId ?? ""}:${dna.version}`;
   const pending = pendingCampaigns.get(key);
   if (pending) return pending;
-  const run = createCampaignOnce(merchant, event, pickedEntityId, dna);
+  const run = createCampaignOnce(merchant, event, pickedEntityId, dna, fresh);
   pendingCampaigns.set(key, run);
   try { return await run; } finally { pendingCampaigns.delete(key); }
 }
 
-async function createCampaignOnce(merchant: Merchant, event: EventRow, pickedEntityId: string | undefined, dna: DnaRecord): Promise<CampaignRow> {
+async function createCampaignOnce(merchant: Merchant, event: EventRow, pickedEntityId: string | undefined, dna: DnaRecord, fresh = false): Promise<CampaignRow> {
   if (campaignWindows(event).every(w => w.end <= Date.now())) throw new Error("This crowd has already left. Choose a coming event.");
   const previous = getDb().prepare("SELECT * FROM campaigns WHERE merchant_id = ? AND event_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1").get(merchant.id, event.id) as CampaignRow | undefined;
-  if (previous && !pickedEntityId) {
+  if (previous && !pickedEntityId && !fresh) {
     const existing = pollOperatorDraft(previous);
     const sameDna = (existing.dna_version ?? 0) === dna.version;
     const draft = getDraft(existing);
-    const currentEngine = provider() === 'operator' || !!existing.review_json || existing.evidence_json && JSON.parse(existing.evidence_json).engineVersion === 2;
+    const currentEngine = provider() === 'operator' || !!existing.review_json || existing.evidence_json && JSON.parse(existing.evidence_json).engineVersion === 3;
     if (draft && (existing.status === "drafted" && sameDna && currentEngine && draftFirstWindow(event, draft.windows, merchant.timezone).end > Date.now()+dna.profile.leadMinutes*60000+30*60000 || ["approved", "sent", "prepared", "partial"].includes(existing.status))) return existing;
     if (sameDna && existing.status === "awaiting_operator" && (provider() === "operator" || Date.now() - Date.parse(existing.created_at.replace(" ", "T") + "Z") < 15 * 60_000)) return existing;
   }
@@ -81,7 +81,7 @@ async function createCampaignOnce(merchant: Merchant, event: EventRow, pickedEnt
   const offers = getOffers(merchant.id);
   const weather = await forecastWindows(id, profile.id, merchant, event);
   const channelAffinity = await crowdChannelAffinity(profile.signal, profile.headlinerName);
-  db.prepare('UPDATE campaigns SET evidence_json=? WHERE id=?').run(JSON.stringify({engineVersion:2,profile,channelAffinity,offers:offers.map(o=>({id:o.id,price:o.price})),checkedAt:new Date().toISOString()}),id);
+  db.prepare('UPDATE campaigns SET evidence_json=? WHERE id=?').run(JSON.stringify({engineVersion:3,profile,channelAffinity,offers:offers.map(o=>({id:o.id,price:o.price})),checkedAt:new Date().toISOString()}),id);
   const user = buildUserPrompt(merchant, event, profile, offers, weather) + "\n\n" + dnaPrompt(dna)
     + "\n\n# Qloo platform comparison\n" + JSON.stringify(channelAffinity)
     + "\nThese platform-brand affinities are supporting evidence only. They do not measure attendance, platform usage, reach or purchases. Do not assume social accounts are connected. Explain the concrete offer choice against at least one other menu offer in the rationale. Respect the merchant's preparation time. Mention the event's date in invitations for a future day.";

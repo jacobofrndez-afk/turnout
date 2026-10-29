@@ -252,6 +252,24 @@ body:has(.workspace-nav a[aria-current=page]) main:not(.identity-page):not(.app-
 .agent-evidence{margin-top:14px;padding:14px 16px;border:1px solid #e5eade;border-radius:10px;background:#f6f8f2}
 .agent-evidence summary,.agent-adjust summary{display:flex;align-items:center;gap:9px;cursor:pointer;font-size:13px;font-weight:600}
 .agent-evidence[open] summary{margin-bottom:12px}
+.agent-refresh{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}
+.agent-refresh small{font-size:11px;color:var(--muted)}
+.agent-locality-heading{display:flex;align-items:center;gap:8px;font-size:13px;flex-wrap:wrap}
+.agent-locality-heading>span{margin-left:auto;color:var(--muted);font-size:11px}
+.agent-locality>p{font-size:13px;line-height:1.6;margin:9px 0}
+.agent-locality .agent-locality-refs{font-size:12px;color:var(--muted)}
+.agent-locality>details{margin-top:12px}
+.agent-locality>details>summary{font-size:12px}
+.agent-locality-table{overflow-x:auto;margin-top:14px}
+.agent-locality table{width:100%;border-collapse:collapse;font-size:12px}
+.agent-locality caption{text-align:left;color:var(--muted);font-size:11px;margin-bottom:10px}
+.agent-locality th,.agent-locality td{padding:9px 7px;border-bottom:1px solid #dfe5d8;text-align:left}
+.agent-locality thead th{font-weight:500;color:var(--muted)}
+.agent-locality tbody th{font-weight:500}
+.agent-locality tbody th small{display:block;font-size:10px;color:var(--muted);font-weight:400}
+.agent-locality tr.is-selected{background:#eaf0e3}
+.agent-locality td{font-variant-numeric:tabular-nums}
+
 .agent-editor{border:0;padding:0;margin:26px 0 0;min-width:0}
 .agent-section-title{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
 .agent-section-title>span{font-size:12px;color:var(--muted)}

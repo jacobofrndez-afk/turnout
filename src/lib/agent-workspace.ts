@@ -1,3 +1,4 @@
+import type { LocalityComparison } from "./locality-comparison";
 import { z } from 'zod';
 import { CHANNEL_IDS, type DnaRecord, type MenuOffer } from './place-dna';
 import { CampaignVisualSchema, type CampaignVisual } from './campaign-creative';
@@ -20,7 +21,7 @@ export type AgentReceipt={channel:PlanChannel;status:string;simulated:number;pro
 export type AgentWorkspace={
  id:string;merchantId:string;merchantName:string;timezone:string;status:string;source:'anthropic'|'operator';
  event:AgentOpportunity;offer:MenuOffer;dna:DnaRecord;review:AgentReview;distribution:DistributionRecommendation;
- reasoning:string;audience:string;limitations:string;proof:{tags:string[];places:string[];comparedOffers:{title:string;places:string[]}[];qlooCalls:number;};
+ reasoning:string;audience:string;limitations:string;proof:{locality?:LocalityComparison;tags:string[];places:string[];comparedOffers:{title:string;places:string[]}[];qlooCalls:number;};
  potential:{score:number|null;factors:{label:string;points:number;max:number}[]};
  originalChannels:PlanChannel[];receipts:AgentReceipt[];generatedAt:string;
 };

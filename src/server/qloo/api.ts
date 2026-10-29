@@ -133,13 +133,19 @@ export async function recommend(
 }
 
 // Affinity of a fixed shortlist toward the signals (the "rank" job).
-export async function rankShortlist(targetType: string, optionIds: string[], signalEntities: string[], opts: Opts = {}): Promise<QlooEntity[]> {
-  const body = await qlooGet<{ results?: { entities?: QlooEntity[] } }>(
-    "/v2/insights",
-    { "filter.type": `urn:entity:${targetType}`, "signal.interests.entities": signalEntities.join(","), "filter.results.entities": optionIds.join(","), take: "20" },
-    opts,
-  );
-  return body.results?.entities ?? [];
+export async function rankShortlist(
+  targetType: string, optionIds: string[], signal: string[] | Signal,
+  opts: Opts & { area?: {lat:number;lon:number;radiusM:number}; localize?: boolean } = {},
+): Promise<QlooEntity[]> {
+  const params:Record<string,string>={"filter.type":`urn:entity:${targetType}`,...signalParams(Array.isArray(signal)?{entities:signal}:signal),"filter.results.entities":optionIds.join(","),take:String(Math.min(optionIds.length,50))};
+  if(opts.area){
+    const point=`POINT(${opts.area.lon} ${opts.area.lat})`;
+    params["filter.location"]=point;
+    params["filter.location.radius"]=String(opts.area.radiusM);
+    if(opts.localize){params["signal.location"]=point;params["signal.location.radius"]=String(opts.area.radiusM);}
+  }
+  const body=await qlooGet<{results?:{entities?:QlooEntity[]}}>("/v2/insights",params,opts);
+  return body.results?.entities??[];
 }
 
 export async function findTags(query: string, take = 8, opts: Opts = {}): Promise<QlooTag[]> {

@@ -141,3 +141,36 @@ test('existing Claude writer is callable with a structured provider response and
   try{const result=await draftReviewedWithClaude('Fixture prompt');assert.equal(calls,2);assert.equal(result.draft.dooh.headline,draft.dooh.headline);await assert.rejects(withGenerationBudget(async()=>true),/daily generation limit/);}
   finally{globalThis.fetch=originalFetch;process.env.ANTHROPIC_API_KEY='';delete process.env.AGENT_DAILY_LIMIT;}
  });
+
+test('locality evidence survives owner edits and is included in the campaign workspace',()=>{
+ const review=insert('locality-proof');
+ const raw=db.prepare('SELECT evidence_json FROM campaigns WHERE id=?').get('locality-proof') as {evidence_json:string};
+ const evidence=JSON.parse(raw.evidence_json);
+ evidence.profile.locality={status:'available',radiusM:2500,candidateCount:6,comparableCount:4,offers:[],excludedOffers:[],outcome:'unchanged',eventLeaders:['test_offer'],localLeaders:['test_offer']};
+ db.prepare('UPDATE campaigns SET evidence_json=? WHERE id=?').run(JSON.stringify(evidence),'locality-proof');
+ saveAgentReview('locality-proof',{...review,message:'My local invitation.'},false,now);
+ assert.deepEqual(agentWorkspace('locality-proof',now)?.proof.locality,evidence.profile.locality);
+});
+
+test('Qloo shortlist requests use the same filter and candidates with a separate local signal',async()=>{
+ const {rankShortlist}=await import('../src/server/qloo/api');
+ const old=globalThis.fetch,oldKey=process.env.QLOO_API_KEY;const urls:URL[]=[];process.env.QLOO_API_KEY='fixture-key';
+ globalThis.fetch=async input=>{urls.push(new URL(String(input)));return new Response(JSON.stringify({results:{entities:[]}}),{status:200});};
+ try{
+  const opts={area:{lat:40.75,lon:-73.99,radiusM:2500}},signal={entities:['fixture-artist'],tags:['urn:tag:fixture']};
+  await rankShortlist('place',['locality-a','locality-b'],signal,opts);
+  await rankShortlist('place',['locality-a','locality-b'],signal,{...opts,localize:true});
+  assert.equal(urls.length,2);
+  for(const url of urls){assert.equal(url.searchParams.get('filter.results.entities'),'locality-a,locality-b');assert.equal(url.searchParams.get('filter.location'),'POINT(-73.99 40.75)');assert.equal(url.searchParams.get('filter.location.radius'),'2500');assert.equal(url.searchParams.get('signal.interests.entities'),'fixture-artist');assert.equal(url.searchParams.get('signal.interests.tags'),'urn:tag:fixture');}
+  assert.equal(urls[0].searchParams.get('signal.location'),null);assert.equal(urls[1].searchParams.get('signal.location'),'POINT(-73.99 40.75)');assert.equal(urls[1].searchParams.get('signal.location.radius'),'2500');
+ }finally{globalThis.fetch=old;if(oldKey===undefined)delete process.env.QLOO_API_KEY;else process.env.QLOO_API_KEY=oldKey;}
+});
+
+test('new engine versions do not replace an owner-reviewed campaign during ordinary preparation',async()=>{
+ const review=insert('owner-kept');saveAgentReview('owner-kept',{...review,message:'Keep my wording.'},false,now);
+ const {createCampaign}=await import('../src/server/agent/run');const {getMerchant}=await import('../src/server/events/radar');
+ const oldProvider=process.env.AGENT_PROVIDER,oldFetch=globalThis.fetch;process.env.AGENT_PROVIDER='anthropic';
+ globalThis.fetch=async()=>{throw new Error('Reviewed campaigns must not trigger generation.');};
+ try{const result=await createCampaign(getMerchant('test_agent')!,getEvent('test_event')!);assert.equal(result.id,'owner-kept');assert.equal(getDraft(result)?.google_post.body,'Keep my wording.');}
+ finally{globalThis.fetch=oldFetch;process.env.AGENT_PROVIDER=oldProvider;}
+});

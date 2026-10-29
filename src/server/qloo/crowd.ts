@@ -1,5 +1,7 @@
 // Crowd profile: who is coming to this event, culturally, and which of the merchant's offers fits them.
 // Fixed, cached Qloo recipe. The LLM never picks UUIDs: resolution is deterministic or asks the merchant.
+import type { LocalityComparison, LocalityReference } from "@/lib/locality-comparison";
+import { compareOfferLocality } from "./locality";
 import { isCommercialBrand } from "@/lib/brands";
 import { getDb, newId } from "@/server/db/client";
 import type { Merchant } from "@/server/events/radar";
@@ -8,7 +10,7 @@ import type { TmEvent } from "@/server/events/ticketmaster";
 import { searchEntities, tasteTags, demographics, recommend, findTags, type QlooEntity, type QlooTag, type Demographics, type QlooCall, type Signal, tagId } from "./api";
 
 export type Candidate = { id: string; name: string; type: string; popularity?: number; description?: string };
-export type OfferFit = { offerId: string; title: string; tagUrns: string[]; tagNames: string[]; affinity: number; matches: number; topPlaces: string[] };
+export type OfferFit = { offerId: string; title: string; tagUrns: string[]; tagNames: string[]; affinity: number; matches: number; topPlaces: string[]; references?: LocalityReference[] };
 export type ProvenanceRow = { seq: number; kind: string; workflow: string; input: Record<string, string>; status: string; resultCount: number; cacheHit: boolean; durationMs: number; note?: string };
 
 export type CrowdProfile = {
@@ -24,6 +26,7 @@ export type CrowdProfile = {
   places: QlooEntity[];
   brands: QlooEntity[];
   offerFits: OfferFit[];
+  locality?: LocalityComparison;
   provenance: ProvenanceRow[];
   qlooCalls: { live: number; cached: number };
   // What Qloo was asked about. One entity for a show; several entities or taste tags for a moment.
@@ -135,10 +138,17 @@ export async function buildCrowdProfile(merchant: Merchant, event: EventRow, pic
     const mean = aff.length ? aff.reduce((a, b) => a + b, 0) / aff.length : 0;
     // Also credit direct overlap between the offer's tags and the crowd's taste tags.
     const overlap = profile.tags.filter((t) => urns.includes(tagId(t))).length;
-    profile.offerFits.push({ offerId: offer.id, title: offer.title, tagUrns: urns, tagNames: names, affinity: Math.round((mean + 0.05 * overlap) * 100) / 100, matches: places.length, topPlaces: places.filter((p) => !(p.tags ?? []).some((t) => /:restaurant:(fast_food|donut_shop|coffee_shop)$/.test(tagId(t)))).slice(0, 3).map((p) => p.name) });
+    profile.offerFits.push({ offerId: offer.id, title: offer.title, tagUrns: urns, tagNames: names, affinity: Math.round((mean + 0.05 * overlap) * 100) / 100, matches: places.length, references: places.filter((p) => !(p.tags ?? []).some((t) => /:restaurant:(fast_food|donut_shop|coffee_shop)$/.test(tagId(t)))).map(p=>({id:p.entity_id,name:p.name})), topPlaces: places.filter((p) => !(p.tags ?? []).some((t) => /:restaurant:(fast_food|donut_shop|coffee_shop)$/.test(tagId(t)))).slice(0, 3).map((p) => p.name) });
   }
   profile.offerFits.sort((a, b) => b.affinity - a.affinity || b.matches - a.matches);
   provenance.push({ seq: ++seq, kind: "decision", workflow: "offer_fit", input: {}, status: "ok", resultCount: profile.offerFits.length, cacheHit: false, durationMs: 0, note: profile.offerFits[0] ? `best: ${profile.offerFits[0].title} (${profile.offerFits[0].affinity})` : "no offers" });
+
+  profile.locality = await compareOfferLocality(
+    profile.offerFits.map(f=>({offerId:f.offerId,title:f.title,references:f.references??[]})),
+    id, {lat:merchant.lat,lon:merchant.lon,radiusM:Math.max(merchant.radius_m,2500)},
+    onCall("locality_comparison", "same nearby references: event alone vs event + location"),
+  );
+  provenance.push({seq:++seq,kind:"decision",workflow:"locality_comparison",input:{},status:profile.locality.status,resultCount:profile.locality.offers.length,cacheHit:false,durationMs:0,note:profile.locality.status==="available"?`Local comparison: ${profile.locality.outcome}; ${profile.locality.comparableCount} shared references within ${profile.locality.radiusM} m`:profile.locality.reason});
 
   persist(profile);
   return profile;

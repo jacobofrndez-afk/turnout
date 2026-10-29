@@ -1,3 +1,4 @@
+import { localitySummary } from "@/lib/locality-comparison";
 // Prompt construction. The system prompt is frozen (cacheable); everything volatile goes in the user turn.
 import { clock, clockRange } from "@/lib/clock";
 import type { Merchant } from "@/server/events/radar";
@@ -115,6 +116,11 @@ export function buildUserPrompt(merchant: Merchant, event: EventRow, profile: Cr
   for (const o of offers) {
     const fit = profile.offerFits.find((f) => f.offerId === o.id);
     lines.push(`- id=${o.id} | ${o.title} | ${o.description} | ${o.price} | tags: ${JSON.parse(o.tag_names_json).join(", ")} | fit ${fit ? fit.affinity.toFixed(2) : "n/a"}${fit?.topPlaces.length ? ` (places this crowd likes with these tags nearby: ${fit.topPlaces.join(", ")})` : ""}`);
+  }
+  if(profile.locality){
+    lines.push("", "# Qloo locality comparison", localitySummary(profile.locality));
+    lines.push(JSON.stringify(profile.locality));
+    lines.push("These are Turnout offer ranks based on mean Qloo reference-place ranks, using only places with scores in BOTH queries. Qloo does not score menu items directly. The same candidates and geographic filter are used; the second query also includes signal.location. Use this comparison for the offer decision when available, ahead of the older per-offer fit heuristic. Respect menu availability, event timing and the owner's DNA; explain any departure from the leading offer. Do not claim a change when the leading offer stays the same or is tied. Excluded offers have insufficient shared references, not low affinity. State the actual reference radius; it is not an ad targeting radius. No measured attendance, visits, sales uplift or platform performance can be inferred.");
   }
   lines.push("", `# Suggested windows (local time)`);
   for (const w of timeWindows(event, merchant)) lines.push(`- ${w.label}: ${w.start_local} to ${w.end_local} (say "${clockRange(w.start_local, w.end_local, merchant.timezone)}"). ${w.why}`);

@@ -11,12 +11,12 @@ export async function POST(req:Request){
  if(!sameOrigin(req))return NextResponse.json({error:'Invalid origin.'},{status:403});
  const limit=rateLimit(req,'prepare-agent',4,60000);if(!limit.ok)return tooMany(limit.retryAfterS);
  try {
-  const input=z.object({merchant:z.string().max(100),event:z.string().max(200)}).parse(await readJsonBody(req,2048));
+  const input=z.object({merchant:z.string().max(100),event:z.string().max(200),fresh:z.boolean().optional()}).parse(await readJsonBody(req,2048));
   const merchant=getMerchant(input.merchant),event=getEvent(input.event);
   if(!merchant||!event)throw new DnaError('Place or event not found.',404);
   assertAgentEvent(merchant.id,event);
   if(provider()!=='anthropic')throw new DnaError('The campaign writer is not connected yet. Your local opportunities remain available.',503);
-  const c=await createCampaign(merchant,event);
+  const c=await createCampaign(merchant,event,undefined,input.fresh);
   const workspace=agentWorkspace(c.id);
   if(workspace)return NextResponse.json({workspace});
   if(c.status==='needs_input')return NextResponse.json({error:'Qloo needs a confirmed match for this event. Review the audience before generating.',href:`/campaigns/new?merchant=${merchant.id}&event=${encodeURIComponent(event.id)}`},{status:409});

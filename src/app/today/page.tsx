@@ -3,7 +3,11 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { getMerchant, listMerchants } from "@/server/events/radar";
 import { getDna } from "@/server/merchants/dna";
-import { getOffers } from "@/server/qloo/crowd";
+import { getOffers, getEvent } from "@/server/qloo/crowd";
+import { getDb } from "@/server/db/client";
+import { provider } from "@/server/agent/run";
+import { agentWorkspace, eventOpportunity } from "@/server/agent/review";
+import { AgentCampaign } from "@/components/AgentCampaign";
 import { weatherWindow } from "@/server/weather/openmeteo";
 import { workspaceAgenda } from "@/server/workspace/agenda";
 import { workspaceCampaigns } from "@/server/workspace/campaigns";
@@ -24,7 +28,7 @@ import { WeekAgenda } from "@/components/WeekAgenda";
 import { Icon } from "@/components/Icon";
 import { DemoCampaignHistory } from "@/components/DemoCampaignHistory";
 export const dynamic = "force-dynamic";
-export default async function TodayPage({ searchParams }: { searchParams: Promise<{ merchant?: string; refresh?: string }> }) {
+export default async function TodayPage({ searchParams }: { searchParams: Promise<{ merchant?: string; refresh?: string; event?: string }> }) {
   const sp = await searchParams; const merchants = listMerchants();
   const m = getMerchant(sp.merchant ?? (await cookies()).get("merchant")?.value ?? "m_penn_pour") ?? merchants[0];
   if (!m) return <main className="app-page"><h1>Welcome to Turnout</h1><Link className="action-button" href="/start">Set up your place</Link></main>;
@@ -53,7 +57,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   opportunities.push(...menuEvidenceProposals(localContext,proposals,snapshot,initialOfferId,opportunities));
   opportunities.push(...evergreenProposals({...localContext,merchantId:m.id,moments:agenda.moments}));
   opportunities.push(...intelligenceProposals({...localContext,merchantId:m.id,moments:agenda.moments},intelligence));
-  const campaigns = workspaceCampaigns(m.id).filter(c => !c.legacy); const q = `?merchant=${m.id}`;
+  const campaigns = workspaceCampaigns(m.id).filter(c => !c.legacy && !c.superseded); const q = `?merchant=${m.id}`;
   const firstRhythm = agenda.entries.find(e => e.kind === "rhythm");
   const wet = weather && ["rain", "storm", "snow"].includes(weather.kind);
   const signals = <><SourceWatch observations={sources.observations} coverage={sources.coverage} offers={offers} merchantId={m.id} timezone={m.timezone}/><section className="daily-signals"><div className="section-title"><h2>The little things that matter</h2></div><p className="section-intro">A change in the weather. A habit on your street. A reason to say hello.</p>
@@ -61,9 +65,14 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         <article className="signal-card signal-street"><span className="icon-tile"><Icon name="coffee" size={24}/></span><span className="overline">Around your place</span><h3>{firstRhythm?.title ?? "Get to know your street"}</h3><p>{firstRhythm ? `${firstRhythm.time} · A recurring pattern in nearby places. Adapt your offer to this moment.` : "Explore the tastes and habits of the neighbourhood, even when there is no big event."}</p><Link className="text-link" href={firstRhythm?.href ?? `/pulse${q}`}>{firstRhythm ? "Prepare for this moment" : "Explore local tastes"}<Icon name="arrow" size={16}/></Link><details><summary>What tells us this?</summary><p>{firstRhythm?.evidence ?? "Qloo describes nearby places and group preferences. It does not measure who is outside your door."}</p></details><small>Qloo · inferred local habits, not live footfall</small></article></div>
       </section></>;
   const aside = <><WeekAgenda now={agenda.now} timezone={m.timezone} entries={agenda.entries} merchantId={m.id} unavailable={agenda.unavailable}/><Link className="photo-shortcut" href={`/campaigns/from-photo${q}`}><span className="icon-tile"><Icon name="camera" size={24}/></span><span><strong>Something new on the board?</strong><small>Take a photo. Turn it into a campaign.</small></span><Icon name="arrow"/></Link></>;
+  const chosenEvent=sp.event&&agenda.entries.some(e=>e.kind==="event"&&e.id===sp.event)?sp.event:agenda.leadEvent;
+  const leadEvent=chosenEvent?getEvent(chosenEvent):undefined;
+  const cachedAgent=leadEvent?getDb().prepare("SELECT id FROM campaigns WHERE merchant_id=? AND event_id=? AND dna_version=? AND copy_json IS NOT NULL ORDER BY created_at DESC,rowid DESC LIMIT 1").get(m.id,leadEvent.id,dna.version) as {id:string}|undefined:undefined;
+  const prepared=cachedAgent?agentWorkspace(cachedAgent.id):undefined;
   return <main className="app-page today-page"><WorkspaceContext merchant={m} merchants={merchants} destination="/today" />
     <header className="page-heading"><div><h1>Your next campaign</h1><p className="today-assistant-note">Ready-made content. Your channels. Your call. <Link href="/about" className="assistant-how-link">How it works <Icon name="arrow" size={12}/></Link></p></div><span className="date-stamp"><Icon name="calendar" />{new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: m.timezone }).format(agenda.now)}</span></header>
-    {proposals[initialOfferId] ? <TodayOpportunity channelAffinities={channelAffinities} key={m.id} merchantId={m.id} merchantName={m.name} offers={offers} proposals={proposals} immediateProposals={immediateProposals} initialOfferId={initialOfferId} snapshot={snapshot} evidence={evidence} context={context} opportunities={opportunities} coverage={[...sources.coverage,...Object.entries(intelligence.sources).map(([name,s])=>({name:`Qloo ${name}`,url:"https://docs.qloo.com/reference/api-overview",state:s.status==="unavailable"?"unavailable" as const:"available" as const,checkedAt:s.retrievedAt,detail:s.detail}))]} signals={signals} aside={aside}/> : <div className="home-grid"><div className="home-main"><section className="next-move"><h2>A few essentials, then your campaign.</h2><p>Confirm your place DNA and a priced signature offer to compare your menu with local tastes.</p><Link className="action-button" href={`/dna${q}`}>Review place DNA <Icon name="arrow" size={17}/></Link></section>{signals}</div><aside className="home-aside">{aside}</aside></div>}
+    {leadEvent&&<div className="home-grid agent-home"><div className="home-main"><AgentCampaign key={`${m.id}-${leadEvent.id}`} merchantId={m.id} event={eventOpportunity(m.id,leadEvent)} initial={prepared} writerConnected={provider()==="anthropic"}/></div><aside className="home-aside">{aside}</aside></div>}
+    <details className="agent-other-ideas" open={!leadEvent}><summary>More opportunities · now, ahead & evergreen <Icon name="chevron" size={16}/></summary><div>{proposals[initialOfferId] ? <TodayOpportunity channelAffinities={channelAffinities} key={m.id} merchantId={m.id} merchantName={m.name} offers={offers} proposals={proposals} immediateProposals={immediateProposals} initialOfferId={initialOfferId} snapshot={snapshot} evidence={evidence} context={context} opportunities={opportunities} coverage={[...sources.coverage,...Object.entries(intelligence.sources).map(([name,s])=>({name:`Qloo ${name}`,url:"https://docs.qloo.com/reference/api-overview",state:s.status==="unavailable"?"unavailable" as const:"available" as const,checkedAt:s.retrievedAt,detail:s.detail}))]} signals={signals} aside={leadEvent?null:aside}/> : <div className="home-grid"><div className="home-main"><section className="next-move"><h2>A few essentials, then your campaign.</h2><p>Confirm your place DNA and a priced signature offer to compare your menu with local tastes.</p><Link className="action-button" href={`/dna${q}`}>Review place DNA <Icon name="arrow" size={17}/></Link></section>{signals}</div><aside className="home-aside">{aside}</aside></div>}</div></details>
     {m.id==="m_penn_pour"&&<details className="today-more"><summary><Icon name="campaign" size={18}/><span>Past campaigns<small>Demo history & performance</small></span><Icon name="chevron" size={16}/></summary><div><DemoCampaignHistory merchantId={m.id} compact/></div></details>}
     <section className="recent-section"><div className="section-title"><h2><Icon name="campaign"/>Pick up where you left off</h2><Link className="text-link" href={`/campaigns${q}`}>All campaigns <Icon name="arrow" size={16}/></Link></div>{campaigns.length ? <div className="recent-list">{campaigns.slice(0,3).map(c => <Link href={c.href} className="recent-item" key={c.id}><span className="icon-tile"><Icon name={c.kind === "menu" ? "menu" : "ticket"}/></span><span><strong>{c.title}</strong><small>{c.status}</small></span><Icon name="chevron" size={18}/></Link>)}</div> : <p className="muted">Your saved drafts will appear here. Start with the offer above.</p>}</section>
   </main>;

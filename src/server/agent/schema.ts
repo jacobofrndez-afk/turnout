@@ -44,3 +44,17 @@ export const CampaignDraftSchema = z.object({
 });
 
 export type CampaignDraft = z.infer<typeof CampaignDraftSchema>;
+
+// Keep historical drafts readable while requesting a compact, single-window campaign for Today.
+export const CampaignGenerationSchema=CampaignDraftSchema.extend({
+  rationale:z.string().max(650),audience_summary:z.string().max(300),
+  windows:z.array(WindowSchema).length(1),limitations:z.string().max(350),
+});
+
+export function generatedCopyIssues(draft:CampaignDraft):string[]{
+ const copy=[draft.google_post.title,draft.google_post.body,draft.google_post.offer_terms,draft.whatsapp.message,draft.storefront.chalkboard,draft.storefront.staff_line,draft.geofenced_ad.headline,draft.geofenced_ad.body].join('\n');
+ const issues:string[]=[];
+ if(/\b(?:tables? (?:are |is )?(?:open|available|waiting|reserved)|your table is here|guaranteed (?:table|seat|space)|seats? (?:are )?available)\b/i.test(copy))issues.push('Remove unverified claims about available or reserved tables, seats or space. Invite people without promising availability.');
+ if(/\b(?:ads? not selected|zero budget|not connected|manual sharing|Qloo|DNA|media cap)\b/i.test(copy))issues.push('Customer-facing copy must not contain internal platform, budget or preparation notes.');
+ return issues;
+}

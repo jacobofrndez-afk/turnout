@@ -22,3 +22,16 @@ test("historical campaigns stay available without being presented as new DNA rec
   assert.equal(rows.find(r=>r.id==='photo')?.date,null);
   assert.deepEqual(workspaceCampaigns('another-place'),[]);
 });
+
+test("a reviewed campaign uses its chosen time and keeps superseded drafts out of the active agenda",()=>{
+  db.prepare("UPDATE merchants SET timezone='UTC' WHERE id='place'").run();
+  db.prepare("INSERT INTO campaigns(id,merchant_id,event_id,status,copy_json,dna_snapshot_json) VALUES('retry','place','event','drafted','{}','{}')").run();
+  db.prepare("UPDATE campaigns SET review_json=? WHERE id='retry'").run(JSON.stringify({startLocal:'2030-01-01T17:30'}));
+  let rows=workspaceCampaigns('place');
+  assert.equal(rows.find(r=>r.id==='retry')?.date,'2030-01-01T17:30:00.000Z');
+  assert.equal(rows.find(r=>r.id==='retry')?.planned,true);
+  assert.equal(rows.find(r=>r.id==='new')?.superseded,true);
+  assert.equal(rows.find(r=>r.id==='old')?.superseded,false);
+  db.prepare("UPDATE campaigns SET status='prepared' WHERE id='retry'").run();
+  assert.equal(workspaceCampaigns('place').find(r=>r.id==='retry')?.planned,true);
+});

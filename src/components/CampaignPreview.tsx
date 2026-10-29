@@ -6,6 +6,7 @@ import { whatsappConfigured } from "@/server/channels/twilio";
 import { snapConfigured } from "@/server/channels/snapchat";
 import { CampaignDestinations } from "./CampaignDestination";
 import { CopyText } from "./CopyText";
+import { receiptLabel } from '@/lib/agent-workspace';
 const order: ChannelId[] = [
   "storefront",
   "instagram",
@@ -61,13 +62,7 @@ export function CampaignPreview({
                 draft.geofenced_ad.platform === "snapchat" &&
                 snapConfigured();
           const failed = send?.status.startsWith("failed");
-          const status = failed
-            ? "Failed"
-            : send && !send.simulated && send.status === "sent"
-              ? "Sent to demo number"
-              : send && !send.simulated
-                ? "Paused in Snapchat"
-                : channel === "storefront"
+          const status = send ? receiptLabel(send) : channel === "storefront"
                   ? "Write it on your board"
                   : live
                     ? channel === "whatsapp"

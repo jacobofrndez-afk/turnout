@@ -9,7 +9,7 @@ export const QLOO_CHANNELS = [
 export type AffinityChannel = typeof QLOO_CHANNELS[number]['channel'];
 export type ChannelAffinity = { channel: AffinityChannel; entityId: string; name: string; affinity: number; rank: number };
 export type ChannelAffinityProfile = {
-  basis: 'audience' | 'references'; contextLabel: string;
+  basis: 'audience' | 'references' | 'crowd'; contextLabel: string;
   inputs: { id: string; name: string }[]; rankings: ChannelAffinity[]; source: IntelligenceSource;
 };
 export type CampaignChannelAffinities = { audiences: Record<string, ChannelAffinityProfile>; offers: Record<string, ChannelAffinityProfile> };

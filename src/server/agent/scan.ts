@@ -78,7 +78,7 @@ export async function scanMerchant(merchant: Merchant, opts: ScanOptions = {}): 
     const message = composeAlert(merchant, it, campaign);
     let status: AlertRow["status"] = "simulated";
     let toRef: string | null = null;
-    if (whatsappConfigured() && process.env.DEMO_WHATSAPP_TO) {
+    if (process.env.ENABLE_DEMO_ALERTS === "true" && whatsappConfigured() && process.env.DEMO_WHATSAPP_TO) {
       try {
         await sendWhatsApp(process.env.DEMO_WHATSAPP_TO, message);
         status = "sent";
@@ -120,8 +120,8 @@ export function composeAlert(merchant: Merchant, it: RadarItem, campaign?: Campa
   const seats = Math.max(10, merchant.seats ?? 60);
   const lines = [
     `Turnout for ${merchant.name}`,
-    `${day} ${clock(w.start, merchant.timezone)}: ${it.event.name}${origin === "ticketmaster" ? ` at ${it.event.venue.name}` : ""}, about ${(Math.round(it.capacity / 100) * 100).toLocaleString("en-US")} people ${where}, from ${clockRange(w.arrive, w.leave, merchant.timezone)}.`,
-    `Could bring about ${it.potentialGuests} guests, ${it.fill >= 1 ? `enough to fill your ${seats} seats` : it.fill >= 0.5 ? "enough for half your seats" : "enough for a few tables"}.`,
+    `${day} ${clock(w.start, merchant.timezone)}: ${it.event.name}${origin === "ticketmaster" ? ` at ${it.event.venue.name}` : ""}, ${where}. Suggested campaign window: ${clockRange(w.arrive, w.leave, merchant.timezone)}.`,
+    "A local opportunity, not a measured crowd or a forecast of visits.",
   ];
   if (campaign) {
     const draft = getDraft(campaign);

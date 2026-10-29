@@ -44,3 +44,23 @@ export async function campaignChannelAffinities(audiences:LocalAudience[],eviden
  });
  return profiles;
 }
+
+/** Compare the same resolved event signal against platform brands, not the whole neighbourhood. */
+export async function crowdChannelAffinity(signal:{entities:{id:string;name:string}[];tags:{id:string;name:string}[]},name:string,fetcher:ChannelAffinityRead=read):Promise<ChannelAffinityProfile>{
+ const profile:ChannelAffinityProfile={basis:'crowd',contextLabel:`people who like ${name}`,inputs:[...signal.entities,...signal.tags],rankings:[],source:missing('No comparable platform evidence was returned for this event.')};
+ if(!profile.inputs.length)return profile;
+ try {
+  const catalog=await batch([...QLOO_CHANNELS],async c=>{
+   const r=await fetcher('/search',{query:c.name,types:'urn:entity:brand',take:'6'});
+   const matches=Array.isArray(r.body?.results)?r.body.results.filter((e:any)=>e?.name?.toLowerCase()===c.name.toLowerCase()&&typeof e.entity_id==='string'&&(e.types?.includes('urn:entity:brand')||e.subtype==='urn:entity:brand')):[];
+   return matches.length===1?{channel:c.channel as AffinityChannel,id:matches[0].entity_id as string,name:c.name}:undefined;
+  });
+  const resolved=catalog.filter((c):c is NonNullable<typeof c>=>!!c);
+  if(resolved.length<2)return profile;
+  const params:Record<string,string>={'filter.type':'urn:entity:brand','filter.results.entities':resolved.map(c=>c.id).join(','),take:'6'};
+  if(signal.entities.length)params['signal.interests.entities']=signal.entities.map(e=>e.id).join(',');
+  if(signal.tags.length)params['signal.interests.tags']=signal.tags.map(t=>t.id).join(',');
+  const r=await fetcher('/v2/insights',params),rankings=parseChannelAffinities(r.body?.results?.entities,resolved);
+  return {...profile,rankings,source:{...r.source,status:r.source.status==='unavailable'?'unavailable':rankings.length>=2?'available':'empty',detail:'Platform brand affinities for the resolved event signal. Not attendance, platform usage or conversion.'}};
+ } catch {return profile;}
+}

@@ -12,9 +12,11 @@ import { resolve } from "node:path";
 import { getDb, newId } from "@/server/db/client";
 import type { Merchant } from "@/server/events/radar";
 import { buildCrowdProfile, getEvent, getOffers, hasSignal, type CrowdProfile, type EventRow } from "@/server/qloo/crowd";
-import { CampaignDraftSchema, type CampaignDraft } from "./schema";
+import { CampaignDraftSchema, CampaignGenerationSchema, generatedCopyIssues, type CampaignDraft } from "./schema";
 import { SYSTEM_PROMPT, buildUserPrompt, windowsIso, campaignWindows, draftFirstWindow, type WindowWeather } from "./prompt";
 import { weatherWindow } from "@/server/weather/openmeteo";
+import { crowdChannelAffinity } from "@/server/workspace/channel-affinity";
+import { withGenerationBudget } from "./budget";
 
 export type CampaignStatus = "needs_input" | "awaiting_operator" | "drafted" | "approved" | "sent" | "prepared" | "partial" | "failed";
 export type CampaignRow = {
@@ -32,6 +34,9 @@ export type CampaignRow = {
   dna_version?: number | null;
   dna_snapshot_json?: string | null;
   channels_json?: string | null;
+  evidence_json?: string | null;
+  review_json?: string | null;
+  review_revision?: number;
 };
 
 export const INBOX = () => resolve(/* turbopackIgnore: true */ process.cwd(), process.env.AGENT_INBOX ?? "data/agent-inbox");
@@ -61,7 +66,8 @@ async function createCampaignOnce(merchant: Merchant, event: EventRow, pickedEnt
     const existing = pollOperatorDraft(previous);
     const sameDna = (existing.dna_version ?? 0) === dna.version;
     const draft = getDraft(existing);
-    if (draft && (existing.status === "drafted" && sameDna && draftFirstWindow(event, draft.windows, merchant.timezone).end > Date.now() || ["approved", "sent", "prepared", "partial"].includes(existing.status))) return existing;
+    const currentEngine = provider() === 'operator' || !!existing.review_json || existing.evidence_json && JSON.parse(existing.evidence_json).engineVersion === 2;
+    if (draft && (existing.status === "drafted" && sameDna && currentEngine && draftFirstWindow(event, draft.windows, merchant.timezone).end > Date.now()+dna.profile.leadMinutes*60000+30*60000 || ["approved", "sent", "prepared", "partial"].includes(existing.status))) return existing;
     if (sameDna && existing.status === "awaiting_operator" && (provider() === "operator" || Date.now() - Date.parse(existing.created_at.replace(" ", "T") + "Z") < 15 * 60_000)) return existing;
   }
   readyDna(merchant.id);
@@ -74,11 +80,15 @@ async function createCampaignOnce(merchant: Merchant, event: EventRow, pickedEnt
   if (!hasSignal(profile)) return getCampaign(id)!;
   const offers = getOffers(merchant.id);
   const weather = await forecastWindows(id, profile.id, merchant, event);
-  const user = buildUserPrompt(merchant, event, profile, offers, weather) + "\n\n" + dnaPrompt(dna);
+  const channelAffinity = await crowdChannelAffinity(profile.signal, profile.headlinerName);
+  db.prepare('UPDATE campaigns SET evidence_json=? WHERE id=?').run(JSON.stringify({engineVersion:2,profile,channelAffinity,offers:offers.map(o=>({id:o.id,price:o.price})),checkedAt:new Date().toISOString()}),id);
+  const user = buildUserPrompt(merchant, event, profile, offers, weather) + "\n\n" + dnaPrompt(dna)
+    + "\n\n# Qloo platform comparison\n" + JSON.stringify(channelAffinity)
+    + "\nThese platform-brand affinities are supporting evidence only. They do not measure attendance, platform usage, reach or purchases. Do not assume social accounts are connected. Explain the concrete offer choice against at least one other menu offer in the rationale. Respect the merchant's preparation time. Mention the event's date in invitations for a future day.";
   if (provider() === "anthropic") {
     try {
-      const { draft, usage } = await draftWithClaude(user);
-      storeDraft(id, draft, usage, profile, "anthropic");
+      const result = await draftReviewedWithClaude(user);
+      storeDraft(id, result.draft, result.usage, profile, "anthropic");
     } catch (e) {
       db.prepare(`UPDATE campaigns SET status = 'failed', rationale = ?, updated_at = datetime('now') WHERE id = ?`).run(String((e as Error).message).slice(0, 500), id);
     }
@@ -114,18 +124,35 @@ async function forecastWindows(campaignId: string, profileId: string, merchant: 
   return out;
 }
 
-async function draftWithClaude(user: string): Promise<{ draft: CampaignDraft; usage: unknown }> {
-  const client = new Anthropic();
-  const response = await client.messages.parse({
+export async function draftWithClaude(user: string): Promise<{ draft: CampaignDraft; usage: unknown }> {
+  const client = new Anthropic({ timeout: 120_000, maxRetries: 0 });
+  const response = await withGenerationBudget(() => client.messages.parse({
     model: "claude-opus-5-5",
     max_tokens: 16000,
-    output_config: { effort: "medium", format: zodOutputFormat(CampaignDraftSchema) },
+    output_config: { effort: "medium", format: zodOutputFormat(CampaignGenerationSchema) },
     system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
     messages: [{ role: "user", content: user }],
-  });
+  }));
   if (response.stop_reason === "refusal") throw new Error(`Claude declined: ${response.stop_details?.explanation ?? "refusal"}`);
   if (!response.parsed_output) throw new Error("Claude returned no parseable draft");
   return { draft: response.parsed_output, usage: response.usage };
+}
+
+/** One bounded repair for invalid copy/lengths; transport and authentication errors are not retried. */
+export async function draftReviewedWithClaude(user:string):Promise<{draft:CampaignDraft;usage:unknown}>{
+ let correction='';
+ for(let attempt=0;attempt<2;attempt++){
+  try{
+   const result=await draftWithClaude(user+correction);
+   const issues=generatedCopyIssues(result.draft);
+   if(!issues.length)return result;
+   correction='\n\n# Required correction\n'+issues.join(' ')+' Keep every field within its character limit.';
+  }catch(e){
+   if(attempt||!(e instanceof Error)||!e.message.includes('parse structured output'))throw e;
+   correction='\n\n# Required correction\nThe response did not meet the output schema. '+e.message.slice(0,700)+' Use shorter text in the affected fields and obey every maximum length.';
+  }
+ }
+ throw new Error('The draft contained unsupported claims. Please prepare it again.');
 }
 
 function writePromptForOperator(id: string, user: string): void {

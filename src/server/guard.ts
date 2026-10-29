@@ -29,3 +29,12 @@ export function sameOrigin(req: Request): boolean {
     return source.origin === target.origin || (source.protocol === target.protocol && source.host === req.headers.get("host"));
   } catch { return false; }
 }
+
+export async function readJsonBody(req:Request,maxBytes:number):Promise<unknown>{
+ if(Number(req.headers.get('content-length'))>maxBytes)throw new Error('Request too large.');
+ const reader=req.body?.getReader();if(!reader)throw new Error('Missing request.');
+ const chunks:Uint8Array[]=[];let size=0;
+ try {while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>maxBytes){await reader.cancel();throw new Error('Request too large.');}chunks.push(value);}}
+ finally{reader.releaseLock();}
+ return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+}

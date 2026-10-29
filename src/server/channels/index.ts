@@ -5,7 +5,7 @@ import { deliverySummary } from "@/lib/delivery";
 import { getDb, newId } from "@/server/db/client";
 import type { Merchant } from "@/server/events/radar";
 import type { CampaignDraft } from "@/server/agent/schema";
-import { sendWhatsApp, whatsappConfigured } from "./twilio";
+import { submitWhatsApp, whatsappConfigured, whatsappStatus } from "./twilio";
 import { buildSnapPayloads, createGeofencedCampaign, snapConfigured, type GeofencedAdSpec } from "./snapchat";
 
 export type ChannelId = "instagram" | "facebook" | "tiktok" | "snapchat" | "geofenced_ad" | "google_post" | "whatsapp" | "storefront" | "dooh";
@@ -29,7 +29,7 @@ export function ensureSendColumns(): void {
   if (!cols.some((c) => c.name === "payload_json")) db.exec("ALTER TABLE sends ADD COLUMN payload_json TEXT");
 }
 
-export async function publishCampaign(campaignId: string, merchant: Merchant, draft: CampaignDraft): Promise<SendRow[]> {
+export async function publishCampaign(campaignId: string, merchant: Merchant, draft: CampaignDraft, options:{sendDemo?:boolean;createPausedAd?:boolean} = {}): Promise<SendRow[]> {
   ensureSendColumns();
   const db = getDb();
   const saved = db.prepare("SELECT channels_json, dna_snapshot_json FROM campaigns WHERE id=? AND merchant_id=?").get(campaignId, merchant.id) as { channels_json: string; dna_snapshot_json: string | null } | undefined;
@@ -46,13 +46,13 @@ export async function publishCampaign(campaignId: string, merchant: Merchant, dr
     switch (channel) {
       case "whatsapp": {
         const contacts = db.prepare("SELECT id, label, address FROM contacts WHERE merchant_id = ? AND channel = 'whatsapp'").all(merchant.id) as { id: string; label: string; address: string }[];
-        if (whatsappConfigured() && process.env.DEMO_WHATSAPP_TO) {
+        if (options.sendDemo === true && whatsappConfigured() && process.env.DEMO_WHATSAPP_TO) {
           // Real send goes to the demo number only (the judge's phone after joining the sandbox). Fictional contacts are never messaged.
           try {
-            const sid = await sendWhatsApp(process.env.DEMO_WHATSAPP_TO, draft.whatsapp.message);
-            record("whatsapp", "sent", false, { to: "demo number", message: draft.whatsapp.message, list_size: contacts.length }, "demo", sid);
+            const result = await submitWhatsApp(process.env.DEMO_WHATSAPP_TO, draft.whatsapp.message);
+            record("whatsapp", result.status, false, { to: "demo number", message: draft.whatsapp.message, list_size: contacts.length }, "demo", result.sid);
           } catch (e) {
-            record("whatsapp", `failed: ${String((e as Error).message).slice(0, 120)}`, false, { message: draft.whatsapp.message });
+            record("whatsapp", "failed: provider rejected the demo message", false, { message: draft.whatsapp.message });
           }
         } else {
           record("whatsapp", "simulated", true, { to: `${contacts.length} opted-in regulars`, message: draft.whatsapp.message, window: draft.windows[0] });
@@ -72,7 +72,7 @@ export async function publishCampaign(campaignId: string, merchant: Merchant, dr
         };
         const payloads = buildSnapPayloads(spec);
         const creative = { headline: draft.geofenced_ad.headline, body: draft.geofenced_ad.body, cta: draft.geofenced_ad.cta, interests_from_qloo: draft.geofenced_ad.interests, schedule: draft.windows };
-        if (draft.geofenced_ad.platform === "snapchat" && snapConfigured()) {
+        if (options.createPausedAd !== false && draft.geofenced_ad.platform === "snapchat" && snapConfigured()) {
           try {
             const ids = await createGeofencedCampaign(spec);
             record("geofenced_ad", "created (paused)", false, { platform: "snapchat", ...ids, creative, request: payloads, status_note: "Created in your Snapchat ad account, paused. Attach the creative in Ads Manager and start it." }, undefined, ids.campaignId);
@@ -117,9 +117,19 @@ export function getSends(campaignId: string): SendRow[] {
   return getDb().prepare("SELECT * FROM sends WHERE campaign_id = ? ORDER BY sent_at").all(campaignId) as SendRow[];
 }
 
+export async function refreshDeliveryReceipts(campaignId:string):Promise<void>{
+ if(!whatsappConfigured())return;
+ const pending=getSends(campaignId).filter(s=>s.channel==='whatsapp'&&!s.simulated&&s.provider_sid&&['accepted','queued','sending','sent'].includes(s.status));
+ for(const receipt of pending){
+  try{const status=await whatsappStatus(receipt.provider_sid!);getDb().prepare('UPDATE sends SET status=? WHERE id=?').run(status,receipt.id);}
+  catch{/* An unavailable status check is not evidence of failed delivery. */}
+ }
+ if(pending.length)getDb().prepare("UPDATE campaigns SET status=?,updated_at=datetime('now') WHERE id=?").run(deliverySummary(getSends(campaignId)).status,campaignId);
+}
+
 export function deliveryPlan(channels: string[], draft: CampaignDraft) {
-  const whatsapp = channels.includes("whatsapp") && whatsappConfigured() && Boolean(process.env.DEMO_WHATSAPP_TO);
-  const snap = channels.includes("geofenced_ad") && draft.geofenced_ad.platform === "snapchat" && snapConfigured();
+  const whatsapp = false; // The demo prepares WhatsApp copy without sending it.
+  const snap = false; // Approval saves materials only.
   return {
     label: whatsapp ? "Send demo & save" : snap ? "Create paused ad & save" : "Save campaign",
     description: [whatsapp ? "Sends one WhatsApp message to the configured demo number, never to your customer list." : "No WhatsApp message will be sent.", snap ? "Creates a paused Snapchat ad. No ad spend starts here." : "No ad will be launched.", "Your texts stay available to copy and use."].join(" "),

@@ -23,6 +23,7 @@ export function CampaignVisual({ visual, onChange, preview = true }: { visual?: 
     } catch { setError("This image could not be opened. Try another JPG, PNG or WebP."); }
     finally { setLoading(false); }
   }
+  if (!visual && !onChange) return null;
   return <div className={`campaign-visual ${visual ? "has-visual" : ""}`}>
     {visual && preview && <img src={visual.dataUrl} alt="Your campaign visual" className="campaign-visual-image"/>}
     <div className="campaign-visual-controls">

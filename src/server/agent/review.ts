@@ -6,7 +6,9 @@ import { recommendDistribution } from '@/lib/distribution-recommendation';
 import { sourceCheck, sourceUrl, recentlyChecked } from '@/lib/event-evidence';
 import { getDb } from '@/server/db/client';
 import { getMerchant } from '@/server/events/radar';
-import { haversineKm } from '@/server/events/concentration';
+import { clock } from '@/lib/clock';
+import { localDateKey } from '@/lib/calendar';
+import { haversineKm, VENUE_TIERS } from '@/server/events/concentration';
 import { getEvent, getOffers, type CrowdProfile, type EventRow } from '@/server/qloo/crowd';
 import { DnaError, readyDna } from '@/server/merchants/dna';
 import { validateCampaignVisual } from '@/server/merchants/campaign-visual';
@@ -15,10 +17,20 @@ import type { ChannelAffinityProfile } from '@/lib/channel-affinity';
 import { campaignWindows, draftFirstWindow } from './prompt';
 import { getCampaign, getDraft } from './run';
 
-export function eventOpportunity(merchantId:string,event:EventRow):AgentOpportunity{
+export function eventOpportunity(merchantId:string,event:EventRow,now=Date.now()):AgentOpportunity{
  const m=getMerchant(merchantId)!;
  const meta=JSON.parse(event.meta_json??'{}');
- return {id:event.id,name:event.name,venue:event.venue_name,when:new Intl.DateTimeFormat('en-GB',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:m.timezone}).format(new Date(event.starts_at)),distanceKm:haversineKm(m.lat,m.lon,event.lat,event.lon),sourceUrl:sourceUrl(event.url),checkedAt:sourceCheck(meta)?.checkedAt};
+ const source=sourceCheck(meta), scheduled=(event.origin??'ticketmaster')==='ticketmaster';
+ const end=event.ends_at_est?Date.parse(event.ends_at_est):campaignWindows(event)[1]?.start;
+ // Only a named venue estimate is eligible for a capacity headline, never a segment default.
+ const capacity=event.capacity_est??VENUE_TIERS.find(t=>t.match.test(event.venue_name))?.capacity;
+ const date=end&&Number.isFinite(end)?new Intl.DateTimeFormat('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:m.timezone}).format(end):undefined;
+ const day=end&&localDateKey(end,m.timezone)===localDateKey(now,m.timezone)?'today':`on ${date}`;
+ const kind=(event.segment??'').toLowerCase()==='sports'?'game':'show';
+ const headline=scheduled&&end&&Number.isFinite(end)?`The ${kind}${capacity&&capacity>0?` at a ${capacity.toLocaleString('en-US')}-seat venue`:''} ${end<now?'was expected to end':'ends'} around ${clock(end,m.timezone)} ${day}.`:undefined;
+ return {id:event.id,name:event.name,venue:event.venue_name,when:`${new Intl.DateTimeFormat('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:m.timezone}).format(new Date(event.starts_at))} · ${clock(new Date(event.starts_at),m.timezone)}`,distanceKm:haversineKm(m.lat,m.lon,event.lat,event.lon),sourceUrl:sourceUrl(event.url),checkedAt:source?.checkedAt,headline,
+  estimateNote:headline?`End estimated${capacity&&capacity>0?' · Approximate venue capacity, not attendance':''}. Schedule: Ticketmaster; estimates: Turnout.`:undefined,
+  checkedLabel:source?new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:m.timezone}).format(new Date(source.checkedAt)):undefined};
 }
 
 export function assertAgentEvent(merchantId:string,event:EventRow,now=Date.now()){
@@ -46,7 +58,7 @@ export function agentWorkspace(id:string,now=Date.now()):AgentWorkspace|undefine
  const profile=evidence?.profile,fit=profile?.offerFits.find(f=>f.offerId===offer.id);
  const factors=[{label:'Menu tags connected to Qloo',points:fit?.matches?30:0,max:30},{label:'Nearby references for this offer',points:Math.min(20,(fit?.topPlaces.length??0)*5),max:20},{label:'Your place DNA',points:dna.profile.signatureOfferId===offer.id?20:10,max:20},{label:'Time to prepare',points:window.end-start>=30*60000?15:0,max:15},{label:'Inside your local area',points:haversineKm(m.lat,m.lon,event.lat,event.lon)<=m.radius_m/1000?15:0,max:15}];
  let usage:{source?:string}={};try{usage=JSON.parse(c.llm_usage_json??'{}');}catch{}
- return {id:c.id,merchantId:m.id,merchantName:m.name,timezone:m.timezone,status:c.status,source:usage.source==='anthropic'?'anthropic':'operator',event:eventOpportunity(m.id,event),offer,dna,review,distribution,reasoning:draft.rationale,audience:draft.audience_summary,limitations:draft.limitations,proof:{locality:profile?.locality,tags:profile?.tags.slice(0,6).map(t=>t.name)??[],places:fit?.topPlaces??[],comparedOffers:profile?.offerFits.map(f=>({title:f.title,places:f.topPlaces}))??[],qlooCalls:(profile?.qlooCalls.live??0)+(profile?.qlooCalls.cached??0)},potential:{score:profile&&fit?.matches&&window.end>now?factors.reduce((s,f)=>s+f.points,0):null,factors},originalChannels:distribution.channels,receipts:getSends(id).filter(s=>s.channel!=="dooh").map(s=>({channel:s.channel as typeof CHANNEL_IDS[number],status:s.status,simulated:s.simulated,providerId:s.provider_sid??undefined})),generatedAt:c.created_at};
+ return {id:c.id,merchantId:m.id,merchantName:m.name,timezone:m.timezone,status:c.status,source:usage.source==='anthropic'?'anthropic':'operator',event:eventOpportunity(m.id,event,now),offer:saved?{...(saved.offerSnapshot??offer),price:saved.offerPrice}:offer,signatureOffer:getOffers(m.id).find(o=>o.id===dna.profile.signatureOfferId),dna,review,distribution,reasoning:draft.rationale,audience:draft.audience_summary,limitations:draft.limitations,proof:{locality:profile?.locality,tags:profile?.tags.slice(0,6).map(t=>t.name)??[],places:fit?.topPlaces??[],comparedOffers:profile?.offerFits.map(f=>({title:f.title,places:f.topPlaces}))??[],qlooCalls:(profile?.qlooCalls.live??0)+(profile?.qlooCalls.cached??0)},potential:{score:profile&&fit?.matches&&window.end>now?factors.reduce((s,f)=>s+f.points,0):null,factors},originalChannels:distribution.channels,receipts:getSends(id).filter(s=>s.channel!=="dooh").map(s=>({channel:s.channel as typeof CHANNEL_IDS[number],status:s.status,simulated:s.simulated,providerId:s.provider_sid??undefined})),generatedAt:c.created_at};
 }
 
 /** Edits and the approval claim are one transaction. Only its winner may call a provider. */
@@ -75,7 +87,7 @@ export function saveAgentReview(id:string,raw:unknown,approve=false,now=Date.now
   const fits=campaignWindows(event).some(w=>timing.start>=w.start&&timing.end<=w.end);
   if(!fits)throw new DnaError('Keep the campaign inside a suggested event window. Choose another opportunity for other times.');
   const next={...draft,google_post:{title:input.title,body:input.message,offer_terms:input.terms},whatsapp:{message:input.whatsapp},storefront:{chalkboard:input.chalkboard,staff_line:input.staffLine},geofenced_ad:{...draft.geofenced_ad,headline:input.adHeadline,body:input.adBody,daily_budget_usd:input.mediaBudgetUsd},windows:[{label:campaignWindows(event).find(w=>timing.start>=w.start&&timing.end<=w.end)!.label,start_local:input.startLocal.slice(11),end_local:input.endLocal.slice(11),why:draft.windows[0].why}]};
-  const review:SavedAgentReview={...input,revision:input.revision+1,offerPrice:offer.price};
+  const review:SavedAgentReview={...input,revision:input.revision+1,offerPrice:offer.price,offerSnapshot:{id:offer.id,title:offer.title,description:offer.description,price:offer.price}};
   getDb().prepare("UPDATE campaigns SET copy_json=?,channels_json=?,window_json=?,review_json=?,review_revision=?,status=?,updated_at=datetime('now') WHERE id=?").run(JSON.stringify(next),JSON.stringify(input.channels),JSON.stringify(next.windows),JSON.stringify(review),review.revision,approve?'approved':'drafted',id);
   return {claimed:approve};
  })();

@@ -7,12 +7,14 @@ import {getDna} from '../src/server/merchants/dna';
 import {getEvent} from '../src/server/qloo/crowd';
 import {campaignWindows} from '../src/server/agent/prompt';
 import {getCampaign,getDraft,draftWithClaude,draftReviewedWithClaude} from '../src/server/agent/run';
-import {agentWorkspace,assertAgentEvent,saveAgentReview} from '../src/server/agent/review';
+import {agentWorkspace,assertAgentEvent,saveAgentReview,eventOpportunity} from '../src/server/agent/review';
 import {CampaignDraftSchema,generatedCopyIssues} from '../src/server/agent/schema';
 import {POST as approve} from '../src/app/api/campaigns/[id]/approve/route';
 import {POST as prepare} from '../src/app/api/campaigns/prepare/route';
 import {localStampAt} from '../src/lib/campaign-plan';
 import {deliverySummary} from '../src/lib/delivery';
+import {preparedBoard} from '../src/server/agent/board';
+import {boardWindow} from '../src/lib/campaign-board';
 import {receiptLabel} from '../src/lib/agent-workspace';
 import {withGenerationBudget} from '../src/server/agent/budget';
 import {crowdChannelAffinity} from '../src/server/workspace/channel-affinity';
@@ -86,7 +88,7 @@ test('receipt labels distinguish accepted, sent, delivered and manual output',()
  assert.match(receiptLabel({...receipt,status:'sent'}),/not confirmed/);
  assert.equal(deliverySummary([{...receipt,status:'delivered'}]).delivered,1);
  assert.equal(deliverySummary([{...receipt,status:'undelivered'}]).failed,1);
- assert.equal(receiptLabel({...receipt,simulated:1,status:'sent'}),'Prepared · not sent');
+ assert.equal(receiptLabel({...receipt,simulated:1,status:'sent'}),'Prepared, not sent (demo list, fictional contacts)');
 });
 test('cross-origin approval and any request to send the demo are rejected before saving',async()=>{
  const review=insert('rejected');
@@ -128,6 +130,7 @@ test('existing Claude writer is callable with a structured provider response and
 
  test('writer guard rejects unsupported availability and internal notes in customer copy',()=>{
   assert.equal(generatedCopyIssues(draft).length,0);
+  assert.equal(generatedCopyIssues({...draft,whatsapp:{message:'The block will be busy tonight.'}}).length,1);
   assert.equal(generatedCopyIssues({...draft,google_post:{...draft.google_post,body:'Tables are available for you.'}}).length,1);
   assert.equal(generatedCopyIssues({...draft,geofenced_ad:{...draft.geofenced_ad,body:'Ads not selected, zero budget.'}}).length,1);
  });
@@ -173,4 +176,36 @@ test('new engine versions do not replace an owner-reviewed campaign during ordin
  globalThis.fetch=async()=>{throw new Error('Reviewed campaigns must not trigger generation.');};
  try{const result=await createCampaign(getMerchant('test_agent')!,getEvent('test_event')!);assert.equal(result.id,'owner-kept');assert.equal(getDraft(result)?.google_post.body,'Keep my wording.');}
  finally{globalThis.fetch=oldFetch;process.env.AGENT_PROVIDER=oldProvider;}
+});
+
+
+test('printable board requires an approved, actually prepared storefront channel',async()=>{
+ const review=insert('board-not-approved');
+ assert.equal(preparedBoard('board-not-approved'),undefined);
+ saveAgentReview('board-not-approved',review,true,now);
+ assert.equal(preparedBoard('board-not-approved'),undefined,'approval alone is not a receipt');
+ const withoutBoard={...insert('board-unselected'),channels:['whatsapp'],mediaBudgetUsd:0};
+ await approve(new Request('http://localhost/api/campaigns/board-unselected/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({review:withoutBoard})}),{params:Promise.resolve({id:'board-unselected'})});
+ assert.equal(preparedBoard('board-unselected'),undefined);
+});
+
+test('the board preserves approved wording, price and hours after the menu changes or disappears',async()=>{
+ const review={...insert('printable'),chalkboard:'Good company starts here.'};
+ const response=await approve(new Request('http://localhost/api/campaigns/printable/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({review})}),{params:Promise.resolve({id:'printable'})});
+ assert.equal(response.status,200);
+ const original=preparedBoard('printable')!;
+ assert.equal(original.message,review.chalkboard);assert.equal(original.price,'$20');assert.equal(original.startLocal,review.startLocal);assert.equal(original.endLocal,review.endLocal);
+ assert.match(boardWindow(original),/to|–/);
+ db.prepare("UPDATE offers SET title='New menu',price='$40',active=0 WHERE id='test_offer'").run();
+ try{assert.deepEqual(preparedBoard('printable'),original);}
+ finally{db.prepare("UPDATE offers SET title='A shared board',price='$20',active=1 WHERE id='test_offer'").run();}
+});
+
+test('occasion copy distinguishes capacity, an estimated end and a future date',()=>{
+ const occasion=eventOpportunity('test_agent',{...event,venue_name:'Madison Square Garden',starts_at:'2026-10-30T20:00:00Z',ends_at_est:'2026-10-30T22:30:00Z'},Date.parse('2026-10-29T10:00:00Z'));
+ assert.match(occasion.headline!,/20,000-seat venue/);assert.match(occasion.headline!,/around 22:30 on Fri 30 Oct/);assert.doesNotMatch(occasion.headline!,/tonight|today|people/);assert.match(occasion.estimateNote!,/End estimated/);
+ const unknown=eventOpportunity('test_agent',event,now);
+ assert.doesNotMatch(unknown.headline!,/seat/,'an unknown venue must not inherit the generic segment capacity');
+ const past=eventOpportunity('test_agent',{...event,starts_at:'2026-10-28T20:00:00Z'},Date.parse('2026-10-29T10:00:00Z'));
+ assert.match(past.headline!,/was expected/);
 });

@@ -16,20 +16,20 @@ export const AgentReviewSchema=z.object({
  visual:CampaignVisualSchema.optional(),
 });
 export type AgentReview=z.infer<typeof AgentReviewSchema>;
-export type AgentOpportunity={id:string;name:string;venue:string;when:string;distanceKm:number;sourceUrl?:string;checkedAt?:string;};
+export type AgentOpportunity={id:string;name:string;venue:string;when:string;distanceKm:number;sourceUrl?:string;checkedAt?:string;headline?:string;estimateNote?:string;checkedLabel?:string;};
 export type AgentReceipt={channel:PlanChannel;status:string;simulated:number;providerId?:string;};
 export type AgentWorkspace={
  id:string;merchantId:string;merchantName:string;timezone:string;status:string;source:'anthropic'|'operator';
- event:AgentOpportunity;offer:MenuOffer;dna:DnaRecord;review:AgentReview;distribution:DistributionRecommendation;
+ event:AgentOpportunity;offer:MenuOffer;signatureOffer?:MenuOffer;dna:DnaRecord;review:AgentReview;distribution:DistributionRecommendation;
  reasoning:string;audience:string;limitations:string;proof:{locality?:LocalityComparison;tags:string[];places:string[];comparedOffers:{title:string;places:string[]}[];qlooCalls:number;};
  potential:{score:number|null;factors:{label:string;points:number;max:number}[]};
  originalChannels:PlanChannel[];receipts:AgentReceipt[];generatedAt:string;
 };
-export type SavedAgentReview=AgentReview & {offerPrice:string;visual?:CampaignVisual};
+export type SavedAgentReview=AgentReview & {offerPrice:string;offerSnapshot?:MenuOffer;visual?:CampaignVisual};
 
 export function receiptLabel(receipt:{status:string;simulated:number;channel:string}){
  if(receipt.status.startsWith('failed')||receipt.status==='undelivered')return 'Delivery failed';
- if(receipt.simulated)return receipt.channel==='storefront'?'Ready for your board':receipt.channel==='whatsapp'?'Prepared · not sent':'Prepared · share manually';
+ if(receipt.simulated)return receipt.channel==='storefront'?'Ready to print':receipt.channel==='whatsapp'?'Prepared, not sent (demo list, fictional contacts)':receipt.channel==='geofenced_ad'?'Prepared · not launched':'Prepared · share manually';
  if(receipt.status==='delivered'||receipt.status==='read')return receipt.status==='read'?'Read on demo phone':'Delivered to demo phone';
  if(receipt.status==='sent')return 'Sent · delivery not confirmed';
  if(receipt.status==='created (paused)')return 'Created in Snapchat · paused';

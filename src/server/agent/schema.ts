@@ -54,6 +54,7 @@ export const CampaignGenerationSchema=CampaignDraftSchema.extend({
 export function generatedCopyIssues(draft:CampaignDraft):string[]{
  const copy=[draft.google_post.title,draft.google_post.body,draft.google_post.offer_terms,draft.whatsapp.message,draft.storefront.chalkboard,draft.storefront.staff_line,draft.geofenced_ad.headline,draft.geofenced_ad.body].join('\n');
  const issues:string[]=[];
+ if(/\b(?:street|block|neighbou?rhood) (?:will be|is going to be) (?:busy|packed|crowded)\b/i.test(copy))issues.push('Remove unsupported predictions of local footfall. Use the verified event and an invitation, not a claim that the street will be busy.');
  if(/\b(?:tables? (?:are |is )?(?:open|available|waiting|reserved)|your table is here|guaranteed (?:table|seat|space)|seats? (?:are )?available)\b/i.test(copy))issues.push('Remove unverified claims about available or reserved tables, seats or space. Invite people without promising availability.');
  if(/\b(?:ads? not selected|zero budget|not connected|manual sharing|Qloo|DNA|media cap)\b/i.test(copy))issues.push('Customer-facing copy must not contain internal platform, budget or preparation notes.');
  return issues;

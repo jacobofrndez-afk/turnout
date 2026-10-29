@@ -307,3 +307,47 @@ body:has(.workspace-nav a[aria-current=page]) main:not(.identity-page):not(.app-
 @media(max-width:640px){.agent-campaign{padding:17px;border-radius:14px}.agent-steps{gap:9px!important;display:grid;grid-template-columns:1fr 1fr}.agent-steps li{font-size:11px}.agent-opportunity{gap:10px}.agent-opportunity>.icon-tile{display:none}.agent-campaign h2{font-size:20px}.agent-choice{grid-template-columns:minmax(0,1fr) 94px;gap:12px}.agent-potential{padding:10px}.agent-potential summary>strong{font-size:32px}.agent-choice h3>span{display:block;margin:4px 0}.agent-section-title{display:block}.agent-fields{grid-template-columns:1fr;gap:0}.agent-actions{align-items:stretch;flex-direction:column-reverse}.agent-actions button{justify-content:center;width:100%}.agent-start{padding:15px}.agent-start .action-button{width:100%;justify-content:center}.agent-plan-summary{gap:14px;padding:12px}.agent-channel-picks button{font-size:11px;padding:6px 8px}}
 
 .agent-home .agent-campaign{margin-top:0}.agent-other-ideas .today-layout{grid-template-columns:1fr}.agent-home .home-aside{padding-top:0}
+
+/* One decision, two honest points of comparison. */
+.agent-decision-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:24px 0 12px}
+.agent-decision-heading .agent-potential{min-width:110px}
+.agent-offer-comparison{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.agent-offer-card{padding:18px;border:1px solid #e5deea;border-radius:12px;background:#faf8fb;min-width:0}
+.agent-offer-card.is-recommended{border-color:#b5bfa6;background:#f3f6ee}
+.agent-offer-card .overline{font-size:11px;letter-spacing:.025em}
+.agent-offer-card h3{font-size:18px;margin:10px 0 5px}
+.agent-offer-card>strong{font-size:18px;font-weight:600}
+.agent-offer-card p{font-size:12px;margin-top:9px}
+.agent-offer-card .agent-confirmation{font-weight:600;color:#496039}
+.agent-editor .agent-board-editor{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:center;margin:20px 0}
+.agent-board-editor label small{font-size:11px;line-height:1.5}
+.agent-board-actions{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0}
+.agent-receipt-success{background:#f1f6eb;border:1px solid #dce6d1;border-radius:12px;padding:18px;margin-bottom:15px}
+.agent-receipt-success h3{margin-top:0}
+.agent-receipt-success p{color:#496039}
+.agent-no-event{display:flex;gap:16px;align-items:flex-start;margin:20px 0;padding:22px;background:#f2f5ed;border:1px solid #dfe7d5;border-radius:14px}
+.agent-no-event h2{font-size:21px;margin:5px 0 8px}.agent-no-event p{font-size:14px;line-height:1.6;max-width:700px}.agent-no-event small{display:block;font-size:12px;color:var(--muted);margin-top:10px}
+/* The same board is used in the editor, receipt, full screen and print output. */
+.campaign-board{box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;min-width:0;max-width:650px;margin:0 auto;padding:44px 34px;min-height:480px;background:#172620;color:#f6f0df;border:8px double #768276;border-radius:3px;text-align:center;overflow-wrap:anywhere;box-shadow:0 14px 35px #14201b15}
+.campaign-board .board-place{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#c1cebc;font-weight:500}
+.campaign-board .board-invitation{font-family:var(--font-display),sans-serif;font-size:clamp(30px,4vw,48px);font-weight:600;line-height:1.12;letter-spacing:.015em;color:#f6f0df;margin:8px 0;white-space:pre-wrap;text-wrap:balance}
+.board-offer{display:flex;flex-direction:column;gap:10px;align-items:center;width:100%;border-block:1px solid #67766a;padding:18px 0;font-size:16px;line-height:1.4}
+.campaign-board .board-offer strong{color:#f6f0df;font-size:28px;font-weight:500}.board-window{font-size:14px;line-height:1.6}.campaign-board .board-window small{display:block;font-size:10px;color:#bdc9b9}.board-address{font-size:12px;line-height:1.5;color:#bdc9b9}
+.agent-board-editor .campaign-board{padding:26px 20px;gap:16px;min-height:340px;width:100%;border-width:5px}
+.agent-board-editor .board-invitation{font-size:29px}.agent-board-editor .board-offer{font-size:12px;padding:13px 0}.agent-board-editor .board-offer strong{font-size:22px}.agent-board-editor .board-window{font-size:11px}
+.board-page{max-width:1000px;margin:0 auto;padding:32px 24px 70px}.board-page-heading{text-align:center;margin-bottom:30px}.board-page h1{font-family:var(--font-sans),sans-serif;font-size:28px;font-weight:600;letter-spacing:-.035em;margin:18px 0 8px}.board-page-heading>p{font-size:14px;color:var(--muted)}
+.board-controls{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:22px}.board-controls>small,.board-controls>p{flex-basis:100%;font-size:12px;color:var(--muted)}
+.campaign-board:fullscreen{width:100vw;max-width:none;height:100vh;min-height:0;border-width:12px;padding:4vh 8vw;gap:3vh;box-shadow:none}.campaign-board:fullscreen .board-invitation{font-size:clamp(35px,7vh,100px)}.campaign-board:fullscreen .board-offer strong{font-size:5vh}.campaign-board:fullscreen .board-place{font-size:2vh}
+@media(max-width:640px){.agent-offer-card{padding:13px}.agent-offer-card h3{font-size:16px}.agent-offer-card .overline{font-size:10px}.agent-offer-card p{font-size:11px}.agent-decision-heading h3{font-size:17px}.agent-editor .agent-board-editor{grid-template-columns:1fr}.campaign-board{padding:30px 22px;min-height:410px;gap:20px}.board-page{padding:24px 16px 50px}.board-controls .action-button{font-size:13px}.agent-no-event{padding:16px}.agent-no-event>.icon-tile{display:none}}
+@media print{
+ @page{size:auto;margin:12mm}
+ html:has(.board-page),body:has(.board-page){min-height:0!important;height:auto!important}
+ body:has(.board-page){background:#fff!important;padding:0!important;margin:0!important}
+ body:has(.board-page)>.workspace-header,body:has(.board-page)>.workspace-footer,.board-page-heading{display:none!important}
+ .board-page{margin:0!important;padding:0!important;max-width:none!important}
+ .board-page .campaign-board{width:100%;max-width:none;height:245mm;min-height:0;padding:18mm 12mm;box-shadow:none;border:2mm double #bbb;break-inside:avoid;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+ .board-page .board-invitation{font-size:34pt}.board-page .board-offer{font-size:16pt}.board-page .board-offer strong{font-size:28pt}.board-page .board-window{font-size:12pt}
+}
+
+.board-screen-exit{display:none}
+.campaign-board:fullscreen .board-screen-exit{display:block;position:absolute;top:20px;right:24px;border:1px solid #7f8d7e;border-radius:6px;background:#172620;color:#f6f0df;font-family:var(--font-sans),sans-serif;font-size:12px;padding:8px 12px;cursor:pointer}

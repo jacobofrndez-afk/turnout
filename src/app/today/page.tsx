@@ -4,9 +4,8 @@ import { cookies } from "next/headers";
 import { getMerchant, listMerchants } from "@/server/events/radar";
 import { getDna } from "@/server/merchants/dna";
 import { getOffers, getEvent } from "@/server/qloo/crowd";
-import { getDb } from "@/server/db/client";
 import { provider } from "@/server/agent/run";
-import { agentWorkspace, eventOpportunity } from "@/server/agent/review";
+import { latestAgentWorkspace, eventOpportunity } from "@/server/agent/review";
 import { AgentCampaign } from "@/components/AgentCampaign";
 import { weatherWindow } from "@/server/weather/openmeteo";
 import { workspaceAgenda } from "@/server/workspace/agenda";
@@ -67,8 +66,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const aside = <><WeekAgenda now={agenda.now} timezone={m.timezone} entries={agenda.entries} merchantId={m.id} unavailable={agenda.unavailable}/><Link className="photo-shortcut" href={`/campaigns/from-photo${q}`}><span className="icon-tile"><Icon name="camera" size={24}/></span><span><strong>Something new on the board?</strong><small>Take a photo. Turn it into a campaign.</small></span><Icon name="arrow"/></Link></>;
   const chosenEvent=sp.event&&agenda.entries.some(e=>e.kind==="event"&&e.id===sp.event)?sp.event:agenda.leadEvent;
   const leadEvent=chosenEvent?getEvent(chosenEvent):undefined;
-  const cachedAgent=leadEvent?getDb().prepare("SELECT id FROM campaigns WHERE merchant_id=? AND event_id=? AND dna_version=? AND copy_json IS NOT NULL ORDER BY created_at DESC,rowid DESC LIMIT 1").get(m.id,leadEvent.id,dna.version) as {id:string}|undefined:undefined;
-  const prepared=cachedAgent?agentWorkspace(cachedAgent.id):undefined;
+  const prepared=leadEvent?latestAgentWorkspace(m.id,leadEvent.id,dna.version):undefined;
   return <main className="app-page today-page"><WorkspaceContext merchant={m} merchants={merchants} destination="/today" />
     <header className="page-heading"><div><h1>Your next campaign</h1><p className="today-assistant-note">Ready-made content. Your channels. Your call. <Link href="/about" className="assistant-how-link">How it works <Icon name="arrow" size={12}/></Link></p></div><span className="date-stamp"><Icon name="calendar" />{new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: m.timezone }).format(agenda.now)}</span></header>
     {leadEvent&&<div className="home-grid agent-home"><div className="home-main"><AgentCampaign key={`${m.id}-${leadEvent.id}`} merchantId={m.id} event={eventOpportunity(m.id,leadEvent,agenda.now)} initial={prepared} writerConnected={provider()==="anthropic"}/></div><aside className="home-aside">{aside}</aside></div>}

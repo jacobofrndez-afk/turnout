@@ -32,7 +32,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   const event = getEvent(campaign.event_id);
   if (!merchant || !event) notFound();
   const workspace=campaign.evidence_json?agentWorkspace(id):undefined;
-  if(workspace)return <main className="app-page"><Link href={`/today?merchant=${merchant.id}`} className="text-link">← Today</Link><AgentCampaign merchantId={merchant.id} event={workspace.event} initial={workspace} writerConnected={provider()==="anthropic"}/></main>;
+  if(workspace)return <main className="app-page"><Link href={`/today?merchant=${merchant.id}`} className="text-link">← Today</Link><AgentCampaign key={workspace.id} merchantId={merchant.id} event={workspace.event} initial={workspace} writerConnected={provider()==="anthropic"}/></main>;
   // The act, as on Today and Who is coming; a tour title ("Harry Styles: Together, Together") reads like a stutter.
   const actName = (event.origin ?? "ticketmaster") === "ticketmaster" ? ((JSON.parse(event.attractions_json) as { name?: string }[])[0]?.name ?? event.name) : event.name;
   const draft = getDraft(campaign);

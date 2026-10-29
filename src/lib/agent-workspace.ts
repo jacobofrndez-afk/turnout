@@ -19,7 +19,7 @@ export type AgentReview=z.infer<typeof AgentReviewSchema>;
 export type AgentOpportunity={id:string;name:string;venue:string;when:string;distanceKm:number;sourceUrl?:string;checkedAt?:string;headline?:string;estimateNote?:string;checkedLabel?:string;};
 export type AgentReceipt={channel:PlanChannel;status:string;simulated:number;providerId?:string;};
 export type AgentWorkspace={
- id:string;merchantId:string;merchantName:string;timezone:string;status:string;source:'anthropic'|'operator';
+ id:string;merchantId:string;merchantName:string;timezone:string;status:string;source:'anthropic'|'operator';copiedFromId?:string;
  event:AgentOpportunity;offer:MenuOffer;signatureOffer?:MenuOffer;dna:DnaRecord;review:AgentReview;distribution:DistributionRecommendation;
  reasoning:string;audience:string;limitations:string;proof:{locality?:LocalityComparison;tags:string[];places:string[];comparedOffers:{title:string;places:string[]}[];qlooCalls:number;};
  potential:{score:number|null;factors:{label:string;points:number;max:number}[]};

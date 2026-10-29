@@ -30,6 +30,7 @@ function migrate(db: Db): void {
   add("campaigns", "dna_snapshot_json", "dna_snapshot_json TEXT");
   add("campaigns", "evidence_json", "evidence_json TEXT");
   add("campaigns", "review_json", "review_json TEXT");
+  add("campaigns", "copy_parent_id", "copy_parent_id TEXT REFERENCES campaigns(id)");
   add("campaigns", "review_revision", "review_revision INTEGER NOT NULL DEFAULT 0");
   add("merchants", "seats", "seats INTEGER NOT NULL DEFAULT 60");
   add("events", "origin", "origin TEXT NOT NULL DEFAULT 'ticketmaster'");

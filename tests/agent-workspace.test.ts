@@ -7,9 +7,11 @@ import {getDna} from '../src/server/merchants/dna';
 import {getEvent} from '../src/server/qloo/crowd';
 import {campaignWindows} from '../src/server/agent/prompt';
 import {getCampaign,getDraft,draftWithClaude,draftReviewedWithClaude} from '../src/server/agent/run';
-import {agentWorkspace,assertAgentEvent,saveAgentReview,eventOpportunity} from '../src/server/agent/review';
+import {agentWorkspace,assertAgentEvent,saveAgentReview,eventOpportunity,latestAgentWorkspace} from '../src/server/agent/review';
 import {CampaignDraftSchema,generatedCopyIssues} from '../src/server/agent/schema';
 import {POST as approve} from '../src/app/api/campaigns/[id]/approve/route';
+import {copyCampaign} from '../src/server/agent/versions';
+import {POST as makeVersion} from '../src/app/api/campaigns/[id]/versions/route';
 import {POST as prepare} from '../src/app/api/campaigns/prepare/route';
 import {localStampAt} from '../src/lib/campaign-plan';
 import {deliverySummary} from '../src/lib/delivery';
@@ -208,4 +210,56 @@ test('occasion copy distinguishes capacity, an estimated end and a future date',
  assert.doesNotMatch(unknown.headline!,/seat/,'an unknown venue must not inherit the generic segment capacity');
  const past=eventOpportunity('test_agent',{...event,starts_at:'2026-10-28T20:00:00Z'},Date.parse('2026-10-29T10:00:00Z'));
  assert.match(past.headline!,/was expected/);
+});
+
+
+test('two visitors can edit and approve separate versions while Today and the original board stay intact',async()=>{
+ const review=insert('replay-source');
+ const approveRequest=(id:string,input:unknown)=>approve(new Request(`http://localhost/api/campaigns/${id}/approve`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({review:input})}),{params:Promise.resolve({id})});
+ assert.equal((await approveRequest('replay-source',review)).status,200);
+ const original=getCampaign('replay-source'),originalBoard=preparedBoard('replay-source');
+ const originalSends=db.prepare("SELECT * FROM sends WHERE campaign_id='replay-source'").all();
+ const oldFetch=globalThis.fetch;globalThis.fetch=async()=>{throw new Error('A version must not make a provider call.');};
+ try{
+  const make=()=>makeVersion(new Request('http://localhost/api/campaigns/replay-source/versions',{method:'POST',headers:{Origin:'http://localhost'}}),{params:Promise.resolve({id:'replay-source'})});
+  const responses=await Promise.all([make(),make()]);assert.ok(responses.every(r=>r.status===200));
+  const [first,second]=await Promise.all(responses.map(r=>r.json()));
+  assert.notEqual(first.workspace.id,second.workspace.id);
+  for(const result of [first,second]){
+   assert.equal(result.workspace.status,'drafted');assert.equal(result.workspace.copiedFromId,'replay-source');
+   assert.deepEqual(result.workspace.receipts,[]);assert.equal(result.workspace.review.message,review.message);
+   assert.equal(result.workspace.review.revision,1);assert.match(result.href,new RegExp(result.workspace.id));
+   assert.deepEqual(result.workspace.proof,JSON.parse(JSON.stringify(agentWorkspace('replay-source',now)!.proof)));
+   assert.deepEqual(JSON.parse(getCampaign(result.workspace.id)!.llm_usage_json!),{source:'anthropic',inherited_from:'replay-source'});
+  }
+  const personal={...first.workspace.review,chalkboard:'My own version of the invitation.'};
+  assert.equal((await approveRequest(first.workspace.id,personal)).status,200);
+  assert.equal(preparedBoard(first.workspace.id)!.message,personal.chalkboard);
+  assert.equal(agentWorkspace(second.workspace.id,now)!.status,'drafted');
+  assert.equal(agentWorkspace(second.workspace.id,now)!.review.chalkboard,review.chalkboard);
+  assert.equal(latestAgentWorkspace('test_agent','test_event',1)!.id,'replay-source');
+  assert.deepEqual(getCampaign('replay-source'),original);assert.deepEqual(preparedBoard('replay-source'),originalBoard);
+  assert.deepEqual(db.prepare("SELECT * FROM sends WHERE campaign_id='replay-source'").all(),originalSends);
+ }finally{globalThis.fetch=oldFetch;}
+});
+
+test('version creation rejects stale economics, changed DNA and expired time without inserting a draft',()=>{
+ const count=()=>Number((db.prepare('SELECT count(*) AS n FROM campaigns').get() as {n:number}).n);
+ const before=count();
+ db.prepare("UPDATE offers SET price='$40' WHERE id='test_offer'").run();
+ try{assert.throws(()=>copyCampaign('replay-source',now),/price changed/);assert.equal(count(),before);}
+ finally{db.prepare("UPDATE offers SET price='$20' WHERE id='test_offer'").run();}
+ db.prepare("UPDATE merchant_dna SET version=2 WHERE merchant_id='test_agent'").run();
+ try{assert.throws(()=>copyCampaign('replay-source',now),/DNA changed/);assert.equal(count(),before);}
+ finally{db.prepare("UPDATE merchant_dna SET version=1 WHERE merchant_id='test_agent'").run();}
+ assert.throws(()=>copyCampaign('replay-source',starts+24*3600000),/window is too close or has passed/);assert.equal(count(),before);
+ db.prepare("UPDATE events SET meta_json='{}' WHERE id='test_event'").run();
+ try{assert.throws(()=>copyCampaign('replay-source',now),/verify this event/);assert.equal(count(),before);}
+ finally{db.prepare("UPDATE events SET meta_json=? WHERE id='test_event'").run(meta);}
+});
+
+test('an unapproved campaign and a foreign-origin request cannot be copied',async()=>{
+ insert('not-reviewed');assert.throws(()=>copyCampaign('not-reviewed',now),/Wait for the campaign receipt/);
+ const response=await makeVersion(new Request('http://localhost/api/campaigns/replay-source/versions',{method:'POST',headers:{Origin:'https://unrelated.example'}}),{params:Promise.resolve({id:'replay-source'})});
+ assert.equal(response.status,403);
 });

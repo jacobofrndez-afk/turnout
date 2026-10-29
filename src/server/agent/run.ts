@@ -37,6 +37,7 @@ export type CampaignRow = {
   evidence_json?: string | null;
   review_json?: string | null;
   review_revision?: number;
+  copy_parent_id?: string | null;
 };
 
 export const INBOX = () => resolve(/* turbopackIgnore: true */ process.cwd(), process.env.AGENT_INBOX ?? "data/agent-inbox");
@@ -61,7 +62,7 @@ export async function createCampaign(merchant: Merchant, event: EventRow, picked
 
 async function createCampaignOnce(merchant: Merchant, event: EventRow, pickedEntityId: string | undefined, dna: DnaRecord, fresh = false): Promise<CampaignRow> {
   if (campaignWindows(event).every(w => w.end <= Date.now())) throw new Error("This crowd has already left. Choose a coming event.");
-  const previous = getDb().prepare("SELECT * FROM campaigns WHERE merchant_id = ? AND event_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1").get(merchant.id, event.id) as CampaignRow | undefined;
+  const previous = getDb().prepare("SELECT * FROM campaigns WHERE merchant_id = ? AND event_id = ? AND copy_parent_id IS NULL ORDER BY created_at DESC, rowid DESC LIMIT 1").get(merchant.id, event.id) as CampaignRow | undefined;
   if (previous && !pickedEntityId && !fresh) {
     const existing = pollOperatorDraft(previous);
     const sameDna = (existing.dna_version ?? 0) === dna.version;

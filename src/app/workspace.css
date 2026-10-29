@@ -351,3 +351,6 @@ body:has(.workspace-nav a[aria-current=page]) main:not(.identity-page):not(.app-
 
 .board-screen-exit{display:none}
 .campaign-board:fullscreen .board-screen-exit{display:block;position:absolute;top:20px;right:24px;border:1px solid #7f8d7e;border-radius:6px;background:#172620;color:#f6f0df;font-family:var(--font-sans),sans-serif;font-size:12px;padding:8px 12px;cursor:pointer}
+
+.agent-version{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px;margin:18px 0;background:#f6f2f9;border:1px solid #e5dbec;border-radius:12px}.agent-version strong{font-size:14px}.agent-version p{font-size:12px;margin:5px 0 0}.agent-version .action-button{flex:none;font-size:12px}
+@media(max-width:640px){.agent-version{display:block;padding:15px}.agent-version .action-button{margin-top:14px;width:100%;justify-content:center}}

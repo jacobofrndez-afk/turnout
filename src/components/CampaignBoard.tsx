@@ -7,7 +7,7 @@ export function CampaignBoard({board}:{board:CampaignBoardData}){
   <div className="board-place">{board.merchantName}</div>
   <p className="board-invitation">{board.message}</p>
   <div className="board-offer"><span>{board.offerTitle}</span><strong>{board.price}</strong></div>
-  <div className="board-window">{boardWindow(board)}<small>{board.timezone}</small></div>
+  <div className="board-window">{boardWindow(board)}</div>
   {board.address&&<div className="board-address">{board.address}</div>}
  </article>;
 }

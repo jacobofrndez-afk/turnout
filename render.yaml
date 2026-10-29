@@ -32,20 +32,15 @@ services:
         value: "60"
       - key: AGENT_PROVIDER
         value: anthropic
-      - key: TWILIO_WHATSAPP_FROM
-        value: whatsapp:+14155238886
       - key: QLOO_API_KEY
         sync: false
       - key: TICKETMASTER_API_KEY
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
-      - key: TWILIO_ACCOUNT_SID
-        sync: false
-      - key: TWILIO_AUTH_TOKEN
-        sync: false
-      - key: DEMO_WHATSAPP_TO
-        sync: false
+      # WhatsApp is off for the hosted demo: a Twilio trial account cannot send free text
+      # (templates only), so the receipt says "prepared, not sent". To turn it on with an
+      # upgraded account, add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM, DEMO_WHATSAPP_TO.
       # Public origin of the service, e.g. https://turnout.onrender.com (alert links and OAuth callbacks).
       - key: APP_URL
         sync: false

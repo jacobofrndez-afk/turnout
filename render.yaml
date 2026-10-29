@@ -1,0 +1,53 @@
+# Render Blueprint for the hosted demo: one Docker web service with a persistent disk for SQLite.
+# Secrets (sync: false) are entered once in the Render dashboard, never in this file.
+# A disk needs a paid instance; the free plan has no disk and sleeps after inactivity.
+services:
+  - type: web
+    name: turnout
+    runtime: docker
+    plan: starter
+    region: virginia
+    healthCheckPath: /api/health
+    autoDeploy: true
+    disk:
+      name: turnout-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: PORT
+        value: "3000"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_PATH
+        value: /data/turnout.db
+      - key: AGENT_INBOX
+        value: /data/agent-inbox
+      - key: QLOO_HOME
+        value: /data/qloo
+      - key: QLOO_BASE_URL
+        value: https://hackathon.api.qloo.com
+      - key: QLOO_TRUSTED_BASE_URL
+        value: https://hackathon.api.qloo.com
+      - key: SCAN_EVERY_MIN
+        value: "60"
+      - key: AGENT_PROVIDER
+        value: anthropic
+      - key: TWILIO_WHATSAPP_FROM
+        value: whatsapp:+14155238886
+      - key: QLOO_API_KEY
+        sync: false
+      - key: TICKETMASTER_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: DEMO_WHATSAPP_TO
+        sync: false
+      # Public origin of the service, e.g. https://turnout.onrender.com (alert links and OAuth callbacks).
+      - key: APP_URL
+        sync: false
+      - key: TURNOUT_PUBLIC_URL
+        sync: false

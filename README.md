@@ -94,7 +94,7 @@ npm run dev                  # http://localhost:3000
 
 Useful scripts: `npm run spike` (Qloo coverage go/no-go through `qloo mcp`), `npm run explore` (raw API tour), `npm run radar -- m_penn_pour`, `npm run crowd -- m_penn_pour "Harry Styles"`.
 
-Deploy: the Dockerfile runs `next start` as a persistent Node process with SQLite on a volume (`DATABASE_PATH=/data/turnout.db`). `railway.json` points the health check at `/api/health`.
+Deploy: the Dockerfile runs `next start` as a persistent Node process with SQLite on a mounted disk (`DATABASE_PATH=/data/turnout.db`). `render.yaml` is a Render Blueprint (Docker web service, 1 GB disk at `/data`, health check at `/api/health`, secrets entered in the dashboard); `railway.json` does the same on Railway. On first boot with an empty database the server seeds the two demo merchants and their offers (tags resolved through Qloo), so a fresh disk shows a working demo.
 
 ## Repository map
 

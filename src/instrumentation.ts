@@ -4,6 +4,19 @@
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   if (process.env.NEXT_PHASE === "phase-production-build") return;
+  // First boot on an empty disk (hosted demo, fresh clone): seed the demo merchants and offers once.
+  // The seed only upserts, so a database the merchants changed is left alone.
+  try {
+    const { getDb } = await import("./server/db/client");
+    const merchants = (getDb().prepare("SELECT COUNT(*) AS c FROM merchants").get() as { c: number }).c;
+    if (merchants === 0) {
+      const { seed } = await import("./server/db/seed");
+      await seed();
+      console.log("[seed] empty database seeded with the demo merchants");
+    }
+  } catch (e) {
+    console.warn(`[seed] failed: ${String((e as Error).message).slice(0, 200)}`);
+  }
   const everyMin = Number(process.env.SCAN_EVERY_MIN ?? 60);
   if (!Number.isFinite(everyMin) || everyMin <= 0) return;
   const g = globalThis as unknown as { __turnoutScan?: NodeJS.Timeout };

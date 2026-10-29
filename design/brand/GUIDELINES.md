@@ -1,6 +1,6 @@
 # Turnout brand guidelines, identity "Velours" (v3.0)
 
-For developers. Tokens: `tokens.css` (the app copy is the `:root` of `src/app/globals.css`) and `tokens.json`. The shared classes live in `src/app/globals.css`. Logo: `src/components/Logo.tsx` (sizes and lockups belong to the logo session). `index.html` and `SWEEP-CHECKLIST.md` describe the retired Marquise identity and are kept for history only.
+For developers. Tokens: `tokens.css` (the app copy is the `:root` of `src/app/globals.css`) and `tokens.json`. The shared classes live in `src/app/globals.css`. Logo: `src/components/Logo.tsx`, with shared geometry in `src/components/logo-geometry.ts`. `index.html` and `SWEEP-CHECKLIST.md` describe the retired Marquise identity and are kept for history only.
 
 ## 1. Idea
 
@@ -78,14 +78,32 @@ Rules:
 - Map: borderless; flat white 44 px controls with no separators; attribution collapsed at every width to a 28 px white square with an aubergine "i", opening on hover or focus to a solid white strip, 13 px muted; the peek board white, frameless, clocks 15 px, its hot state marked by a wine dot, hidden under 560 px; hot signs wine with white words, 14 px; radius label 15 px tabular; your place an aubergine square.
 - One tonal surface per screen: on the radar it is the chosen moment.
 
-## 7. Logo
+## 7. Logo — Door & radar
 
-Swing, personality "live". Walls and arc aubergine (`--mark-ink` #3B1C42), needle wine (`--mark-needle` #84204D), the afterglow behind the needle one flat tint (`--mark-glow`, by default the needle at 12 % over `--mark-ground`, #F0E4EA on white): the door's swept area, never a fade. From 32 px up the arc is full ink, two thirds of the walls' weight; at 20 and 16 px it is 1 px at 65 % (`--mark-arc` #806B84). No inner ring. On the plate use `tone="reverse"`: `--mark-ink-reverse` #F6F1F8, `--mark-needle-reverse` #E6A4C2, afterglow #5A3459 (`--mark-glow-reverse`, rose at 18 % over `--plum`), `--mark-arc-reverse` #B5A6B8 at 20 and 16 px. Wordmark `--wordmark`, Big Shoulders 500.
+The logo fuses an architectural door plan with a radar. Two wall sections frame a threshold; the door leaf and radar needle share a pivot. The outer quarter-circle traces the door swing, two inner arcs express radar range, and one wine point is the detected signal. A faint translucent field fills the whole rounded sector. A stronger gradient fades behind the tapered needle. Everything outside the sector stays transparent. Keep contours solid and precise, with no blur, shadows or glow. The needle and left wall form one continuous outline; the outer arc ends flush on the right wall.
 
-- Sizes: header `<Wordmark size={44} phone={34} />` (48 master, 32 on phones) in a 76 px bar (64 on phones); home hero `<Wordmark size={128} phone={64} motion />` (128 master, 64 on phones), the needle swings open once, still under reduced motion. Other sizes, lockups and variants: `src/components/Logo.tsx`.
-- The aubergine plate is for objects, never a whole surface: the hero plate, the favicon chip (16 px, `src/app/icon.svg`) and the apple-touch icon chip (`src/app/apple-icon.png`). The share card (`src/app/opengraph-image.png`) is the white page with the colour lockup and the promise, as the site is.
-- If `globals.css` sets `--mark-glow`, set it in the plum scope too (`--mark-glow: #5A3459`), or leave both unset: the default follows `--mark-needle` and `--mark-ground`, which the plum scope already retints.
+The lettering is a custom lowercase geometric drawing, supplied as vector paths and independent of UI fonts. Both t letters are upright. Each crossbar has one discreet 60° cut at its right terminal, parallel to the radar needle. The crossbars are solid vector outlines, so the cuts stay transparent on every background. Keep the symbol and lettering as one lockup; do not replace the lettering with Big Shoulders. The app typography remains unchanged. All interface copy is English; preserve original merchant and event names. Baseline: “Your marketing team. Your call.”
+
+- Source geometry: `src/components/logo-geometry.ts`; React components: `src/components/Logo.tsx`.
+- Regenerate the assets with `node --import tsx design/identity/generate.mjs`. The old `design/studio-a/swing-final.mjs` is historical and must not overwrite current app assets.
+- Generate geometry at its actual display size. Align straight edges to pixel boundaries. Construct the fine arcs as closed annular paths with a horizontal cut at the wall, so no stroke cap protrudes into the opening. Never scale a nested SVG or apply CSS transforms to the logo.
+- Header: `<Wordmark size={44} phone={34} />`. Separate native-size desktop and mobile SVGs are selected by CSS; the wrapper supplies one accessible name. Static by default.
+- `Mark` uses two arcs at 24 px and below, with heavier strokes and a larger point. Larger sizes use three arcs. In monochrome, omit both the translucent field and gradient and retain the solid geometry.
+- Colour: aubergine #3B1C42 with wine #84204D. Fine arcs: muted plum #927798. Reverse: ivory #F6F1F8 with rose #E6A4C2 and muted ivory-plum arcs #C4AECA. In monochrome all shapes use the same ink.
+- Preserve clear space of at least the wall width around the symbol. Do not place text or decorative elements inside the threshold.
+- Review page: `/identity`. Transparent SVG and PNG masters: `public/brand/`. Default public logo: `public/logo.svg`. Apple icon and social share card have intentional platform backgrounds. Previous assets are retained in `design/identity/previous/`.
 
 ## 8. Retired
 
 Marquise: grey concrete page #F2F3F3, white boards on a 3 px rail, hairlines, raspberry #E0115F, IBM Plex Mono, the 20-segment score bar, outlined ghost buttons, underlined links. Earlier: cream paper, serif with an italic word, Inter, uppercase tracked eyebrows, rounded soft-shadow cards, pills, dark backgrounds.
+
+## 9. Positioning — Prepared intelligence, owner control
+
+Turnout is a marketing assistant for independent businesses: the preparation of a dedicated marketing team, personalised to the place and focused on return on investment. Qualified data informs the opportunity; the place DNA shapes the offer and voice. The assistant prepares the message, timing, channels and planned media cost. The business adds its touch and makes the decision.
+
+- Signature: “Your marketing team. Your call.”
+- Supporting line: “Personal to your place. Focused on return.”
+- Use the shared copy in `src/lib/brand-copy.ts` for product and marketing surfaces.
+- Lead with the preparation, personalisation and decision value. Explain Qloo and individual sources as the evidence behind the proposal.
+- ROI is the objective, not a guaranteed gain or a measured result without sales, margins and actual costs. A potential index is not predicted ROI.
+- The dedicated-team comparison expresses the product ambition and care in preparation. Do not claim continuous monitoring, automatic publication or private account analytics while those capabilities are unavailable.

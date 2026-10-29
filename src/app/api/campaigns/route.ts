@@ -1,3 +1,4 @@
+import { getDna } from "@/server/merchants/dna";
 import { NextResponse } from "next/server";
 import { rateLimit, tooMany } from "@/server/guard";
 import { getMerchant } from "@/server/events/radar";
@@ -15,6 +16,11 @@ export async function POST(req: Request) {
   const event = getEvent(String(form.get("event") ?? ""));
   const pick = form.get("pick") ? String(form.get("pick")) : undefined;
   if (!merchant || !event) return NextResponse.json({ error: "unknown merchant or event" }, { status: 400 });
-  const campaign = await createCampaign(merchant, event, pick);
-  return NextResponse.redirect(new URL(`/campaigns/${campaign.id}`, req.url), 303);
+  if (getDna(merchant.id).status === "suggested") return NextResponse.redirect(new URL(`/dna?merchant=${merchant.id}&event=${event.id}`, req.url), 303);
+  try {
+    const campaign = await createCampaign(merchant, event, pick);
+    return NextResponse.redirect(new URL(`/campaigns/${campaign.id}`, req.url), 303);
+  } catch {
+    return NextResponse.redirect(new URL(`/campaigns/new?merchant=${encodeURIComponent(merchant.id)}&event=${encodeURIComponent(event.id)}&error=generation`, req.url), 303);
+  }
 }

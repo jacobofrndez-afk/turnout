@@ -1,10 +1,1 @@
-export default function Loading() {
-  return (
-    <main className="mx-auto max-w-5xl px-6 py-16" aria-busy="true" aria-label="Loading">
-      <span className="skeleton skeleton-title" />
-      <span className="skeleton skeleton-line mt-8" />
-      <span className="skeleton skeleton-line" />
-      <span className="skeleton skeleton-block mt-12" />
-    </main>
-  );
-}
+export default function Loading() { return <main className="app-page" aria-busy="true" aria-label="Loading your day"><div className="loading-bar"/><div className="page-heading"><h1>Getting your day ready…</h1></div><p className="muted">Checking nearby moments and your saved campaigns.</p><div className="loading-grid"><div/><div/></div></main>; }

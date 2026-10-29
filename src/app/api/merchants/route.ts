@@ -18,5 +18,5 @@ export async function POST(req: Request) {
     seats: Number(form.get("seats") ?? 60) || 60,
   });
   if ("error" in result) return NextResponse.redirect(new URL(`/start?error=${encodeURIComponent(result.error)}`, req.url), 303);
-  return NextResponse.redirect(new URL(`/start/confirm?merchant=${result.merchantId}`, req.url), 303);
+  return NextResponse.redirect(new URL(`/dna?merchant=${result.merchantId}`, req.url), 303);
 }

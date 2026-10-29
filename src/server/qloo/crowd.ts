@@ -36,7 +36,7 @@ export type SignalPart = { id: string; name: string; type: string; note?: string
 export const hasSignal = (p: CrowdProfile) => p.signal.entities.length + p.signal.tags.length > 0;
 
 export type EventRow = {
-  id: string; name: string; venue_name: string; lat: number; lon: number; starts_at: string; segment: string | null; genre: string | null; attractions_json: string; timezone: string | null;
+  id: string; name: string; url?: string | null; venue_name: string; lat: number; lon: number; starts_at: string; segment: string | null; genre: string | null; attractions_json: string; timezone: string | null;
   origin?: string | null; window_start?: string | null; window_end?: string | null; crowd_est?: number | null; meta_json?: string | null;
 };
 

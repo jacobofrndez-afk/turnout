@@ -1,3 +1,6 @@
+// HISTORICAL GENERATOR: the current identity lives in design/identity/generate.mjs.
+// Keep this generator limited to its historical design outputs.
+process.env.NO_APP = "1";
 // Studio A, Turnout. "Swing" final: joint "pivot encastré" (the needle pivots on a round hub set into the end of the
 // left wall), identity "Velours": walls, arc and wordmark aubergine #3B1C42, needle wine #84204D, the afterglow one flat
 // wine tint #F0E4EA, on the white page #FFFFFF; reversed on the aubergine plate: #F6F1F8, dusty rose #E6A4C2 and the

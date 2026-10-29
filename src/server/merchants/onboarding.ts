@@ -60,3 +60,14 @@ export function saveOfferTags(merchantId: string, choices: Record<string, { ids:
   const upd = db.prepare("UPDATE offers SET tag_urns_json = ?, tag_names_json = ? WHERE id = ? AND merchant_id = ?");
   for (const [offerId, c] of Object.entries(choices)) upd.run(JSON.stringify(c.ids), JSON.stringify(c.names), offerId, merchantId);
 }
+
+// Resolve only missing menu tags, outside the quick DNA confirmation path.
+export async function ensureOfferTags(merchantId: string): Promise<void> {
+  const missing = getDb().prepare("SELECT id, title, description FROM offers WHERE merchant_id=? AND active=1 AND tag_urns_json='[]'").all(merchantId) as { id: string; title: string; description: string | null }[];
+  for (const offer of missing) {
+    try {
+      const tags = (await Promise.all(conceptsFor(`${offer.title} ${offer.description ?? ""}`).map(async c => (await resolveConcept(c))[0]))).filter((t): t is TagChoice => Boolean(t));
+      if (tags.length) getDb().prepare("UPDATE offers SET tag_urns_json=?, tag_names_json=? WHERE id=? AND merchant_id=? AND tag_urns_json='[]'").run(JSON.stringify(tags.map(t => t.id)), JSON.stringify(tags.map(t => t.name)), offer.id, merchantId);
+    } catch { /* Unavailable matching stays absent; never invent taste evidence. */ }
+  }
+}

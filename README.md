@@ -1,8 +1,8 @@
 # Turnout
 
-**Turn the crowd outside into customers inside.**
+**Your marketing team. Your call.**
 
-Turnout is an agent for independent merchants (bars, restaurants, shops). It watches for crowds about to be around the door, learns who that crowd is through Qloo's taste graph, picks the merchant's offer that fits, writes the campaign for every channel, and publishes it once the merchant approves. A second, weekly mode reads the taste and the rhythm of the street outside the door for the everyday flow of passers-by.
+Turnout is a marketing assistant for independent businesses. Qualified data and each place’s DNA inform personalised campaigns with a message, timing, channels and planned media cost prepared for the owner to refine and approve. The product ambition is the preparation of a dedicated marketing team, with return on investment as the goal and the business retaining the final decision. In the current Today workflow, approval saves a plan for manual sharing; it does not publish or charge. Public feeds load on page requests, and measured ROI is not yet available. The sections below retain the original hackathon architecture and research; current public-source coverage is documented at the end.
 
 A crowd is anything that could fill a quarter of the merchant's room, not only a stadium:
 
@@ -109,3 +109,56 @@ Deploy: the Dockerfile runs `next start` as a persistent Node process with SQLit
 ## Rules we follow
 
 Key server-side only. No personal data to Qloo. Private caching only; raw Qloo responses are gitignored. Results presented with source and limits, and distinguished from the agent's interpretation.
+
+## Merchant workspace and validation
+
+The app opens on `/today`: a chronological, paginated agenda of Ticketmaster listings within the selected place’s exact radius. Penn & Pour and Le Quai 12 remain fictional businesses; event names, venues and start times come from the API. Prepared campaigns never influence agenda ordering. Each listing links to its source and shows its actual last verification time.
+
+Missing or tentative times are excluded rather than invented, as are test, cancelled and postponed events. Cached responses preserve their original timestamps. During an outage, only source-verified records less than six hours old may appear, explicitly labelled as saved records; legacy rows without verification never substitute for live data. Refresh bypasses the hourly cache. Calendar-generated occasions are no longer registered in the radar. Crowd size and customer counts remain model estimates in Explore, not facts on the agenda. `/about` explains this distinction without a hardcoded artist or sample campaign. Text can be copied from event campaigns and weekly plans.
+
+Saving without connected adapters records `prepared`, not `sent`. The demo WhatsApp adapter targets only `DEMO_WHATSAPP_TO`; Snapchat creates a paused campaign. Google and screen content remain manual previews. Nothing is automatically replayed when credentials are connected later. Mixed or failed delivery is shown from the individual receipts, including old records.
+
+Campaign approval uses a conditional database claim to prevent duplicate sends. Generation requests reuse an existing usable draft or pending request; expired windows and invalid offer ownership are rejected. Manual drafting mode explicitly says it needs a supplied file instead of showing an indefinite writing animation. To enable automatic drafting, configure the Anthropic credentials and remove `AGENT_PROVIDER=operator` or set it to `anthropic`.
+
+Run `npm test` for the isolated SQLite regression tests and `npm run build` for production compilation. Tests never load `.env.local` and disable messaging and advertising credentials. Qloo exploration/MCP tools are development dependencies; the Docker build prunes them from the server image. Production dependencies were checked with `npm audit --omit=dev`; the exploration toolchain still has upstream advisories under the full development audit.
+
+### Place DNA and photo drafts
+
+`/dna?merchant=m_penn_pour` is the short, prefilled place profile. `/dna/campaigns` compares Penn & Pour and Le Quai 12 using their saved offers, voice, channel preferences, preparation time and paid-media ceilings. These are labelled fictional demo profiles and illustrative messages, not current opportunity forecasts. Existing demo profiles are seeded once; merchant edits are never reset.
+
+Confirmations create a revision in `merchant_dna` and `dna_history`. Event campaigns and neighbourhood briefs capture the DNA they used, receive it in their writing prompt, and enforce its advertising ceiling. New DNA revisions invalidate draft reuse; previously approved or delivered campaigns keep their original snapshot and channel plan. Photo drafts are available in Campaign activity and are saved for manual copying, not automatically published or scheduled.
+
+`/campaigns/from-photo?merchant=…` accepts JPEG, PNG and WebP up to 5 MB. On macOS, run `npm run setup:photo-ocr` once to build the offline Vision reader under `.tmp/photo-ocr/`. This uses the installed Swift compiler and Apple frameworks; no image leaves the Mac. It extracts visible text and explicit prices, leaving item/price associations for the owner to verify. On other hosts, a configured Anthropic provider can transcribe the image; without either reader the interface clearly offers manual entry. Images are not persisted by Turnout; reviewed/extracted text is. Local OCR additionally limits decoded dimensions to 25 megapixels.
+
+Every photo draft requires review of the offer, exact currency, availability and final message. A separate, explicit choice can retain a phrase as the place's future voice example. A temporary offer does not silently become a permanent DNA preference. The current quick-draft composer assembles one editable message from the reviewed offer and DNA; channel-specific formatting, cost forecasts and scheduling remain separate work.
+
+Validation: `npm test` covers merchant isolation, optimistic revision checks, explicit learning, frozen snapshots/channel plans, paid-media limits, photo price extraction and unavailable reader behavior. `npm run build` verifies the application and types.
+
+### Public discovery sources (Today / Account → Sources)
+
+`opportunitySources` now combines city feeds with:
+
+- **Google Trends RSS**, France / United States, 15-minute cache. Only fresh topics with an explicit food/drink match to a priced menu offer can suggest a campaign. National interest is not local demand; unrelated news is excluded.
+- **OpenAgenda via Opendatasoft's public catalogue**, Greater Paris, one-hour cache, Licence Ouverte v1.0. Requires coordinates and individual session timestamps. Does not use OpenAgenda's retired legacy JSON export. Duplicates are collapsed, including minor title/date-range differences between feeds.
+- **Bluesky public author feeds**, up to five selected publishers per place, 15-minute cache. Handles resolve through the fixed public API and are saved as DIDs. Only recent original posts are considered. Public social observations remain context; no location, event time, demographics or footfall is inferred from them.
+
+All checks run on page load, not in a background polling service. Coverage shows retrieval time, scope, failures and paused feeds. Public source preferences are versioned in `source_settings`; these demo settings are not private user accounts. Bounded fetches reject redirects, arbitrary hosts and oversized responses. Fixtures are used only in tests, never as fallback feed data.
+
+Instagram and Facebook account connection now lives in **Account → Your channels**. The OAuth flow, account selection and private token storage are implemented, but actual connection remains disabled until a Meta app and a canonical HTTPS address are configured. See [Meta channel setup](docs/meta-channels.md). No real authorization has been tested yet. These are account connections, not audience insights or an automatic publishing integration. Google Business Profile, X, Reddit, TikTok and DATAtourisme are not active private feeds.
+
+The demo business data remains public. Social access has a separate authenticated owner/session boundary: a public merchant ID or merchant cookie never grants access to tokens or connected account metadata. Existing campaign APIs do not read these credentials.
+
+### Campaign publication destinations
+
+Today and saved campaigns show **Where to publish**: selected channel, format, account/status and a copy action followed by a link to the provider. Instagram captions explicitly need a photo/video added in Instagram; Facebook uses the authorized Page when available. Account connection links open separately so the draft stays in place. The current account comes from a private no-store endpoint and is never included in public campaign records. The interface refreshes account status when the browser regains focus.
+
+Unpaid channels can be added for an individual campaign without changing its place DNA. DNA still controls default channels and whether a paid local ad is allowed. The recorded decision remains manual, with no provider post or charge. Saved plans and older event campaigns retain manual materials for Instagram/Facebook too. Opening a provider is not posting, and Turnout does not claim delivery from a copy action.
+
+Meta app setup is on hold pending an authorized administrator or partner; the project owner does not want to use or create a personal account. A future Render HTTPS origin can be set as `TURNOUT_PUBLIC_URL` once known. No Render service or Meta app has been created by this setup work.
+
+
+### Guided campaign review
+
+Today leads with the campaign potential index and a visible signal → Qloo neighbourhood match → place DNA explanation. The leading proposal is selected by valid timing, then potential score, with earlier windows breaking score ties; other sourced ideas also show their indices. The number uses the existing documented prioritisation rules, not a new success or ROI prediction. Missing Qloo evidence or invalid timing still leaves the score unavailable.
+
+The merchant moves from **Opportunity** to **Your campaign** (editable message, offer, timing, channels and media budget), then approves to reach **Publish**. Moving between the first two steps preserves edits. Saving for later stops at review; approval records a decision and exposes manual publication instructions, never a delivered status. The About page explains discovery, Qloo matching, preparation and the merchant's decision as one journey. Provider publication and live result measurement remain outside this preview.

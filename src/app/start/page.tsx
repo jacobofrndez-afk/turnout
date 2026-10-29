@@ -24,7 +24,7 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
               <select id="f-kind" name="kind" className="field mt-2" defaultValue="bar">
                 <option value="bar">Bar</option>
                 <option value="restaurant">Restaurant</option>
-                <option value="cafe">Café</option>
+                <option value="cafe">Cafe</option>
                 <option value="shop">Shop</option>
               </select>
             </div>

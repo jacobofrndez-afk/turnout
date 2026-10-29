@@ -8,7 +8,7 @@ import { listMerchants, radarFor, type Merchant, type RadarItem } from "@/server
 import { presenceWindow } from "@/server/events/concentration";
 import { getEvent, getOffers } from "@/server/qloo/crowd";
 import { sendWhatsApp, whatsappConfigured } from "@/server/channels/twilio";
-import { createCampaign, getDraft, type CampaignRow } from "./run";
+import { createCampaign, getDraft, provider, type CampaignRow } from "./run";
 
 export type AlertRow = {
   id: string;
@@ -128,7 +128,7 @@ export function composeAlert(merchant: Merchant, it: RadarItem, campaign?: Campa
     const offer = draft ? getOffers(merchant.id).find((o) => o.id === draft.chosen_offer_id) : undefined;
     if (campaign.status === "drafted" && offer) lines.push(`Campaign ready: ${offer.title}. ${draft?.whatsapp?.message ? `Regulars would read: "${draft.whatsapp.message.slice(0, 120)}${draft.whatsapp.message.length > 120 ? "…" : ""}"` : ""}`.trim());
     else if (campaign.status === "needs_input") lines.push("Qloo knows several acts by that name: pick the right one and the campaign writes itself.");
-    else if (campaign.status === "awaiting_operator") lines.push("The agent is writing the campaign now.");
+    else if (campaign.status === "awaiting_operator") lines.push(provider() === "operator" ? "The campaign request is saved and needs a manual draft." : "The agent is writing the campaign now.");
     else if (campaign.status === "failed") lines.push("The agent could not write the campaign; open it to retry.");
     lines.push(`Review and approve: ${appUrl()}/campaigns/${campaign.id}`);
   } else {

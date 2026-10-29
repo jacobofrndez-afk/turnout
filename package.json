@@ -11,7 +11,9 @@
     "explore": "node scripts/explore-api.mjs",
     "seed": "tsx scripts/seed.ts",
     "radar": "tsx scripts/radar.ts",
-    "crowd": "tsx scripts/crowd.ts"
+    "crowd": "tsx scripts/crowd.ts",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "setup:photo-ocr": "sh scripts/setup-photo-ocr.sh"
   },
   "license": "MIT",
   "type": "module",
@@ -21,10 +23,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
-    "@modelcontextprotocol/sdk": "^1.32.1",
-    "@qloo/qloo-harness": "^0.1.26",
     "better-sqlite3": "^13.0.3",
-    "next": "^16.4.0",
+    "next": "^16.4.3",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "twilio": "^6.2.0",
@@ -38,6 +38,8 @@
     "@types/react-dom": "^19.3.0",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "@qloo/qloo-harness": "^0.1.26",
+    "@modelcontextprotocol/sdk": "^1.32.1"
   }
 }

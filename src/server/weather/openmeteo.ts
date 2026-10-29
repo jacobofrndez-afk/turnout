@@ -20,7 +20,7 @@ async function hourly(lat: number, lon: number): Promise<Hour[]> {
     timezone: "UTC",
     forecast_days: "7",
   });
-  const res = await fetch(`${API}?${q}`);
+  const res = await fetch(`${API}?${q}`, { signal: AbortSignal.timeout(8000) });
   if (!res.ok) throw new Error(`Open-Meteo HTTP ${res.status}`);
   const j = (await res.json()) as { hourly?: Record<string, (number | string | null)[]> };
   const h = j.hourly ?? {};

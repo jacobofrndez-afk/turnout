@@ -1,0 +1,16 @@
+import type { CampaignIntelligence } from '@/lib/qloo-intelligence';
+import { Icon } from './Icon';
+export function QlooCampaignEvidence({data}:{data:CampaignIntelligence}){
+ const cmp=data.comparison;
+ const format=(date:string|null)=>date?new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(date)):'Date unavailable';
+ return <details className="qloo-campaign-evidence">
+  <summary><span className="qloo-evidence-mark">Qloo</span><span><strong>{data.audience?`${data.audience.name} · tailored invitation`:'Two offers compared'}</strong><small>{data.audience?'Audience → offer → message':'Local references → a different campaign'}</small></span><Icon name="chevron" size={15}/></summary>
+  <div className="qloo-evidence-body">
+   <p className="qloo-change"><strong>What changed</strong>{data.change}</p>
+   {data.audience&&<section><h3>The audience</h3><p><strong>{data.audience.name}</strong> appears at position {data.audience.rank} in Qloo’s returned neighbourhood audience ranking. Turnout connects this leisure interest to your menu and voice.</p><small>This is aggregate affinity, not a count of people nearby or a connected advertising audience. Audience-led proposals are shown before general menu ideas; the potential index is unchanged.</small></section>}
+   <section><h3>The comparison</h3>{cmp?<><div className="qloo-comparison-grid">{[cmp.a,cmp.b].map(group=><article key={group.offerId} className={group.offerId===data.comparedOfferId?'is-chosen':''}><span>{group.offerId===data.comparedOfferId?'In this campaign':'Compared offer'}</span><strong>{group.title}</strong><p>{group.tags.length?group.tags.map(t=>t.name).join(' · '):'No matching menu tag returned'}</p><small>{group.places.length} local {group.places.length===1?'reference':'references'}: {group.places.map(p=>p.name).join(', ')}.</small></article>)}</div><p>{data.comparisonEffect}</p><small>Qloo compares places associated with each offer. These are reference groups, not your customers or measured conversion rates.</small></>:<p>{data.sources.comparison.detail}</p>}</section>
+   <section><h3>The trend check</h3><p>{data.trendEffect}</p><div className="qloo-trend-list">{data.trends.map(t=><div key={t.id}><span><strong>{t.name}</strong><small>{t.latestDate?`Latest observation ${format(t.latestDate)}`:'No usable recent observations'}</small></span><b>{t.status==='stable'?'Stable':t.status==='rising'?`Rank ↑ ${t.rankChange}`:t.status==='falling'?`Rank ↓ ${Math.abs(t.rankChange??0)}`:t.status==='stale'?'Too old / incomplete':t.status==='empty'?'No series':'Unavailable'}</b></div>)}</div><small>Brands are cultural references returned for this location, not partners. Trend ranks are global. They do not measure nearby customers or predict sales.</small></section>
+   <details className="qloo-data-details"><summary>Data & freshness</summary>{Object.entries(data.sources).map(([key,s])=><p key={key}><strong>{key[0].toUpperCase()+key.slice(1)}</strong> · {s.status==='available'?'Available':s.status==='empty'?'No usable results':'Unavailable'} · Retrieved {format(s.retrievedAt)}<br/>{s.detail}</p>)}<p>Audience rankings: cached up to 24 hours. Comparisons: seven days. Trend series: six hours. Weekly observations are not live trends.</p></details>
+  </div>
+ </details>;
+}

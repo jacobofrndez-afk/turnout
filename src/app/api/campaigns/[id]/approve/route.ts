@@ -18,8 +18,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // Words written for the first window are not sent once it has closed.
   const open = !!event && !!draft && !!merchant && draftFirstWindow(event, draft.windows, merchant.timezone).end > Date.now();
   if (campaign.status === "drafted" && draft && merchant && open) {
-    approveCampaign(id);
-    await publishCampaign(id, merchant, draft);
+    // The conditional update is the claim. Only one concurrent request may publish.
+    if (approveCampaign(id)) {
+      try { await publishCampaign(id, merchant, draft); }
+      catch { return NextResponse.redirect(new URL(`/campaigns/${id}?delivery=interrupted`, req.url), 303); }
+    }
   }
   return NextResponse.redirect(new URL(`/campaigns/${id}`, req.url), 303);
 }

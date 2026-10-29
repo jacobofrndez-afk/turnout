@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 
 // One quiet control to switch between demo places.
-export default function MerchantSwitch({ current, options }: { current: string; options: { id: string; label: string }[] }) {
+export default function MerchantSwitch({ current, options, destination = "/radar" }: { destination?: string; current: string; options: { id: string; label: string }[] }) {
   const router = useRouter();
   if (options.length < 2) return null;
   return (
@@ -12,7 +12,7 @@ export default function MerchantSwitch({ current, options }: { current: string; 
         className="field"
         style={{ width: "auto" }}
         value={current}
-        onChange={(e) => router.push(`/radar?merchant=${e.target.value}`)}
+        onChange={(e) => router.push(`${destination}?merchant=${encodeURIComponent(e.target.value)}`)}
       >
         {options.map((o) => (
           <option key={o.id} value={o.id}>

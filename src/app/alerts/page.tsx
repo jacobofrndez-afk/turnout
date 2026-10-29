@@ -1,7 +1,8 @@
+import { getDb } from "@/server/db/client";
 import Link from "next/link";
 import { getMerchant, listMerchants } from "@/server/events/radar";
 import { listAlerts } from "@/server/agent/scan";
-import { getCampaign } from "@/server/agent/run";
+import { getCampaign, provider } from "@/server/agent/run";
 import { whatsappConfigured } from "@/server/channels/twilio";
 import { clock, clockText } from "@/lib/clock";
 import { nb } from "@/lib/nbsp";
@@ -19,6 +20,7 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
       </main>
     );
   }
+  const quickDrafts = getDb().prepare("SELECT id,input_json,created_at FROM quick_campaigns WHERE merchant_id=? ORDER BY created_at DESC, rowid DESC LIMIT 12").all(merchant.id) as { id: string; input_json: string; created_at: string }[];
   const live = whatsappConfigured() && Boolean(process.env.DEMO_WHATSAPP_TO);
   const allAlerts = listAlerts(merchant.id);
   const alerts = sp.all ? allAlerts : allAlerts.slice(0, 6);
@@ -30,7 +32,7 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
   const statusLabel: Record<string, string> = { sent: "Sent on WhatsApp", simulated: "Kept here, WhatsApp not connected", failed: "WhatsApp failed" };
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
+    <main className="mx-auto max-w-6xl px-5 py-10">
       <div className="max-w-3xl">
         <Link href={`/today?merchant=${merchant.id}`} className="link text-base">Today</Link>
         <h1 className="t-display mt-6">What Turnout found on its own</h1>
@@ -40,13 +42,14 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
           <button className="link text-base">Look for a crowd now</button>
         </form>
 
-        {alerts.length === 0 && (
+        {alerts.length === 0 && quickDrafts.length === 0 && (
           <div className="empty stack-block">
             <p className="empty-title">Nothing yet</p>
             <p>When a crowd worth a campaign is coming in the next two days, Turnout finds it and lists it here.</p>
           </div>
         )}
 
+        {quickDrafts.length > 0 && <section className="stack-block"><h2 className="t-title">Your menu &amp; photo drafts</h2><p className="t-small mt-3">Reviewed by you. Saved for manual use; nothing published or scheduled.</p><ul className="mt-5 space-y-4">{quickDrafts.map(d => <li key={d.id}><Link className="link" href={`/campaigns/quick/${d.id}`}>{JSON.parse(d.input_json).offer.title} →</Link></li>)}</ul></section>}
         <section className="stack-block space-y-12">
           {alerts.map((a) => {
             const at = new Date(a.created_at.endsWith("Z") ? a.created_at : a.created_at.replace(" ", "T") + "Z");
@@ -63,7 +66,7 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
             // A tour title ("Harry Styles: Together, Together at MSG") reads as the act, as on Today.
             const name = what.replace(/^([^:]*[^\d:]): .*? at /, "$1 at ").replace(/, \d+ shows$/, "");
             const camp = a.campaign_id ? getCampaign(a.campaign_id) : undefined;
-            const unwritten = camp?.status === "awaiting_operator" && Date.now() - Date.parse(camp.created_at.replace(" ", "T") + "Z") > 15 * 60_000;
+            const unwritten = camp?.status === "awaiting_operator" && (provider() === "operator" || Date.now() - Date.parse(camp.created_at.replace(" ", "T") + "Z") > 15 * 60_000);
             const href = unwritten ? `/campaigns/new?merchant=${merchant.id}&event=${a.event_id}` : a.campaign_id ? `/campaigns/${a.campaign_id}` : `/radar?merchant=${merchant.id}`;
             return (
               <article key={a.id}>
@@ -79,7 +82,7 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
                     {statusLabel[a.status] ?? a.status}{a.status === "failed" && a.to_ref ? `: ${a.to_ref}` : ""}
                   </p>
                 )}
-                {unwritten && <p className="t-body mt-2 text-[var(--muted)]">Not written yet.</p>}
+                {unwritten && <p className="t-body mt-2 text-[var(--muted)]">This request needs a completed draft.</p>}
                 <Link href={href} className="link mt-3 inline-flex text-base">
                   {unwritten ? "See who is coming" : a.campaign_id ? "See the campaign" : "Explore the map"}
                 </Link>

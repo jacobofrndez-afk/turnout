@@ -16,7 +16,7 @@ const H = 3_600_000;
 export default async function RadarPage({ searchParams }: { searchParams: Promise<{ merchant?: string; hours?: string }> }) {
   const sp = await searchParams;
   const id = sp.merchant ?? (await cookies()).get("merchant")?.value ?? "";
-  const merchants = listMerchants().filter((m) => m.id === "m_penn_pour" || m.id === "m_quai_bercy" || m.id === id);
+  const merchants = listMerchants();
   const merchant = getMerchant(id) ?? getMerchant(merchants[0]?.id ?? "");
   if (!merchant) {
     return (
@@ -85,8 +85,9 @@ export default async function RadarPage({ searchParams }: { searchParams: Promis
       <Link href={`/today?merchant=${merchant.id}`} className="link">Today</Link>
       <h1 className="t-display mt-6">Who is around {merchant.name}</h1>
       <p className="t-lead mt-5">
-        The next three days, within <span className="mono">{nb(reach)}</span> of your door.
+        The next three days around your address. Your target radius is <span className="mono">{nb(reach)}</span>.
       </p>
+      <p className="t-small mt-3 text-[var(--muted)]">Event schedules come from external sources. Crowd sizes, arrival windows and potential guests are model estimates, not measured attendance. Nearby TV audiences and combined show crowds are inferred.</p>
       {worth > 0 && (
         <p className="t-body mt-3">
           {worth === 1 ? "One crowd" : `${worth} crowds`} worth a campaign, sized for your {seats} seats.

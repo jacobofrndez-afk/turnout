@@ -12,6 +12,8 @@ RUN npm ci --include=dev
 FROM deps AS build
 COPY . .
 RUN npm run build
+# Exploration tools are development-only and are not shipped in the web server.
+RUN npm prune --omit=dev --ignore-scripts
 
 FROM base AS runner
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*

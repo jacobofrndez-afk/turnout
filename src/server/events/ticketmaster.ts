@@ -1,6 +1,7 @@
 // Ticketmaster Discovery API client: events around a point, deduplicated and cached.
-import { cacheGet, cacheSet } from "@/server/db/client";
+import { cacheGet, cacheSet, getDb } from "@/server/db/client";
 import { requireEnv } from "@/server/env";
+import { sourceCheck } from "@/lib/event-evidence";
 
 export type Attraction = { id?: string; name: string; segment?: string; genre?: string };
 
@@ -25,14 +26,14 @@ export type TmEvent = {
   meta?: Record<string, unknown>;
 };
 
-type RawEvent = {
+export type RawEvent = {
   id: string;
   name: string;
   test?: boolean;
   url?: string;
   images?: { url: string; width: number; ratio?: string }[];
   distance?: number;
-  dates?: { start?: { dateTime?: string; localDate?: string; localTime?: string }; timezone?: string; status?: { code?: string } };
+  dates?: { start?: { dateTime?: string; localDate?: string; localTime?: string; dateTBD?: boolean; dateTBA?: boolean; timeTBA?: boolean; noSpecificTime?: boolean }; timezone?: string; status?: { code?: string } };
   classifications?: { segment?: { name?: string }; genre?: { name?: string } }[];
   _embedded?: {
     venues?: { id?: string; name?: string; city?: { name?: string }; country?: { countryCode?: string }; location?: { latitude?: string; longitude?: string } }[];
@@ -46,10 +47,10 @@ const MAX_PAGES = 5; // size * page must stay <= 1000
 
 export type FetchArgs = { lat: number; lon: number; radiusKm: number; hoursAhead: number };
 
-export async function fetchEventsNear(args: FetchArgs): Promise<TmEvent[]> {
-  const cacheInput = { ...args, lookbackH: 5, bucket: Math.floor(Date.now() / 3_600_000) }; // 1h buckets; lookbackH busts caches made before the 5 h lookback
-  const cached = cacheGet<TmEvent[]>("ticketmaster", cacheInput);
-  if (cached) return cached;
+export async function fetchEventsNear(args: FetchArgs, refresh = false): Promise<TmEvent[]> {
+  const cacheInput = { ...args, version: 2, lookbackH: 5, bucket: Math.floor(Date.now() / 3_600_000) };
+  const cached = refresh ? undefined : cacheGet<TmEvent[]>("ticketmaster", cacheInput);
+  if (cached) return cached.map((e) => ({ ...e, meta: { ...e.meta, sourceCheck: { ...sourceCheck(e.meta), mode: "cache" } } }));
 
   const key = requireEnv("TICKETMASTER_API_KEY");
   const now = new Date();
@@ -75,17 +76,28 @@ export async function fetchEventsNear(args: FetchArgs): Promise<TmEvent[]> {
     raw.push(...(body._embedded?.events ?? []));
     if ((body.page?.totalPages ?? 1) <= page + 1) break;
   }
-  const events = dedupe(raw.filter((e) => !e.test).map(normalize).filter((e): e is TmEvent => e !== null));
+  const checkedAt = new Date().toISOString();
+  const normalized = raw.map((e) => normalize(e, checkedAt));
+  // A source correction must also invalidate an older saved row, otherwise an outage can resurrect it.
+  const invalidate = getDb().prepare("UPDATE events SET status = ? WHERE id = ?");
+  raw.forEach((event, i) => {
+    if (!normalized[i]) invalidate.run(["cancelled", "canceled", "postponed"].includes(event.dates?.status?.code ?? "") ? event.dates!.status!.code : "unconfirmed", event.id);
+  });
+  const events = dedupe(normalized.filter((e): e is TmEvent => e !== null));
   cacheSet("ticketmaster", cacheInput, events, 3600);
   return events;
 }
 
-function normalize(e: RawEvent): TmEvent | null {
+export function normalize(e: RawEvent, checkedAt: string): TmEvent | null {
+  const start = e.dates?.start;
+  if (e.test || start?.dateTBD || start?.dateTBA || start?.timeTBA || start?.noSpecificTime) return null;
+  if (["cancelled", "canceled", "postponed"].includes(e.dates?.status?.code?.toLowerCase() ?? "")) return null;
   const v = e._embedded?.venues?.[0];
   const lat = Number(v?.location?.latitude);
   const lon = Number(v?.location?.longitude);
-  const startsAt = e.dates?.start?.dateTime ?? (e.dates?.start?.localDate ? `${e.dates.start.localDate}T${e.dates.start.localTime ?? "20:00:00"}Z` : undefined);
-  if (!v?.name || !Number.isFinite(lat) || !Number.isFinite(lon) || !startsAt) return null;
+  // A local date without an exact instant is not a confirmed performance time. Never invent 20:00 or treat local time as UTC.
+  const startsAt = start?.dateTime;
+  if (!e.id || !e.name?.trim() || !v?.name || !v.location?.latitude?.trim() || !v.location?.longitude?.trim() || !Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180 || !startsAt || !Number.isFinite(Date.parse(startsAt)) || !/(?:Z|[+-]\d{2}:\d{2})$/.test(startsAt)) return null;
   const cls = e.classifications?.[0];
   const image = (e.images ?? []).filter((i) => i.ratio === "16_9").sort((a, b) => b.width - a.width)[0] ?? e.images?.[0];
   return {
@@ -103,6 +115,8 @@ function normalize(e: RawEvent): TmEvent | null {
       .filter((a) => a.name)
       .map((a) => ({ id: a.id, name: a.name!.trim(), segment: clean(a.classifications?.[0]?.segment?.name), genre: clean(a.classifications?.[0]?.genre?.name) })),
     distanceKm: e.distance,
+    origin: "ticketmaster",
+    meta: { sourceCheck: { source: "Ticketmaster", checkedAt, mode: "live" } },
   };
 }
 

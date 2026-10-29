@@ -1,6 +1,7 @@
 // Seeds two demo merchants (New York, Paris) with offers whose Qloo tags are resolved once via /v2/tags.
 // Contacts are fictional; the phone numbers are placeholders replaced by DEMO_WHATSAPP_TO at send time.
 import { getDb } from "./client";
+import { DEMO_OFFER_COPY } from "./demo-offer-copy";
 import { findTags } from "@/server/qloo/api";
 import { rankTagCandidates } from "@/server/qloo/tags";
 
@@ -34,9 +35,9 @@ export const MERCHANTS: SeedMerchant[] = [
     seats: 70,
     voice: "Warm, quick-witted, New York direct. Short sentences. No exclamation marks.",
     offers: [
-      { id: "o_pp_happy", title: "Pre-show happy hour", description: "Two cocktails for the price of one, 5 to 7 pm", price: "$16 for two", concepts: ["cocktail bar", "happy hour"] },
+      { id: "o_pp_happy", title: "Happy hour for two", description: "Two cocktails for the price of one, 5 to 7 pm", price: "$16 for two", concepts: ["cocktail bar", "happy hour"] },
       { id: "o_pp_beer", title: "Craft beer flight", description: "Four local IPAs and lagers from Brooklyn and Queens", price: "$18", concepts: ["craft beer", "local brewery"] },
-      { id: "o_pp_late", title: "After-show late plate", description: "Smash burger and fries served until 1 am", price: "$14", concepts: ["burgers", "late night food"] },
+      { id: "o_pp_late", title: "Late-night burger & fries", description: "Smash burger and fries served until 1 am", price: "$14", concepts: ["burgers", "late night food"] },
       { id: "o_pp_wine", title: "Natural wine by the glass", description: "Rotating orange and pet-nat pours", price: "$13", concepts: ["natural wine", "wine bar"] },
       { id: "o_pp_screen", title: "Game night big screen", description: "Every Knicks and Rangers game on the big screen, pitchers of lager", price: "$22 pitcher", concepts: ["sports bar", "beer"] },
     ],
@@ -52,13 +53,13 @@ export const MERCHANTS: SeedMerchant[] = [
     timezone: "Europe/Paris",
     radius_m: 1500,
     seats: 50,
-    voice: "Chaleureux, un peu d'humour parisien, tutoiement. Phrases courtes.",
+    voice: "Warm, with a little Parisian wit. Friendly, informal, short sentences.",
     offers: [
-      { id: "o_q12_apero", title: "Apéro d'avant-concert", description: "Planche charcuterie-fromage et deux verres de vin", price: "24 €", concepts: ["wine bar", "charcuterie"] },
-      { id: "o_q12_biere", title: "Bières artisanales d'Île-de-France", description: "Trois brasseries franciliennes en pression", price: "7 €", concepts: ["craft beer", "local brewery"] },
-      { id: "o_q12_cocktail", title: "Cocktail signature", description: "Spritz maison et cocktails sans alcool", price: "9 €", concepts: ["cocktail bar", "mocktail"] },
-      { id: "o_q12_tardif", title: "Croque de minuit", description: "Croque-monsieur et frites jusqu'à 1 h", price: "12 €", concepts: ["late night food", "french bistro"] },
-      { id: "o_q12_match", title: "Soirée match", description: "Écran géant, pichets de bière, cacahuètes offertes", price: "18 € le pichet", concepts: ["sports bar", "beer"] },
+      { id: "o_q12_apero", ...DEMO_OFFER_COPY[0].after, concepts: ["wine bar", "charcuterie"] },
+      { id: "o_q12_biere", ...DEMO_OFFER_COPY[1].after, concepts: ["craft beer", "local brewery"] },
+      { id: "o_q12_cocktail", ...DEMO_OFFER_COPY[2].after, concepts: ["cocktail bar", "mocktail"] },
+      { id: "o_q12_tardif", ...DEMO_OFFER_COPY[3].after, concepts: ["late night food", "french bistro"] },
+      { id: "o_q12_match", ...DEMO_OFFER_COPY[4].after, concepts: ["sports bar", "beer"] },
     ],
   },
 ];

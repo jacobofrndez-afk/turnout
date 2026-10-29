@@ -1,13 +1,19 @@
+import { redirect } from "next/navigation";
+import { getDna } from "@/server/merchants/dna";
+import { ensureOfferTags } from "@/server/merchants/onboarding";
+import { EventSource } from "@/components/EventSource";
 import { isCommercialBrand } from "@/lib/brands";
 import Link from "next/link";
 import { haversineKm, presenceWindow, scoreConcentration } from "@/server/events/concentration";
 import { getMerchant, rowToEvent } from "@/server/events/radar";
+import { campaignWindows } from "@/server/agent/prompt";
 import { clock, clockRange } from "@/lib/clock";
 import { tagId } from "@/server/qloo/api";
 import { buildCrowdProfile, describeDemographics, getEvent, hasSignal, momentMeta, type CrowdProfile } from "@/server/qloo/crowd";
 import { nb } from "@/lib/nbsp";
+import { ActionForm } from "@/components/ActionForm";
 import { getDb } from "@/server/db/client";
-import { getCampaign, getDraft } from "@/server/agent/run";
+import { getCampaign, getDraft, provider } from "@/server/agent/run";
 
 export const dynamic = "force-dynamic";
 
@@ -69,7 +75,7 @@ function whoFact(p: CrowdProfile): Fact {
   return { title, sentence: `Compared with everyone, this crowd has ${andList(parts)}.` };
 }
 
-export default async function NewCampaignPage({ searchParams }: { searchParams: Promise<{ merchant?: string; event?: string; pick?: string }> }) {
+export default async function NewCampaignPage({ searchParams }: { searchParams: Promise<{ merchant?: string; event?: string; pick?: string; error?: string }> }) {
   const sp = await searchParams;
   const merchant = sp.merchant ? getMerchant(sp.merchant) : undefined;
   const event = sp.event ? getEvent(sp.event) : undefined;
@@ -82,8 +88,11 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
       </main>
     );
   }
+  const dna = getDna(merchant.id);
+  if (dna.status === "suggested") redirect(`/dna?merchant=${merchant.id}&event=${encodeURIComponent(event.id)}`);
   let profile: CrowdProfile;
   try {
+    await ensureOfferTags(merchant.id);
     profile = await buildCrowdProfile(merchant, event, sp.pick);
   } catch (e) {
     // Qloo unreachable or rate limited: say so plainly instead of a blank error page.
@@ -106,6 +115,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
   const fmtDayKey = new Intl.DateTimeFormat("en-CA", { timeZone: tz });
   const fmtDate = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "short", timeZone: tz });
   const now = Date.now();
+  const expired = campaignWindows(event).every(w => w.end <= now);
   const dayKey = fmtDayKey.format(starts);
   const day = dayKey === fmtDayKey.format(new Date(now)) ? (Number(fmtHour.format(starts)) >= 17 ? "tonight" : "today") : dayKey === fmtDayKey.format(new Date(now + 86_400_000)) ? "tomorrow" : `on ${fmtDate.format(starts)}`;
   // A show has one venue at a distance from the door; a wave or a moment is already "around you".
@@ -148,11 +158,11 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
   const bars = profile.places.slice(0, 3).map((p) => p.name);
   const like: Fact = {
     title: likeTitle.length >= 2 ? cap(andList(likeTitle)) : andList(brands.slice(0, 3)) || "Their tastes, through Qloo",
-    sentence: bars.length ? `They already go to ${andList(bars)}.` : brands.length ? `They like ${andList(brands.slice(0, 3))}.` : "Qloo lists no bar nearby and no brand for this crowd yet.",
+    sentence: bars.length ? `Qloo connects this crowd’s tastes with ${andList(bars)}.` : brands.length ? `They like ${andList(brands.slice(0, 3))}.` : "Qloo lists no bar nearby and no brand for this crowd yet.",
   };
   // When Turnout already wrote the campaign for this crowd, its choice is the one that fits (it weighs the ages and the
   // brands too); otherwise the offer whose places this crowd likes most.
-  const written = getDb().prepare("SELECT id FROM campaigns WHERE merchant_id = ? AND event_id = ? AND (status IN ('drafted', 'approved', 'sent') OR (status = 'awaiting_operator' AND created_at > datetime('now', '-15 minutes'))) ORDER BY created_at DESC LIMIT 1").get(merchant.id, event.id) as { id: string } | undefined;
+  const written = getDb().prepare("SELECT id FROM campaigns WHERE merchant_id = ? AND event_id = ? AND (status IN ('approved', 'sent', 'prepared', 'partial') OR (dna_version = ? AND (status = 'drafted' OR (status = 'awaiting_operator' AND created_at > datetime('now', '-15 minutes'))))) ORDER BY created_at DESC, rowid DESC LIMIT 1").get(merchant.id, event.id, dna.version) as { id: string } | undefined;
   // The number Explore and Today show for this crowd: the extra guests it could bring this place.
   const guests = scoreConcentration(rowToEvent(event as Parameters<typeof rowToEvent>[0]), { lat: merchant.lat, lon: merchant.lon, radiusM: merchant.radius_m, seats: merchant.seats ?? 60 }).potentialGuests;
   const chosenId = written ? getDraft(getCampaign(written.id)!)?.chosen_offer_id : undefined;
@@ -174,26 +184,28 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
   const signalNames = profile.entity ? profile.headlinerName : [...profile.signal.entities, ...profile.signal.tags].map((x) => x.name).join(", ");
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
+    <main className="mx-auto max-w-6xl px-5 py-10">
+      {sp.error && <p role="alert" className="tone t-body mb-6">The campaign could not be started. Check the crowd below and try again.</p>}
       <Link href={`/today?merchant=${merchant.id}`} className="link text-sm">Today</Link>
       <section className="stack-block">
-        <div className="plate min-[1152px]:-mx-[68px] min-[1152px]:px-[68px]!">
+        <div className="plate">
           <h1 className="t-display">{profile.headlinerName}</h1>
           <p className="t-lead mt-5">
             {isWave ? <>{ev.meta?.kind === "arrival" ? "Heading to" : "Leaving"} {Number(ev.meta?.count ?? 0)} shows <span className="mono">{kmText}</span> from {merchant.name}</> : event.venue_name}, {(isWave ? win.arrive : starts.getTime()) <= now ? <>now until <span className="mono">{clock(win.leave, tz)}</span></> : <>{day} {isShow ? "at" : "from"} <span className="mono">{isWave ? clockRange(win.arrive, win.leave, tz) : clock(starts, tz)}</span></>}
             {isShow && <>, {walk ?? <><span className="mono">{kmText}</span> from</>} {merchant.name}</>}.
-            {guests > 0 && <> It could bring you about {guests} guests.</>}
+
           </p>
-          {hasSignal(profile) && (written ? (
+          <EventSource event={event} timezone={tz} />
+          {expired ? <><p className="t-body mt-5">This event has passed. Choose a coming crowd for a new campaign.</p><Link href={`/today?merchant=${merchant.id}`} className="btn btn-primary btn-lg mt-6">Find the next crowd</Link></> : hasSignal(profile) && (written ? (
             <Link href={`/campaigns/${written.id}`} className="btn btn-accent btn-lg mt-10">See my campaign</Link>
           ) : (
-            <form action="/api/campaigns" method="post" className="mt-10">
+            <ActionForm action="/api/campaigns" className="mt-8" label="Write my campaign" pendingLabel="Reading the crowd…">
               <input type="hidden" name="merchant" value={merchant.id} />
               <input type="hidden" name="event" value={event.id} />
               {sp.pick && <input type="hidden" name="pick" value={sp.pick} />}
-              <button className="btn btn-accent btn-lg">Write my campaign</button>
-            </form>
+            </ActionForm>
           ))}
+          {!expired && hasSignal(profile) && !written && provider() === "operator" && <p className="t-small mt-4">Automatic writing is not connected. This creates a request for manual drafting.</p>}
         </div>
       </section>
 
@@ -217,7 +229,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
       {profile.status === "unresolved" && (
         <section className="stack-section">
           <h2 className="t-title">Qloo does not know this act</h2>
-          <p className="t-body mt-3">Qloo found no act named “{profile.headlinerName}”. The campaign can still run on the event's genre and venue, but without taste evidence.</p>
+          <p className="t-body mt-3">Qloo found no act named “{profile.headlinerName}”. There is not enough taste evidence to write a grounded campaign for this act. Choose another crowd from Today.</p>
         </section>
       )}
 
@@ -270,7 +282,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
                       <div className="mx-auto flex h-14 w-full items-end justify-center">{v >= 0 && <div className="w-12" style={{ height: `${Math.max(4, Math.min(100, v * 100))}%`, background: "var(--bar-hot)" }} />}</div>
                       <div className="mx-auto flex h-14 w-full items-start justify-center">{v < 0 && <div className="w-12" style={{ height: `${Math.max(4, Math.min(100, -v * 100))}%`, background: "var(--muted)" }} />}</div>
                       <p className="mt-1.5 font-semibold text-[var(--ink)]">{ageLabel(k)}</p>
-                      
+
                     </div>
                   ))}
                 </div>

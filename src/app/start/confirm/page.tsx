@@ -41,7 +41,7 @@ export default async function ConfirmPage({ searchParams }: { searchParams: Prom
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
       <div className="max-w-2xl">
-        <p className="eyebrow">Step 2 of 2 · confirm what Turnout understood</p>
+        <p className="eyebrow">Optional · advanced offer matching</p>
         <h1 className="t-title mt-3">Did I read your offers right?</h1>
         <p className="mt-5 text-base text-[var(--muted)]">
           {merchant.name}, located at {merchant.address}. For each offer, Turnout searched Qloo's tag vocabulary. Keep the tags that mean what you mean, untick the rest.

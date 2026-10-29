@@ -3,13 +3,13 @@ import { z } from "zod";
 
 export const WindowSchema = z.object({
   label: z.string().describe("Short label, e.g. 'Before doors' or 'After the show'"),
-  start_local: z.string().describe("Local time HH:MM in the merchant's timezone"),
-  end_local: z.string().describe("Local time HH:MM in the merchant's timezone"),
+  start_local: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/).describe("Local time HH:MM in the merchant's timezone"),
+  end_local: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/).describe("Local time HH:MM in the merchant's timezone"),
   why: z.string().describe("One sentence: why this window for this crowd"),
 });
 
 export const CampaignDraftSchema = z.object({
-  language: z.enum(["en", "fr"]).describe("Language of all copy, matching the merchant's city"),
+  language: z.enum(["en", "fr"]).describe("Use en for new drafts; fr is retained for reading historical drafts"),
   chosen_offer_id: z.string().describe("The id of the offer to push for this event"),
   audience_summary: z.string().describe("Two sentences on who this crowd is, citing Qloo demographics and tags"),
   rationale: z.string().describe("Why this offer beats the others for this crowd. Cite specific Qloo evidence: tags, demographics, brands, nearby places. No marketing fluff."),
@@ -21,7 +21,7 @@ export const CampaignDraftSchema = z.object({
     headline: z.string().max(40),
     body: z.string().max(125),
     cta: z.string().max(20),
-    daily_budget_usd: z.number().min(10).max(200),
+    daily_budget_usd: z.number().min(0).max(200),
   }),
   google_post: z.object({
     title: z.string().max(58),

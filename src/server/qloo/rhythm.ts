@@ -1,7 +1,4 @@
-// Street rhythm: the recurring moments of the street outside the merchant (after work, late nights, weekend
-// brunch), read from the places Qloo knows around it. One Qloo call: places near the merchant point, with their
-// opening hours, time-of-day tags, offerings and the descriptions Qloo writes about them. Qloo has no city
-// calendar (the monthly event tags are empty), but it does know how each street lives through the week.
+// Recurring local contexts inferred from Qloo place descriptions, tags and hours. No live footfall is measured.
 import { qlooGet, type QlooCall, type QlooEntity } from "./api";
 
 type Slot = { opens?: string; closes?: string; closed?: boolean };
@@ -11,14 +8,14 @@ type PlaceEntity = QlooEntity & {
 };
 
 export type RhythmMoment = {
-  id: "afterwork" | "late_night" | "brunch";
+  id: "afterwork" | "late_night" | "brunch" | "morning_coffee" | "lunch_break" | "afternoon_break" | "dinner" | "date_night" | "weekend_stroll";
   label: string;
   days: number[]; // 0 = Sunday
   from: string; // local "HH:MM"
   to: string;
   strength: "strong" | "medium";
   evidence: string[]; // human-readable facts, each traceable to Qloo data
-  places: { id: string; name: string }[]; // the places that carry this moment: the crowd is their crowd
+  places: { id: string; name: string }[]; // source references, not identified visitors
 };
 
 export type StreetRhythm = {
@@ -41,10 +38,11 @@ const rawText = (p: PlaceEntity) =>
     .map(([, v]) => v as string)
     .join(" ");
 const text = (p: PlaceEntity) => rawText(p).toLowerCase();
-const tagHit = (p: PlaceEntity, re: RegExp) => (p.tags ?? []).some((t) => re.test(t.id ?? "") || re.test((t.name ?? "").toLowerCase()));
+const tagHit = (p: PlaceEntity, re: RegExp) => (p.tags ?? []).some((t) => re.test(t.id ?? (t as {tag_id?:string}).tag_id ?? "") || re.test((t.name ?? "").toLowerCase()));
 const hour = (t?: string) => (t ? Number(t.slice(1, 3)) : NaN);
 
 export function analyzeRhythm(entities: PlaceEntity[]): StreetRhythm {
+  entities=[...new Map(entities.filter(p=>p.entity_id).map(p=>[p.entity_id,p])).values()];
   const hosp = entities.filter((p) => tagHit(p, HOSPITALITY));
   const openByHour: Record<string, number[]> = Object.fromEntries(DAYS.map((d) => [d, new Array(24).fill(0)]));
   const lateBy = new Array(7).fill(0) as number[];
@@ -119,6 +117,32 @@ export function analyzeRhythm(entities: PlaceEntity[]): StreetRhythm {
       ].filter(Boolean),
       places: [...brunchText, ...brunch].filter((p, i, a) => a.indexOf(p) === i).slice(0, 5).map(ref),
     });
+  }
+
+  // An explicit topic plus corroborating tags/hours. Windows are planning conventions, not measured peaks.
+  const extra:{id:RhythmMoment["id"];label:string;from:string;to:string;days:number[];topic:RegExp}[]=[
+    {id:"morning_coffee",label:"Morning coffee",from:"08:00",to:"10:30",days:[1,2,3,4,5],topic:/breakfast|morning coffee|early.morning|petit.d[eé]jeuner/},
+    {id:"lunch_break",label:"Lunch break",from:"12:00",to:"14:00",days:[1,2,3,4,5],topic:/\blunch\b|lunch_break|lunchtime|d[eé]jeuner/},
+    {id:"afternoon_break",label:"Afternoon pause",from:"14:30",to:"17:00",days:[0,1,2,3,4,5,6],topic:/afternoon tea|afternoon coffee|afternoon break|afternoon_tea|go[uû]ter/},
+    {id:"dinner",label:"Dinner in the neighbourhood",from:"19:00",to:"21:00",days:[0,1,2,3,4,5,6],topic:/\bdinner\b|dinner_service|evening meals|d[iî]ner/},
+    {id:"date_night",label:"An evening for two",from:"19:00",to:"21:00",days:[0,1,2,3,4,5,6],topic:/date[ _-]?night|romantic|intimate dinner/},
+    {id:"weekend_stroll",label:"Weekend discoveries",from:"15:00",to:"17:00",days:[6,0],topic:/weekend stroll|weekend walk|weekend outing/},
+  ];
+  for(const rule of extra){
+    const matches=hosp.filter(p=>rule.topic.test(text(p))||tagHit(p,rule.topic));
+    if(matches.length<2)continue;
+    const minutes=(value:string)=>{const m=value.match(/^T?(\d{2}):(\d{2})/);return m&&Number(m[1])<24&&Number(m[2])<60?Number(m[1])*60+Number(m[2]):NaN;};
+    const from=minutes(rule.from),to=minutes(rule.to);
+    const covers=(p:PlaceEntity,day:number)=>(p.properties?.hours?.[DAYS[day]]??[]).some(s=>{
+      if(s.closed||!s.opens||!s.closes)return false;
+      const opens=minutes(s.opens),rawClose=minutes(s.closes),closes=rawClose<=opens?rawClose+1440:rawClose;
+      return !(opens===0&&rawClose===0)&&opens<=from&&closes>=to;
+    });
+    const days=rule.days.filter(d=>matches.filter(p=>covers(p,d)).length>=2);
+    // Without hours we can identify the context, but cannot assert which weekdays support it.
+    if(!days.length)continue;
+    const refs=matches.filter(p=>days.some(d=>covers(p,d)));
+    moments.push({id:rule.id,label:rule.label,days,from:rule.from,to:rule.to,strength:refs.length>=5?"strong":"medium",places:refs.slice(0,5).map(ref),evidence:[`${matches.length} nearby places have ${rule.label.toLowerCase()} wording or tags in Qloo.`, `At least two matching places list opening hours covering this suggested window on ${days.map(d=>DAY_SHORT[d]).join(", ")}.`, `References: ${refs.slice(0,3).map(p=>p.name).join(", ")}. The window is a planning suggestion, not a measured busy period.`]});
   }
 
   // Who walks past, according to the neighbourhood descriptions of every place read (not only bars).

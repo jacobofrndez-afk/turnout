@@ -1,16 +1,21 @@
 // Publishing pipeline. Approve a campaign -> one send per channel the merchant has.
 // Each channel has an adapter; adapters without credentials record a simulated send with the exact payload
 // they would have pushed, so the demo shows the real shape of every channel and the UI is honest about it.
+import { deliverySummary } from "@/lib/delivery";
 import { getDb, newId } from "@/server/db/client";
 import type { Merchant } from "@/server/events/radar";
 import type { CampaignDraft } from "@/server/agent/schema";
 import { sendWhatsApp, whatsappConfigured } from "./twilio";
 import { buildSnapPayloads, createGeofencedCampaign, snapConfigured, type GeofencedAdSpec } from "./snapchat";
 
-export type ChannelId = "geofenced_ad" | "google_post" | "whatsapp" | "storefront" | "dooh";
+export type ChannelId = "instagram" | "facebook" | "tiktok" | "snapchat" | "geofenced_ad" | "google_post" | "whatsapp" | "storefront" | "dooh";
 export type SendRow = { id: string; campaign_id: string; channel: ChannelId; recipient_ref: string | null; status: string; provider_sid: string | null; simulated: number; sent_at: string; payload_json?: string | null };
 
 export const CHANNEL_LABEL: Record<ChannelId, string> = {
+  instagram: "Instagram post",
+  facebook: "Facebook Page post",
+  tiktok: "TikTok photo or video",
+  snapchat: "Snapchat Story",
   geofenced_ad: "Geofenced ad",
   google_post: "Google Business post",
   whatsapp: "WhatsApp to regulars",
@@ -27,7 +32,8 @@ export function ensureSendColumns(): void {
 export async function publishCampaign(campaignId: string, merchant: Merchant, draft: CampaignDraft): Promise<SendRow[]> {
   ensureSendColumns();
   const db = getDb();
-  const channels = (JSON.parse((db.prepare("SELECT channels_json FROM merchants WHERE id = ?").get(merchant.id) as { channels_json: string }).channels_json) as ChannelId[]) ?? [];
+  const saved = db.prepare("SELECT channels_json, dna_snapshot_json FROM campaigns WHERE id=? AND merchant_id=?").get(campaignId, merchant.id) as { channels_json: string; dna_snapshot_json: string | null } | undefined;
+  const channels = saved?.dna_snapshot_json ? JSON.parse(saved.channels_json) as ChannelId[] : (JSON.parse((db.prepare("SELECT channels_json FROM merchants WHERE id = ?").get(merchant.id) as { channels_json: string }).channels_json) as ChannelId[]) ?? [];
   const insert = db.prepare(`INSERT INTO sends (id, campaign_id, channel, recipient_ref, status, provider_sid, simulated, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
   const rows: SendRow[] = [];
   const record = (channel: ChannelId, status: string, simulated: boolean, payload: unknown, recipient?: string, sid?: string) => {
@@ -80,13 +86,19 @@ export async function publishCampaign(campaignId: string, merchant: Merchant, dr
             creative,
             daily_budget_usd: draft.geofenced_ad.daily_budget_usd,
             request: payloads,
-            status_note: "Ready for Snapchat, word for word. It goes out once your ad account is connected.",
+            status_note: "Saved here. No ad was created or scheduled.",
           });
         }
         break;
       }
+      case "instagram":
+      case "facebook":
+      case "tiktok":
+      case "snapchat":
+        record(channel, "ready", true, { message: `${draft.google_post.title}\n${draft.google_post.body}\n${draft.google_post.offer_terms}`, status_note: "Saved for manual posting. No social account was accessed and nothing was published." });
+        break;
       case "google_post":
-        record("google_post", "simulated", true, { type: "OFFER", title: draft.google_post.title, body: draft.google_post.body, terms: draft.google_post.offer_terms, schedule: draft.windows, status_note: "Ready for your Google listing. It goes out once the listing is verified." });
+        record("google_post", "simulated", true, { type: "OFFER", title: draft.google_post.title, body: draft.google_post.body, terms: draft.google_post.offer_terms, schedule: draft.windows, status_note: "Saved here for you to copy to your Google listing. Nothing was posted." });
         break;
       case "storefront":
         record("storefront", "ready", true, { chalkboard: draft.storefront.chalkboard, staff_line: draft.storefront.staff_line, status_note: "Yours to chalk on the board and say at the door." });
@@ -96,11 +108,20 @@ export async function publishCampaign(campaignId: string, merchant: Merchant, dr
         break;
     }
   }
-  db.prepare(`UPDATE campaigns SET status = 'sent', updated_at = datetime('now') WHERE id = ?`).run(campaignId);
+  db.prepare(`UPDATE campaigns SET status = ?, updated_at = datetime('now') WHERE id = ?`).run(deliverySummary(rows).status, campaignId);
   return rows;
 }
 
 export function getSends(campaignId: string): SendRow[] {
   ensureSendColumns();
   return getDb().prepare("SELECT * FROM sends WHERE campaign_id = ? ORDER BY sent_at").all(campaignId) as SendRow[];
+}
+
+export function deliveryPlan(channels: string[], draft: CampaignDraft) {
+  const whatsapp = channels.includes("whatsapp") && whatsappConfigured() && Boolean(process.env.DEMO_WHATSAPP_TO);
+  const snap = channels.includes("geofenced_ad") && draft.geofenced_ad.platform === "snapchat" && snapConfigured();
+  return {
+    label: whatsapp ? "Send demo & save" : snap ? "Create paused ad & save" : "Save campaign",
+    description: [whatsapp ? "Sends one WhatsApp message to the configured demo number, never to your customer list." : "No WhatsApp message will be sent.", snap ? "Creates a paused Snapchat ad. No ad spend starts here." : "No ad will be launched.", "Your texts stay available to copy and use."].join(" "),
+  };
 }

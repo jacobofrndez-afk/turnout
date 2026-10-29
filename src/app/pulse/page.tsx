@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { provider } from "@/server/agent/run";
+import { CopyText } from "@/components/CopyText";
 import { clock, clockRange } from "@/lib/clock";
 import { nb } from "@/lib/nbsp";
 import { firstSentences, noScores, plainList, plainWords } from "@/lib/text";
 import { getMerchant, listMerchants } from "@/server/events/radar";
 import { buildNeighborhoodPulse, type NeighborhoodPulse, type PulseOfferFit } from "@/server/qloo/neighborhood";
-import { latestPulse, shownBrief } from "@/server/agent/pulse";
+import { latestPulse, shownPulse, getBrief } from "@/server/agent/pulse";
 import { getOffers } from "@/server/qloo/crowd";
 import { eveningsThisWeek } from "@/server/weather/openmeteo";
 
@@ -24,7 +26,9 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
   const tz = merchant.timezone;
   const pulse = await buildNeighborhoodPulse(merchant);
   const row = latestPulse(merchant.id);
-  const brief = shownBrief(merchant.id);
+  const written = shownPulse(merchant.id);
+  const brief = getBrief(written);
+  const channels: string[] = written?.dna_snapshot_json ? JSON.parse(written.dna_snapshot_json).profile.channels : ["storefront", "google_post", "whatsapp", "geofenced_ad"];
   const waitingSince = row?.status === "awaiting_operator" ? Date.parse(`${row.created_at.replace(" ", "T")}Z`) : undefined;
   const stale = waitingSince !== undefined && Date.now() - waitingSince > 15 * 60_000;
   const offers = getOffers(merchant.id);
@@ -37,10 +41,11 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
   const briefAction = brief ? "Write this week's plan again" : row?.status === "awaiting_operator" ? "Ask for this week's plan again" : "Write this week's plan";
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
+    <main className="mx-auto max-w-6xl px-5 py-10">
       <Link href={`/today?merchant=${merchant.id}`} className="link text-base">Today</Link>
+      {written?.dna_version && <p className="t-small mt-4">Prepared with Place DNA v{written.dna_version}. <Link className="link" href={`/dna?merchant=${merchant.id}`}>Refine future campaigns →</Link></p>}
       {brief ? (
-        <section className="stack-block"><div className="plate min-[1152px]:-mx-[68px] min-[1152px]:px-[68px]!">
+        <section className="stack-block"><div className="plate">
           <p className="eyebrow">This week at {merchant.name}</p>
           <h1 className="t-display mt-5">{nb(brief.always_on_ad.headline.replace(/[.!]$/, ""))}</h1>
           <p className="t-lead mt-5">{nb(plainWords(noScores(brief.street_in_one_line)))}</p>
@@ -60,7 +65,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
 
       {waitingSince !== undefined && (
         <section className={brief ? "stack-block" : "tone stack-block"}>
-          <p className="t-body">{stale ? `Turnout started a new plan at ${clock(waitingSince, tz)} and has not finished it.${brief ? " The plan below stays." : ""}` : `Turnout is writing a new plan.${brief ? " The plan below stays until it is ready." : ""} Reload in a moment.`}</p>
+          <p className="t-body">{provider() === "operator" ? "Automatic writing is not connected. This request needs a manual draft; waiting here will not generate one." : stale ? `Turnout started a new plan at ${clock(waitingSince, tz)} and has not finished it.${brief ? " The plan below stays." : ""}` : `Turnout is writing a new plan.${brief ? " The plan below stays until it is ready." : ""} Reload in a moment.`}</p>
         </section>
       )}
       {row?.status === "failed" && (
@@ -79,25 +84,23 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
           <section className="stack-section">
             <h2 className="t-title">Your words for this week</h2>
             <p className="t-body mt-4">Turnout sends none of this for you. Copy what you want; the ad runs only if you set it up yourself.</p>
-            <div className="mt-10 grid gap-x-16 gap-y-14 md:grid-cols-2">
-              <Block title="On your chalkboard" tag="Every weekday">
-                <p className="t-name whitespace-pre-wrap">{nb(brief.chalkboard)}</p>
-              </Block>
-              <Block title="On your Google listing" tag="This week">
-                <p className="t-body font-semibold text-[var(--ink)]">{nb(brief.google_post.title)}</p>
-                <p className="t-body">{nb(brief.google_post.body)}</p>
-              </Block>
-              <Block title="To your regulars on WhatsApp" tag="This week">
-                <p className="t-body">{nb(brief.whatsapp)}</p>
-              </Block>
-              <Block
+            <div className="channel-grid">
+              {channels.includes("storefront") && <Block title="On your chalkboard" tag="Every weekday">
+                <div className="channel-art"><div className="preview preview-board"><p className="t-name whitespace-pre-wrap">{nb(brief.chalkboard)}</p></div></div><CopyText text={brief.chalkboard} />
+              </Block>}
+              {channels.includes("google_post") && <Block title="On your Google listing" tag="This week">
+                <div className="channel-art"><div className="preview"><p className="t-name">{nb(brief.google_post.title)}</p><p className="t-body mt-2">{nb(brief.google_post.body)}</p></div></div><CopyText text={`${brief.google_post.title}\n${brief.google_post.body}`} />
+              </Block>}
+              {channels.includes("whatsapp") && <Block title="To your regulars on WhatsApp" tag="This week">
+                <div className="channel-art"><div className="preview preview-bubble"><p className="t-body">{nb(brief.whatsapp)}</p></div></div><CopyText text={brief.whatsapp} />
+              </Block>}
+              {channels.includes("geofenced_ad") && <Block
                 title="To strangers nearby"
                 tag={<>{adSlot(pulse.rhythm, tz)}, within <span className="mono">{nb(`${brief.always_on_ad.radius_m} m`)}</span>, up to ${brief.always_on_ad.daily_budget_usd}&nbsp;a&nbsp;day if you run it</>}
               >
-                <p className="t-body font-semibold text-[var(--ink)]">{nb(brief.always_on_ad.headline)}</p>
-                <p className="t-body">{nb(brief.always_on_ad.body)}</p>
+                <div className="channel-art"><div className="preview"><p className="preview-by">{merchant.name} · Sponsored</p><p className="t-name mt-3">{nb(brief.always_on_ad.headline)}</p><p className="t-body mt-2">{nb(brief.always_on_ad.body)}</p></div></div><CopyText text={`${brief.always_on_ad.headline}\n${brief.always_on_ad.body}`} />
                 <p className="t-body text-[var(--muted)]">Aimed at people into: {nb(plainList(brief.always_on_ad.interests))}.</p>
-              </Block>
+              </Block>}
             </div>
             <p className="t-body mt-14 text-[var(--muted)]">Written from the people who pass your door on a normal day.</p>
             <form action="/api/pulse" method="post" className="mt-4">
@@ -267,7 +270,7 @@ function fitWord(f: PulseOfferFit, best: PulseOfferFit | undefined): string {
 
 function Block({ title, tag, children }: { title: string; tag: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div>
+    <div className="channel-card">
       <h3 className="eyebrow">{title}</h3>
       <p className="t-body mt-3 text-[var(--muted)]">{tag}</p>
       <div className="mt-5 space-y-2">{children}</div>

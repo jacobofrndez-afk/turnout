@@ -43,7 +43,7 @@ export async function qlooGet<T = unknown>(
   let body: T = {} as T;
   // The hackathon key rate-limits bursts (HTTP 429). Retry a few times with backoff.
   for (let attempt = 0; attempt < 4; attempt++) {
-    res = await fetch(`${base}${path}?${new URLSearchParams(params)}`, { headers: { "X-Api-Key": requireEnv("QLOO_API_KEY") } });
+    res = await fetch(`${base}${path}?${new URLSearchParams(params)}`, { headers: { "X-Api-Key": requireEnv("QLOO_API_KEY") }, signal: AbortSignal.timeout(8000) });
     body = (await res.json().catch(() => ({}))) as T;
     if (res.status !== 429) break;
     await new Promise((r) => setTimeout(r, 800 * 2 ** attempt));

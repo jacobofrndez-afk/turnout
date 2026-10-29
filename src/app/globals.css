@@ -146,7 +146,7 @@ html:root {
   --mark-arc-reverse: #B5A6B8;     /* 6.37 on plum */
 
   /* type scale (also as utilities below) */
-  --fs-display: clamp(56px, 8.4vw, 124px);  /* the one hero line per screen */
+  --fs-display: clamp(44px, 5.5vw, 76px);  /* the one hero line per screen */
   /* Three levels per screen (docs/UX-ONE-PATH.md): the display line once, section titles, body. The steps are far
      apart on purpose (121 / 36 / 17 px at 1440) so the one loud line is unmistakable. */
   --fs-title: clamp(30px, 2.5vw, 36px);     /* section titles: "What goes out", "Why", "Coming next" */
@@ -172,8 +172,8 @@ html:root {
   --space-9: 96px;
   --space-10: 128px;
   --space-11: 160px;
-  --section: clamp(72px, 6.5vw, 96px);       /* between sections: about 2.6 times the section title */
-  --block: clamp(40px, 3.6vw, 52px);         /* between groups inside a section */
+  --section: clamp(44px, 5vw, 68px);       /* between sections: about 2.6 times the section title */
+  --block: clamp(28px, 3vw, 40px);         /* between groups inside a section */
   --plate-pad: clamp(28px, 5vw, 64px);
   --tone-pad: clamp(24px, 3.6vw, 44px);
   /* The measure is set in em, not ch: in Instrument Sans the "0" is 0.665 em wide while running prose averages
@@ -1315,4 +1315,96 @@ body .maplibregl-map,
   .tm-root .tm-peek { min-width: 0; max-width: 230px; padding: 12px 14px 14px; }
   .tm-root .tm-peek-t { font-size: 19px; }
   .tm-root .tm-fs { top: 12px; right: 12px; padding: 0 14px; }
+}
+
+/* Merchant workspace: compact hierarchy and a consistent reading order across widths. */
+.app-nav { display: flex; gap: 8px; font-size: 15px; }
+.app-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; color: var(--muted); }
+.app-nav a[aria-current="page"] { background: var(--tone); color: var(--plum); font-weight: 600; }
+@media (max-width: 639px) {
+  .app-nav { gap: 4px; font-size: 14px; }
+  .app-nav a { padding: 0 8px; }
+}
+@media (max-width: 400px) {
+  .app-nav { gap: 0; }
+  .app-nav a { justify-content: center; min-width: 44px; padding: 0; }
+}
+.workspace-context { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 28px; }
+.workspace-context select.field { padding-left: 0; font-size: 19px; font-weight: 600; max-width: 100%; }
+.workspace-context > div { max-width: 100%; }
+.today-hero { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 48px; padding: 40px; }
+.today-hero .t-display { font-size: clamp(44px, 5.2vw, 72px); max-width: 17ch; }
+.hero-action { margin-top: 28px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.hero-action .t-small { max-width: 48ch; color: var(--on-plum-muted); }
+.hero-facts { display: flex; flex-direction: column; gap: 28px; align-self: center; }
+.hero-facts dt { font-size: 14px; color: var(--on-plum-muted); }
+.hero-facts dd { margin-top: 6px; font-size: 19px; font-weight: 600; color: var(--on-plum); }
+.hero-facts p { margin-top: 8px; font-size: 13px; color: var(--on-plum-muted); max-width: 26ch; }
+.workspace-section { margin-top: 48px; }
+.section-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+.section-heading > .link { font-size: 15px; white-space: nowrap; }
+.channel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 24px; }
+.channel-card { background: var(--tone); padding: 24px; min-width: 0; display: flex; flex-direction: column; }
+.channel-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.channel-heading h3 { font-family: var(--font-sans), sans-serif; font-size: 17px; font-weight: 600; }
+.copy-action { font-size: 14px; min-height: 28px; }
+.channel-status { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.channel-art { min-height: 252px; display: flex; align-items: center; justify-content: center; padding: 24px 8px; }
+.channel-art .preview { --object-w: min(100%, 320px); }
+.channel-art .preview-board { max-width: 280px; aspect-ratio: auto; min-height: 216px; border-width: 10px 16px 42px; padding: 22px 12px; }
+.channel-art .preview-board .t-name { font-size: 28px; }
+.channel-art .preview-screen { max-width: 310px; }
+.channel-art .preview-screen .t-name { font-size: 28px; }
+.channel-note { font-size: 14px; line-height: 1.6; color: var(--muted); margin-top: auto; }
+.channel-failed { color: var(--danger); }
+.reasoning-disclosure { margin-top: 24px; }
+.dashboard-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 48px; }
+.opportunity-list li { padding: 20px 0; border-top: 1px solid var(--tone-2); }
+.opportunity-list li:first-child { padding-top: 0; border-top: 0; }
+.weekly-card { align-self: start; background: var(--tone); padding: 28px; }
+.weekly-quote { font-family: var(--font-display), sans-serif; font-size: 30px; line-height: 1.2; margin-top: 24px; white-space: pre-line; color: var(--plum); }
+.activity-list li { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 24px; align-items: baseline; padding: 16px 0; border-top: 1px solid var(--tone-2); }
+.btn:disabled { opacity: .65; cursor: wait; }
+@media (max-width: 767px) {
+  .today-hero { grid-template-columns: minmax(0, 1fr); gap: 28px; padding: 28px 24px; }
+  .hero-facts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+  .hero-facts dd { font-size: 16px; }
+  .hero-facts > :first-child { grid-column: 1 / -1; }
+  .hero-facts p { font-size: 13px; }
+  .hero-action .btn, .hero-action form { width: 100%; }
+  .channel-grid, .dashboard-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .channel-card { padding: 20px; }
+  .workspace-section { margin-top: 36px; }
+  .activity-list li { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; }
+  .activity-list .t-label { grid-column: 1 / -1; }
+  .workspace-context { margin-bottom: 20px; }
+}
+
+/* The agenda puts source facts before campaign suggestions. */
+.agenda-intro { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 40px; align-items: center; }
+.agenda-intro .t-lead { max-width: 650px; }
+.agenda-total { min-width: 160px; padding-left: 32px; border-left: 1px solid rgba(59, 28, 66, .12); }
+.agenda-total .t-figure { display: block; font-size: 72px; line-height: 1.1; }
+.event-agenda > li { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 28px; align-items: start; padding: 26px 0; border-top: 1px solid rgba(59, 28, 66, .12); }
+.event-agenda > li:last-child { border-bottom: 1px solid rgba(59, 28, 66, .12); }
+.event-source { margin-top: 12px; color: var(--muted); line-height: 1.6; }
+.agenda-action { align-self: center; white-space: nowrap; }
+.agenda-footer { display: grid; grid-template-columns: 2fr 1fr; gap: 40px; }
+@media (max-width: 700px) {
+  .agenda-intro { grid-template-columns: 1fr; gap: 24px; }
+  .agenda-total { border-left: 0; padding-left: 0; }
+  .agenda-total .t-figure { font-size: 48px; }
+  .event-agenda > li { grid-template-columns: 1fr; gap: 14px; }
+  .agenda-time { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .agenda-time .t-name { margin-top: 0; }
+  .agenda-footer { grid-template-columns: 1fr; gap: 28px; }
+}
+
+/* Identity: size-specific native SVG geometry. Never scale or blur the outlines in CSS. */
+.turnout-wordmark { display: inline-flex; flex: none; vertical-align: middle; line-height: 0; }
+.turnout-wordmark svg { display: block; flex: none; max-width: none; }
+.turnout-wordmark .turnout-logo-phone { display: none; }
+@media (max-width: 639px) {
+  .turnout-wordmark .turnout-logo-wide { display: none; }
+  .turnout-wordmark .turnout-logo-phone { display: block; }
 }

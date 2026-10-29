@@ -18,3 +18,14 @@ export function rateLimit(req: Request, key: string, max: number, windowMs: numb
 export function tooMany(retryAfterS: number): Response {
   return new Response("Too many requests for the demo, try again in a minute.", { status: 429, headers: { "Retry-After": String(retryAfterS) } });
 }
+
+// Next may normalize req.url to localhost while the browser uses 127.0.0.1.
+// Compare against the incoming Host as well; never accept an arbitrary forwarded host.
+export function sameOrigin(req: Request): boolean {
+  const origin = req.headers.get("origin");
+  if (!origin) return true;
+  try {
+    const source = new URL(origin), target = new URL(req.url);
+    return source.origin === target.origin || (source.protocol === target.protocol && source.host === req.headers.get("host"));
+  } catch { return false; }
+}

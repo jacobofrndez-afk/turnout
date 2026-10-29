@@ -1,0 +1,56 @@
+.identity-page { color: var(--plum); }
+.identity-page .t-label { line-height: 20px; }
+.identity-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+.identity-heading h1 { font-size: 64px; line-height: 72px; }
+.identity-heading > a { line-height: 24px; }
+.identity-intro { max-width: 710px; margin-top: 24px; font-size: 20px; line-height: 32px; }
+.identity-signature { min-height: 340px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 36px; padding: 40px; margin-top: 48px; border: 1px solid #e9e2eb; }
+.identity-signature > p { font-size: 16px; line-height: 24px; color: var(--muted); }
+.identity-variants { display: grid; grid-template-columns: 1.3fr 1fr; }
+.identity-reverse, .identity-mono { min-height: 240px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 28px; padding: 32px 40px; }
+.identity-reverse { background: #3b1c42; color: #f6f1f8; }
+.identity-mono { background: #f5f3f4; color: #181519; }
+.identity-variants p { font-size: 13px; line-height: 20px; }
+.identity-section { margin-top: 64px; }
+.identity-construction { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 48px; margin-top: 32px; }
+.identity-drawing { height: 180px; display: flex; align-items: center; }
+.identity-number { font-size: 13px; color: var(--muted); margin: 24px 0 12px; }
+.identity-construction h3 { font-family: var(--font-sans); font-size: 19px; font-weight: 600; line-height: 28px; }
+.identity-construction article > p:last-child { color: var(--muted); margin-top: 12px; font-size: 16px; line-height: 26px; }
+.identity-transparency { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 48px; }
+.identity-transparency .t-body { max-width: 400px; }
+.identity-checkerboard { padding: 32px; background-color: #fff; background-image: conic-gradient(#ede9ee 25%, transparent 0 50%, #ede9ee 0 75%, transparent 0); background-size: 24px 24px; }
+.identity-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; padding-top: 40px; border-top: 1px solid #e9e2eb; }
+.identity-old, .identity-new { height: 110px; display: flex; align-items: center; }
+.identity-old img { display: block; object-fit: contain; object-position: left center; max-width: 100%; }
+.identity-comparison p:last-child { color: var(--muted); font-size: 15px; line-height: 24px; }
+.identity-sizes { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 40px; margin: 32px 0; }
+.identity-sizes > div { text-align: center; }
+.identity-sizes > div > span { height: 96px; display: flex; align-items: center; justify-content: center; }
+.identity-sizes p { font-size: 12px; color: var(--muted); margin-top: 12px; }
+.identity-app-header { display: flex; justify-content: space-between; align-items: center; padding: 20px; border: 1px solid #e9e2eb; }
+.identity-app-header > div { display: flex; align-items: center; gap: 28px; font-size: 14px; }
+.identity-app-header > div > span:first-child { font-weight: 600; }
+.identity-downloads { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; padding: 40px 0; border-top: 1px solid #e9e2eb; }
+.identity-downloads > div:last-child { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-content: center; font-size: 15px; }
+@media (max-width: 900px) {
+  .identity-heading { display: block; }
+  .identity-heading > a { display: inline-flex; margin-top: 24px; }
+  .identity-page .turnout-wordmark .turnout-logo-wide { display: none; }
+  .identity-page .turnout-wordmark .turnout-logo-phone { display: block; }
+  .identity-signature { min-height: 230px; margin-top: 32px; gap: 28px; padding: 20px; }
+  .identity-variants, .identity-construction, .identity-comparison, .identity-downloads, .identity-transparency { grid-template-columns: 1fr; }
+  .identity-reverse, .identity-mono { min-height: 200px; padding: 32px 20px; }
+  .identity-construction { gap: 36px; }
+  .identity-drawing { height: 150px; }
+  .identity-section { margin-top: 48px; }
+  .identity-comparison { gap: 24px; }
+  .identity-sizes { gap: 28px; }
+  .identity-app-header { padding: 16px 12px; gap: 12px; }
+  .identity-app-header > div { gap: 14px; font-size: 13px; }
+}
+@media (max-width: 360px) {
+  .identity-signature { padding: 8px; }
+  .identity-heading h1 { font-size: 56px; line-height: 64px; }
+  .identity-app-header { flex-wrap: wrap; }
+}

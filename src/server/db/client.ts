@@ -1,4 +1,5 @@
 import Database from "better-sqlite3";
+import { DEMO_OFFER_COPY, DEMO_NEUTRAL_TITLES } from "./demo-offer-copy";
 import { readFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { createHash } from "node:crypto";
@@ -9,7 +10,7 @@ const globalForDb = globalThis as unknown as { __crowdDb?: Db };
 
 export function getDb(): Db {
   if (globalForDb.__crowdDb) return globalForDb.__crowdDb;
-  const path = resolve(process.cwd(), process.env.DATABASE_PATH ?? "data/crowd.db");
+  const path = resolve(/* turbopackIgnore: true */ process.cwd(), process.env.DATABASE_PATH ?? "data/crowd.db");
   mkdirSync(dirname(path), { recursive: true });
   const db = new Database(path);
   const schema = readFileSync(resolve(process.cwd(), "src/server/db/schema.sql"), "utf8");
@@ -25,12 +26,23 @@ function migrate(db: Db): void {
     const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
     if (!cols.some((c) => c.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
   };
+  add("campaigns", "dna_version", "dna_version INTEGER");
+  add("campaigns", "dna_snapshot_json", "dna_snapshot_json TEXT");
   add("merchants", "seats", "seats INTEGER NOT NULL DEFAULT 60");
   add("events", "origin", "origin TEXT NOT NULL DEFAULT 'ticketmaster'");
   add("events", "window_start", "window_start TEXT");
   add("events", "window_end", "window_end TEXT");
   add("events", "crowd_est", "crowd_est INTEGER");
   add("events", "meta_json", "meta_json TEXT");
+  // Update only unchanged demo text; merchant edits and historical campaigns stay intact.
+  for (const field of ["title", "description", "price"] as const) {
+    const update = db.prepare(`UPDATE offers SET ${field} = ? WHERE id = ? AND merchant_id = 'm_quai_bercy' AND ${field} = ?`);
+    for (const offer of DEMO_OFFER_COPY) {
+      if (offer.before[field] !== offer.after[field]) update.run(offer.after[field], offer.id, offer.before[field]);
+    }
+  }
+  const renameDemo = db.prepare("UPDATE offers SET title=? WHERE id=? AND merchant_id=? AND title=?");
+  for (const offer of DEMO_NEUTRAL_TITLES) renameDemo.run(offer.after,offer.offerId,offer.merchantId,offer.before);
 }
 
 export function cacheKey(source: string, input: unknown): string {

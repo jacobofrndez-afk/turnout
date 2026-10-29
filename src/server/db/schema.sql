@@ -128,3 +128,54 @@ CREATE TABLE IF NOT EXISTS api_cache (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   expires_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS merchant_dna (
+  merchant_id TEXT PRIMARY KEY REFERENCES merchants(id), profile_json TEXT NOT NULL,
+  version INTEGER NOT NULL, status TEXT NOT NULL, source TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS dna_history (
+  merchant_id TEXT NOT NULL REFERENCES merchants(id), version INTEGER NOT NULL,
+  profile_json TEXT NOT NULL, source TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY(merchant_id, version)
+);
+CREATE TABLE IF NOT EXISTS quick_campaigns (
+  id TEXT PRIMARY KEY, merchant_id TEXT NOT NULL REFERENCES merchants(id),
+  input_json TEXT NOT NULL, copy TEXT NOT NULL, dna_snapshot_json TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS menu_captures (
+  id TEXT PRIMARY KEY, merchant_id TEXT NOT NULL REFERENCES merchants(id),
+  extraction_json TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Public discovery preferences only. No credentials or private account data.
+CREATE TABLE IF NOT EXISTS source_settings (
+  merchant_id TEXT PRIMARY KEY REFERENCES merchants(id),
+  settings_json TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Private social account access. Never join these tables to public merchant responses.
+CREATE TABLE IF NOT EXISTS channel_identities (
+  provider TEXT NOT NULL, subject_id TEXT NOT NULL, owner_id TEXT NOT NULL,
+  PRIMARY KEY(provider, subject_id)
+);
+CREATE TABLE IF NOT EXISTS channel_sessions (
+  token_hash TEXT PRIMARY KEY, owner_id TEXT NOT NULL, expires_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS channel_oauth_states (
+  state_hash TEXT PRIMARY KEY, browser_hash TEXT NOT NULL, provider TEXT NOT NULL,
+  merchant_id TEXT NOT NULL REFERENCES merchants(id), session_hash TEXT, owner_id TEXT, expires_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS channel_pending (
+  id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, merchant_id TEXT NOT NULL REFERENCES merchants(id),
+  provider TEXT NOT NULL, candidates_cipher TEXT NOT NULL, expires_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS channel_connections (
+  owner_id TEXT NOT NULL, merchant_id TEXT NOT NULL REFERENCES merchants(id), provider TEXT NOT NULL,
+  external_id TEXT NOT NULL, name TEXT NOT NULL, username TEXT, token_cipher TEXT NOT NULL,
+  expires_at INTEGER, checked_at INTEGER NOT NULL, status TEXT NOT NULL, revision TEXT NOT NULL,
+  PRIMARY KEY(owner_id, merchant_id, provider)
+);

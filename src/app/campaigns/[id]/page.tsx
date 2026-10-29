@@ -1,3 +1,4 @@
+import { EventSource } from "@/components/EventSource";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCampaign, getDraft, getProvenance, pollOperatorDraft, provider } from "@/server/agent/run";
@@ -5,29 +6,14 @@ import { campaignWindows, draftFirstWindow } from "@/server/agent/prompt";
 import { getMerchant } from "@/server/events/radar";
 import { getEvent, getOffers } from "@/server/qloo/crowd";
 import { RefreshEvery } from "@/app/today/RefreshEvery";
-import { getSends, type ChannelId, type SendRow } from "@/server/channels";
+import { getSends, deliveryPlan, type ChannelId } from "@/server/channels";
+import { deliverySummary } from "@/lib/delivery";
+import { CampaignPreview } from "@/components/CampaignPreview";
+import { ActionForm } from "@/components/ActionForm";
 import { nb } from "@/lib/nbsp";
 import { clock, clockRange, clockText } from "@/lib/clock";
-import { whatsappConfigured } from "@/server/channels/twilio";
 import { firstSentences, noScores, plainList, plainWords } from "@/lib/text";
 import { getDb } from "@/server/db/client";
-
-const SIMULATED_NOTE: Partial<Record<ChannelId, string>> = {
-  geofenced_ad: "Ready for Snapchat, word for word. It goes out once your ad account is connected.",
-  google_post: "Ready for your Google listing. It goes out once the listing is verified.",
-  whatsapp: "It goes out once WhatsApp is connected.",
-  dooh: "Ready for the screens nearest the venue. It goes out once a screen network is connected.",
-};
-
-// The channels in the order a merchant reads them: the door first, then the people they know, then strangers.
-const CHANNEL_ORDER: ChannelId[] = ["storefront", "whatsapp", "geofenced_ad", "google_post", "dooh"];
-const CHANNEL_NAME: Record<ChannelId, string> = {
-  storefront: "On your chalkboard",
-  whatsapp: "To your regulars on WhatsApp",
-  geofenced_ad: "To strangers nearby",
-  google_post: "On your Google listing",
-  dooh: "On the screens near the venue",
-};
 
 const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 // SQLite stamps are "YYYY-MM-DD HH:MM:SS" in UTC without a zone; ISO stamps carry theirs.
@@ -40,8 +26,9 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   let campaign = getCampaign(id);
   if (!campaign) notFound();
   campaign = pollOperatorDraft(campaign);
-  const merchant = getMerchant(campaign.merchant_id)!;
-  const event = getEvent(campaign.event_id)!;
+  const merchant = getMerchant(campaign.merchant_id);
+  const event = getEvent(campaign.event_id);
+  if (!merchant || !event) notFound();
   // The act, as on Today and Who is coming; a tour title ("Harry Styles: Together, Together") reads like a stutter.
   const actName = (event.origin ?? "ticketmaster") === "ticketmaster" ? ((JSON.parse(event.attractions_json) as { name?: string }[])[0]?.name ?? event.name) : event.name;
   const draft = getDraft(campaign);
@@ -68,9 +55,9 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   const nightOver = campaign.status === "drafted" && lastWindowEnd < now;
   // The first window closed but the night goes on: the words were written for "until 7 pm", so Publish waits for a rewrite.
   const firstOver = campaign.status === "drafted" && !nightOver && !!draft && draftFirstWindow(event, draft.windows, tz).end < now;
-  const out = campaign.status === "approved" || campaign.status === "sent";
-  const sentAt = sends.length ? Math.min(...sends.map((s) => parseUtc(s.sent_at))) : undefined;
-  const outSentence = sends.length === 0 ? "Going out now." : sends.some((s) => s.simulated) ? `Published at ${clock(sentAt!, tz)}. Each channel goes out as soon as it is connected.` : `Out since ${clock(sentAt!, tz)} on ${fmtDay.format(sentAt)}.`;
+  const out = ["approved", "sent", "prepared", "partial"].includes(campaign.status) || campaign.status === "failed" && !!draft;
+  const outcome = deliverySummary(sends);
+  const outSentence = campaign.status === "approved" ? "Delivery was started but has not finished. Check the recorded results below before trying again." : outcome.description;
   // Started in operator mode and never answered: the page must not promise "a few minutes" for hours.
   const stale = campaign.status === "awaiting_operator" && now - parseUtc(campaign.created_at) > 15 * 60_000;
 
@@ -86,41 +73,50 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   );
 
   // Only what Publish will send (the merchant's channels, as in publishCampaign), plus the chalkboard, which is the merchant's own.
-  const merchantChannels = JSON.parse((getDb().prepare("SELECT channels_json FROM merchants WHERE id = ?").get(merchant.id) as { channels_json: string } | undefined)?.channels_json ?? "[]") as ChannelId[];
-  const channels: ChannelId[] = CHANNEL_ORDER.filter((c) => sendByChannel.has(c) || (draft && (c === "storefront" || merchantChannels.includes(c))));
-  const whatsappLive = whatsappConfigured() && Boolean(process.env.DEMO_WHATSAPP_TO); // same test as publishCampaign and the alerts page
+  const merchantChannels = campaign.dna_snapshot_json ? JSON.parse(campaign.channels_json ?? "[]") as ChannelId[] : JSON.parse((getDb().prepare("SELECT channels_json FROM merchants WHERE id = ?").get(merchant.id) as { channels_json: string } | undefined)?.channels_json ?? "[]") as ChannelId[];
+  const channels = [...new Set(["storefront", ...merchantChannels, ...sends.map(s => s.channel)])];
+  const plan = draft ? deliveryPlan(merchantChannels, draft) : undefined;
   // Once the first window is over, the old words fold away under the plate: the page is about the rewrite.
   const ChannelsWrap = firstOver ? "details" : "section";
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
+    <main className="mx-auto max-w-6xl px-5 py-10">
       <Link href={`/today?merchant=${merchant.id}`} className="link">Today</Link>
 
+      {campaign.dna_version && <p className="t-small mt-4">Prepared with Place DNA v{campaign.dna_version}. <Link className="link" href={`/dna?merchant=${merchant.id}`}>Refine future campaigns →</Link></p>}
       <section className="stack-block">
-        <div className="plate min-[1152px]:-mx-[68px] min-[1152px]:px-[68px]!">
+        <div className="plate">
+          <EventSource event={event} timezone={tz} />
           <p className="eyebrow">Your campaign for {dayword}{!draft && campaign.status === "awaiting_operator" ? "" : (event.origin ?? "ticketmaster") === "ticketmaster" ? `, ${actName} at ${event.venue_name}` : event.origin === "wave" ? `, ${lowerFirst(actName)}` : `, ${actName}`}</p>
           {draft ? (
             <>
               <h1 className="t-display mt-5">{firstOver ? wins[wins.length - 1].label : (offer?.title ?? draft.chosen_offer_id)}</h1>
               {out ? (
                 <>
-                  <p className="t-lead mt-5">{outSentence}</p>
+                  <p className="t-name mt-5">{campaign.status === "approved" ? "Delivery needs checking" : outcome.title}</p><p className="t-body mt-3">{outSentence}</p>
                   <p className="t-body mt-4">{offerLine}</p>
                 </>
               ) : (
                 <p className="t-lead mt-5">{firstOver ? <>{wins[wins.length - 1].start <= now ? <>The crowd came out at <span className="mono">{clock(wins[wins.length - 1].start, tz)}</span> and is near you until <span className="mono">{clock(wins[wins.length - 1].end, tz)}</span>.</> : <>The crowd went in at <span className="mono">{clock(wins[0].end, tz)}</span> and comes out at <span className="mono">{clock(wins[wins.length - 1].start, tz)}</span>.</>} These words were for {lowerFirst(wins[0].label)}, so nothing goes out until Turnout writes new ones.</> : offerLine}</p>
               )}
               {campaign.status === "drafted" && !nightOver && !firstOver && (
-                <form action={`/api/campaigns/${campaign.id}/approve`} method="post" className="mt-10"><button className="btn btn-accent btn-lg">Publish</button></form>
+                <div className="mt-8"><ActionForm action={`/api/campaigns/${campaign.id}/approve`} label={plan!.label} pendingLabel="Saving campaign…" /><p className="t-small mt-4 max-w-2xl">{plan!.description}</p></div>
               )}
               {firstOver && (
                 <>
-                  <form action="/api/campaigns" method="post" className="mt-10"><input type="hidden" name="merchant" value={merchant.id} /><input type="hidden" name="event" value={event.id} /><button className="btn btn-accent btn-lg">{`Write it for ${lowerFirst(wins[wins.length - 1].label)}`}</button></form>
+                  <ActionForm action="/api/campaigns" className="mt-8" label={`Write it for ${lowerFirst(wins[wins.length - 1].label)}`} pendingLabel="Rewriting…"><input type="hidden" name="merchant" value={merchant.id} /><input type="hidden" name="event" value={event.id} /></ActionForm>
                 </>
               )}
               {nightOver && (
                 <p className="t-body mt-10">This night has passed. The windows closed on {fmtDay.format(new Date(lastWindowEnd))}. Write a new campaign for the next crowd from <Link href={`/today?merchant=${merchant.id}`} className="link">Today</Link>.</p>
               )}
+            </>
+          ) : campaign.status === "awaiting_operator" && provider() === "operator" ? (
+            <>
+              <h1 className="t-display mt-5">Automatic writing is not connected.</h1>
+              <p className="t-lead mt-5">Your request for {actName} is saved. This setup needs a draft to be supplied manually; waiting here will not generate one.</p>
+              <Link href={`/campaigns/new?merchant=${merchant.id}&event=${event.id}`} className="btn btn-primary btn-lg mt-8">Read the crowd insights</Link>
+              <details className="mt-5"><summary className="link">How to enable writing</summary><p className="t-body mt-3">Configure the campaign writer on the server, or provide the draft in the project’s agent inbox. Your API key stays on the server.</p></details>
             </>
           ) : stale ? (
             <>
@@ -146,7 +142,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
           ) : campaign.status === "failed" ? (
             <>
               <h1 className="t-display mt-5">Turnout could not write this one</h1>
-              <p className="t-lead mt-5">{campaign.rationale}</p>
+              <p className="t-lead mt-5">The campaign could not be completed. Your existing campaigns are still available.</p><Link href={`/campaigns/new?merchant=${merchant.id}&event=${event.id}`} className="btn btn-primary btn-lg mt-8">Try again from the crowd</Link><details className="mt-5"><summary className="link">Error details</summary><p className="t-body mt-3">{campaign.rationale}</p></details>
             </>
           ) : (
             <p className="t-lead mt-5">Nothing to read for this campaign yet.</p>
@@ -154,52 +150,10 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
         </div>
       </section>
 
-      {channels.length > 0 && (
+      {draft && channels.length > 0 && (
         <ChannelsWrap className="stack-section">
-          {firstOver ? <summary className="link w-fit text-base">{`The words written for ${lowerFirst(wins[0].label)}`}</summary> : <h2 className="t-title">{nightOver ? "What was written" : "What goes out"}</h2>}
-          <div className="tone mt-8 gap-x-16 md:columns-2 *:break-inside-avoid [&>*:not(:last-child)]:mb-12">
-            {channels.map((c) => {
-              const send = sendByChannel.get(c);
-              return (
-                <div key={c}>
-                  <h3 className="eyebrow">{CHANNEL_NAME[c]}</h3>
-                  {draft && (
-                    <div className="mt-4 space-y-3">
-                      {c === "storefront" && (
-                        <>
-                          <div className="preview preview-board"><p className="t-name whitespace-pre-wrap">{nb(draft.storefront.chalkboard)}</p></div>
-                          <p className="t-body text-[var(--muted)]">Your staff say: “{nb(draft.storefront.staff_line)}”</p>
-                        </>
-                      )}
-                      {c === "whatsapp" && (<><div className="preview preview-bubble"><p className="t-body whitespace-pre-wrap">{nb(draft.whatsapp.message)}</p></div>{campaign.status === "drafted" && !send && !firstOver && !nightOver && <p className="t-body text-[var(--muted)]">{whatsappLive ? "Sent to your regulars the moment you press Publish." : "WhatsApp is not connected yet, so Publish keeps this message here instead of sending it."}</p>}</>)}
-                      {c === "geofenced_ad" && (
-                        <>
-                          <div className="preview"><p className="preview-by">{merchant.name} · Sponsored</p><p className="t-name mt-2">{nb(draft.geofenced_ad.headline)}</p><p className="t-body mt-2">{nb(draft.geofenced_ad.body)}</p></div>
-                          <p className="t-body text-[var(--muted)]">
-                            Within <span className="mono">{draft.geofenced_ad.radius_m} m</span> of the venue, on {draft.geofenced_ad.platform === "meta" ? "Meta" : "Snapchat"}, up to <span className="mono">${draft.geofenced_ad.daily_budget_usd}</span>&nbsp;a&nbsp;day once you switch it on.{campaign.status === "drafted" && !firstOver && !nightOver ? " Publish costs nothing." : ""}
-                          </p>
-                          <p className="t-body text-[var(--muted)]">Aimed at people into: {nb(plainList(draft.geofenced_ad.interests))}.</p>
-                        </>
-                      )}
-                      {c === "google_post" && (
-                        <>
-                          <div className="preview"><p className="t-name">{nb(draft.google_post.title)}</p><p className="t-body mt-2">{nb(draft.google_post.body)}</p></div>
-                          <p className="t-body text-[var(--muted)]">{nb(draft.google_post.offer_terms)}</p>
-                        </>
-                      )}
-                      {c === "dooh" && (
-                        <>
-                          <div className="preview preview-screen"><p className="t-name">{nb(draft.dooh.headline)}</p><p className="t-body mt-2">{nb(draft.dooh.body)}</p></div>
-                          {campaign.status === "drafted" && !send && !firstOver && !nightOver && <p className="t-body text-[var(--muted)]">No screen network is connected yet, so Publish keeps this here instead of showing it.</p>}
-                        </>
-                      )}
-                    </div>
-                  )}
-                  {send && <SendStatus send={send} />}
-                </div>
-              );
-            })}
-          </div>
+          {firstOver ? <summary className="link w-fit text-base">{`The words written for ${lowerFirst(wins[0].label)}`}</summary> : <h2 className="t-title">{nightOver ? "What was written" : "Your campaign materials"}</h2>}
+          {draft && <CampaignPreview validTiming={draftFirstWindow(event,draft.windows,tz).end > now} draft={draft} merchantId={merchant.id} merchantName={merchant.name} channels={channels} sends={sends} />}
         </ChannelsWrap>
       )}
 
@@ -246,23 +200,5 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
         <p className="t-meta mt-6 tnum">Qloo calls: {prov.filter((p) => p.kind === "qloo" && !p.cache_hit).length} live, {prov.filter((p) => p.kind === "qloo" && p.cache_hit).length} cached.</p>
       </details>
     </main>
-  );
-}
-
-// Where one channel stands once the campaign is out: who it went to, what still has to be connected, the exact request.
-function SendStatus({ send }: { send: SendRow }) {
-  const payload = send.payload_json ? (JSON.parse(send.payload_json) as Record<string, unknown>) : {};
-  const real = !send.simulated && send.status === "sent";
-  const state = send.simulated ? "" : real ? "Sent. " : `${send.status}. `;
-  const to = typeof payload.to === "string" ? `To ${payload.to.replace(/ \(fictional list\)$/, "")}. ` : "";
-  const note = send.simulated ? SIMULATED_NOTE[send.channel] ?? "" : typeof payload.status_note === "string" ? payload.status_note : "";
-  return (
-    <div className="mt-5">
-      <p className="t-body text-[var(--muted)]">{state}{to}{note}{send.provider_sid ? ` Reference ${send.provider_sid}.` : ""}</p>
-      <details className="mt-2">
-        <summary className="link w-fit text-base">See the exact request</summary>
-        <pre className="mt-3 max-h-64 overflow-auto bg-[var(--tone)] p-4 text-[13px] leading-relaxed">{JSON.stringify(payload, null, 2)}</pre>
-      </details>
-    </div>
   );
 }

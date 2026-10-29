@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Native and process-spawning packages must stay outside the bundler.
-  serverExternalPackages: ["better-sqlite3", "@modelcontextprotocol/sdk", "@qloo/qloo-harness"],
+  // The native SQLite module stays outside the bundler.
+  serverExternalPackages: ["better-sqlite3"],
 };
 
 export default nextConfig;

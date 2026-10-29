@@ -59,8 +59,8 @@ What tells us this                                             (details, closed 
 - The toggle is increment 2 (see build order). It ranks the merchant's offers twice: signal =
   event, then signal = event + `signal.location` of the merchant. If nothing moves, the toggle
   says "Your street confirms it." and nothing else.
-- The honesty line stays even when the drawer is closed? No: it lives in the drawer, and the
-  campaign page repeats it under "What Turnout cannot know".
+- The honesty line lives in the drawer; the campaign page repeats it under "What Turnout
+  cannot know".
 
 ## Screen 3. Your touch (campaign page)
 

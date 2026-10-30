@@ -15,7 +15,7 @@ Turn the crowd outside into customers inside.
 
 - Try it out: https://turnout-x7vm.onrender.com/today?merchant=m_penn_pour
 - Repository: https://github.com/jacobofrndez-afk/turnout (public, MIT)
-- Video demo: https://youtu.be/oL59GpVCs70
+- Video demo: https://youtu.be/CvlIxLkMVsM
 
 ## Inspiration
 

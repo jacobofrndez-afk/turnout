@@ -9,6 +9,7 @@ import { buildNeighborhoodPulse, type NeighborhoodPulse, type PulseOfferFit } fr
 import { latestPulse, shownPulse, getBrief } from "@/server/agent/pulse";
 import { getOffers } from "@/server/qloo/crowd";
 import { eveningsThisWeek } from "@/server/weather/openmeteo";
+import { WorkspaceContext } from "@/components/WorkspaceContext";
 
 export const dynamic = "force-dynamic";
 
@@ -41,8 +42,8 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
   const briefAction = brief ? "Write this week's plan again" : row?.status === "awaiting_operator" ? "Ask for this week's plan again" : "Write this week's plan";
 
   return (
-    <main className="mx-auto max-w-6xl px-5 py-10">
-      <Link href={`/today?merchant=${merchant.id}`} className="link text-base">Today</Link>
+    <main className="app-page pulse-page">
+      <WorkspaceContext merchant={merchant} merchants={listMerchants()} destination="/pulse"/>
       {written?.dna_version && <p className="t-small mt-4">Prepared with Place DNA v{written.dna_version}. <Link className="link" href={`/dna?merchant=${merchant.id}`}>Refine future campaigns →</Link></p>}
       {brief ? (
         <section className="stack-block"><div className="plate">

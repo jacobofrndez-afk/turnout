@@ -648,3 +648,46 @@ body:has(.campaign-workflow-page) .workspace-header{position:static}
 .qloo-channel-note.has-qloo em{color:#6f5680}
 @media(max-width:560px){.workflow-channel-options .qloo-context{display:none}}
 .activity-list>li.activity-item{display:flex;width:auto;max-width:none;gap:14px;grid-template-columns:none}
+/* Start: the onboarding form in the app's own clothes. */
+.start-page .section-intro{margin:-6px 0 20px;max-width:640px}
+.start-form{display:grid;gap:18px;max-width:820px}
+.start-card{padding:24px}.start-card h2,.start-legend{display:flex;align-items:center;gap:9px;font-size:17px;margin:0 0 16px}
+.start-legend{padding:0}
+.start-grid{display:grid;gap:14px}.start-grid-place{grid-template-columns:1fr 160px 110px}
+.start-field{display:grid;gap:7px;margin-top:14px}.start-grid .start-field{margin-top:0}
+.start-field>span{font-size:13px;font-weight:600;color:#3b2f40}
+.start-field input,.start-field select,.start-field textarea{width:100%;min-height:44px;padding:10px 12px;border:1px solid #ddd3e2;border-radius:9px;background:#fbf9fc;font:inherit;font-size:14px;color:var(--ink);transition:border-color .15s,box-shadow .15s}
+.start-field textarea{min-height:120px;resize:vertical;line-height:1.5}
+.start-field input:focus-visible,.start-field select:focus-visible,.start-field textarea:focus-visible{outline:0;border-color:#9a7aa6;box-shadow:0 0 0 3px rgba(154,122,166,.22)}
+.start-field small,.start-note{font-size:12px;color:#8a7b93;line-height:1.5}.start-note{margin-top:10px}
+.start-channels{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.start-channels label{position:relative;display:flex;gap:10px;align-items:flex-start;padding:12px 40px 12px 14px;border:1px solid #e9e2ed;border-radius:10px;background:#fff;cursor:pointer;transition:border-color .15s,background .15s}
+.start-channels label:hover{border-color:#b9a3c5;background:#fcfafd}
+.start-channels label:has(input:checked){border-color:#ac8ebb;background:#f7f3fa;box-shadow:inset 0 0 0 .5px #ac8ebb}
+.start-channels input{position:absolute;opacity:0;width:1px;height:1px}
+.start-channels strong{display:block;font-size:14px;font-weight:600}.start-channels small{display:block;font-size:12px;color:#7c7084;margin-top:2px}
+.start-check{position:absolute;right:12px;top:12px;width:20px;height:20px;border-radius:50%;border:1.5px solid #ddd3e2;display:grid;place-items:center;color:#fff;transition:background .2s,border-color .2s}
+.start-channels label:has(input:checked) .start-check{background:#5a396a;border-color:#5a396a}
+.start-channels label:has(input:focus-visible){outline:2px solid #80548f;outline-offset:2px}
+.start-actions{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:6px 0 10px}
+@media(max-width:760px){.start-grid-place{grid-template-columns:1fr 1fr}.start-grid-place .start-field:first-child{grid-column:1/-1}.start-channels{grid-template-columns:1fr}.start-card{padding:18px}.start-page .page-heading{flex-direction:column;align-items:flex-start;gap:10px}}
+/* Pulse: the neighbourhood read, in the app's clothes. */
+.pulse-page .plate{background:var(--plum);color:#fff;border-radius:16px;padding:30px 34px;margin-top:18px}
+.pulse-page .plate .eyebrow{color:#d9c6e0}
+.pulse-page .t-display{font-family:inherit;font-weight:700;letter-spacing:-.6px;font-size:clamp(28px,3vw,40px);max-width:none;line-height:1.1}
+.pulse-page .plate .t-lead{color:#eadff0;font-size:16px;max-width:620px}
+.pulse-page .t-title{font-family:inherit;font-weight:600;font-size:20px;letter-spacing:-.2px;line-height:1.25}
+.pulse-page .t-name{font-family:inherit;font-weight:600;font-size:15px}
+.pulse-page .stack-block{margin-top:26px}.pulse-page .stack-section{margin-top:40px}
+.pulse-page .channel-grid{gap:16px;margin-top:18px}
+.pulse-page .channel-card{background:#fff;border:1px solid #e9e2ee;border-radius:14px;padding:20px;box-shadow:0 8px 24px -20px rgba(59,28,66,.35)}
+.pulse-page .channel-card .eyebrow{font-size:11px}
+.pulse-page .channel-art{min-height:220px;background:#f8f5fa;border-radius:10px}
+.pulse-page .tone{background:#f8f5fa;border-radius:12px;padding:16px 18px}
+.pulse-page .link{color:#5a396a;font-weight:600}
+.pulse-page table.data td{padding:8px 10px 8px 0;border-top:1px solid #eee7f1;font-size:13px}
+.pulse-page details>summary{cursor:pointer;min-height:40px;display:flex;align-items:center}
+@media(max-width:760px){.pulse-page .plate{padding:22px;border-radius:14px}.pulse-page .channel-grid{grid-template-columns:1fr}}
+fieldset.start-card{min-width:0;margin:0;padding:24px;border:1px solid #e9e2ee}
+.start-card legend.start-legend{float:left;width:100%;padding:0;margin:0 0 16px;font-size:17px;font-weight:600;color:var(--ink)}
+.start-card legend.start-legend+.start-channels{clear:both}

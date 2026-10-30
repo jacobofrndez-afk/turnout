@@ -289,13 +289,15 @@ try {
   await spot(18, board);
   await drift(board, 7500, 1.08);
   await cue("board");
-  await sleep(left("board", 0) - 200);
-  await unspot();
-  await tv("cap", "");
+  await sleep(left("board", 0) - 1600);
 
-  // The radar again, and the logo to close.
-  await tv("stageOn");
-  await tv("intro", { ...RADAR, fast: true });
+  // The board collapses into one point, your place; a flash, and the radar ripples out of it.
+  await tv("cap", "");
+  const bb = await board.boundingBox();
+  const collapsing = tv("collapse", bb.x + bb.width / 2, bb.y + bb.height / 2, RADAR.cx, RADAR.cy);
+  await sleep(1350);
+  await tv("intro", { ...RADAR, fast: true, ripple: true });
+  await collapsing;
   // The promise, one statement at a time over the radar; then the logo alone; then one signature.
   await cue("close1", "none");
   const d1 = L.close1.duration * 1000;
@@ -308,9 +310,8 @@ try {
   await tv("punch", "At the right <b>moment</b>.");
   await sleep(left("close1", 0) + 400);
   await tv("punch", "");
-  await tv("dimRadar", 1);
-  await sleep(300);
-  const morphing = tv("morph", LOGO);
+  await sleep(250);
+  const morphing = tv("morph", LOGO);   // brightens back as it collapses into the mark
   await cue("close2", "none");   // spoken while the logo forms
   await morphing;
   await tv("tag", L.close2.text);

@@ -48,6 +48,8 @@
     #tv-line{position:absolute;left:50%;bottom:86px;transform:translate(-50%,10px);width:1500px;text-align:center;font:600 54px/1.15 ${FONT};letter-spacing:-.005em;opacity:0;transition:opacity .5s ease,transform .5s ease}
     #tv-line.on{opacity:1;transform:translate(-50%,0)}
     #tv-line b{color:${PINK};font-weight:700}
+    .tv-flash{position:absolute;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;background:radial-gradient(circle,rgba(246,241,248,.95) 0%,rgba(230,164,194,.55) 35%,rgba(230,164,194,0) 70%);transform:scale(.2);opacity:1;transition:transform 1.3s cubic-bezier(.2,.8,.2,1),opacity 1.3s ease}
+    .tv-flash.on{transform:scale(26);opacity:0}
     #tv-punch{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.96);width:1600px;text-align:center;font:700 84px/1.1 ${FONT};letter-spacing:-.015em;color:${INK};opacity:0;transition:opacity .28s ease,transform .28s cubic-bezier(.2,.8,.2,1)}
     #tv-punch.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
     #tv-punch b{color:${PINK};font-weight:700}
@@ -91,7 +93,7 @@
 
   // The radar: rings in the proportions of the mark (42, 29, 16 for 64), s pixels per unit of a
   // 32px mark, the sweep leading counter-clockwise, blips in those units around the hinge.
-  function intro({ cx, cy, s, blips, fast = false }) {
+  function intro({ cx, cy, s, blips, fast = false, ripple = false }) {
     $("tv-radar")?.remove();
     const svg = el("svg", { id: "tv-radar", width: VW, height: VH, viewBox: `0 0 ${VW} ${VH}` });
     $("tv-stage").prepend(svg);
@@ -140,7 +142,9 @@
     const bar = el("circle", { class: "pulse", r: 9, fill: "none", stroke: INK, "stroke-width": 2 }, centre); bar.style.animationDelay = ".6s";
     const label = el("text", { y: 44, "text-anchor": "middle", fill: RING, "font-size": 22, "letter-spacing": ".12em" }, centre); label.textContent = C.you;
     fade.push(centre);
+    if (ripple) { g.style.transition = "none"; g.style.transform = "scale(0.03)"; }
     reflow(svg);
+    if (ripple) { g.style.transition = "transform 1.3s cubic-bezier(.2,.8,.2,1)"; g.style.transform = "scale(1)"; setTimeout(() => { g.style.transition = ""; }, 1400); }
     rings.forEach((p) => (p.style.strokeDashoffset = 0));
     setTimeout(() => { sweep.style.opacity = 1; }, 700);
     sw.speed = -72; sw.park = null;
@@ -205,7 +209,9 @@
     park(1300);
     const parts = placeLogo(center, K);
     await sleep(150);
+    g.style.transition = `transform 1.25s ${EASE}, opacity 1.1s ease`;
     g.style.transform = `translate(${toX - cx}px, ${toY - cy}px) scale(${f})`;
+    g.style.opacity = 1;   // from the dimmed state behind the statements, if any
     R.rings.forEach((p) => { p.style.strokeWidth = s + "px"; p.style.strokeOpacity = 1; });
     if (R.arena) R.arena.style.r = 1.3 * s + "px";
     await sleep(350);
@@ -249,7 +255,21 @@
 
   // One statement at a time, big, centred: the radar steps back behind it.
   function punch(html) { const p = $("tv-punch"); p.classList.remove("on"); if (!html) return; setTimeout(() => { p.innerHTML = html; p.classList.add("on"); }, 200); }
-  function dimRadar(o) { if (!R) return; R.g.style.transition = "opacity .6s ease"; R.g.style.opacity = o; }
+  function dimRadar(o) { if (!R) return; R.g.style.transition = `transform 1.25s ${EASE}, opacity .6s ease`; R.g.style.opacity = o; }
+  // The board collapses into one point, your place, and a flash launches the radar from it.
+  async function collapse(x, y, cx, cy) {
+    const v = $("tv-view"), st = $("tv-stage"), j = $("tv-journey");
+    v.style.transition = "transform 1500ms cubic-bezier(.65,0,.35,1), opacity 500ms ease 1000ms";
+    v.style.transformOrigin = `${x}px ${y}px`;
+    v.style.transform = `translate(${cx - x}px, ${cy - y}px) scale(0.02)`;
+    v.style.opacity = 0;
+    j.style.transition = "opacity .6s ease"; j.style.opacity = 0;
+    st.style.background = "transparent"; st.style.transition = "none"; st.classList.remove("off"); st.style.opacity = 1; st.style.display = "block";
+    await sleep(1150);
+    const f = document.createElement("div"); f.className = "tv-flash"; f.style.left = cx + "px"; f.style.top = cy + "px"; st.appendChild(f); reflow(f); f.classList.add("on"); setTimeout(() => f.remove(), 1500);
+    await sleep(400);
+    v.style.display = "none"; st.style.background = DARK;
+  }
   function line(html) { const l = $("tv-line"); l.classList.remove("on"); if (!html) return; setTimeout(() => { l.innerHTML = html; l.classList.add("on"); }, 260); }
   function count(to, ms) { const n = $("num"); if (!n) return; const t0 = performance.now(); const f = (now) => { const p = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - p, 3); n.textContent = Math.round(to * e).toLocaleString("en-US"); if (p < 1) requestAnimationFrame(f); }; requestAnimationFrame(f); }
   function tag(text) { const t = $("tv-tag"); t.textContent = text; t.style.top = logo && logo.top != null ? logo.top + logo.h0 * logo.K + 64 + "px" : "760px"; t.classList.toggle("on", !!text); }
@@ -290,5 +310,5 @@
   }
   function show(name = "app") { frames().forEach((f) => { const on = f.name === name; f.classList.toggle("on", on); f.style.zIndex = on ? 2 : 1; }); }
 
-  window.tv = { intro, small, setLogo, morph, fly, stageOn, finale, line, punch, dimRadar, count, tag, cap, journey, step, spot, unspot, cursor, drift, undrift, dim, show, swap };
+  window.tv = { intro, small, setLogo, morph, fly, stageOn, collapse, finale, line, punch, dimRadar, count, tag, cap, journey, step, spot, unspot, cursor, drift, undrift, dim, show, swap };
 })();

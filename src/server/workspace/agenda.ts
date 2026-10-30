@@ -10,6 +10,8 @@ import { fitsRhythm } from "@/lib/offer-service";
 import { assertOfferWindow } from "@/lib/offer-window";
 import { workspaceCampaigns } from "./campaigns";
 import type { AgendaEntry } from "@/components/WeekAgenda";
+import { getEvent } from "@/server/qloo/crowd";
+import { savedEventPotential } from "./event-potential";
 export async function workspaceAgenda(merchant: Merchant, refresh = false) {
   const now = Date.now();
   const [events, rhythm] = await Promise.allSettled([radarFor(merchant, 168, { refresh, scheduledOnly: true }), streetRhythm(merchant)]);
@@ -20,6 +22,10 @@ export async function workspaceAgenda(merchant: Merchant, refresh = false) {
     return { id: e.id, title: e.name, detail: `${e.venue.name} · ${item.distanceKm.toFixed(1)} km`, date: localDateKey(e.startsAt, merchant.timezone), time: clock(new Date(e.startsAt), merchant.timezone), sortTime: hhmm(new Date(e.startsAt), merchant.timezone), kind: "event", href: `/today?merchant=${merchant.id}&event=${encodeURIComponent(e.id)}`, source: `Ticketmaster${check ? ` · checked ${dateFormatter("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: merchant.timezone }).format(new Date(check.checkedAt))}${check.mode === "stored" ? " · saved source record" : ""}` : ""}`, evidence: "A published event near your place. Open it to explore the audience and suitable offers. Attendance and visits to your business are not measured." };
   });
   const offers=getOffers(merchant.id);
+  for (const entry of entries) {
+    const event = getEvent(entry.id);
+    if (event) entry.potential = savedEventPotential(merchant,event,now);
+  }
   const moments = rhythm.status === "fulfilled" ? rhythm.value.moments : [];
   const localHour = hhmm(now, merchant.timezone);
   for (const day of days) for (const m of moments) {

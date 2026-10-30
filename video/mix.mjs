@@ -48,9 +48,9 @@ if (music) {
   // Gentle ducking: slow attack and release so the music breathes with the voice instead of pumping.
   f += `;[${clips.length + 1}:a]aresample=48000,atrim=0:${end.toFixed(2)},volume=${music === bed ? 0.5 : 0.16},afade=t=in:st=0:d=1.5,afade=t=out:st=${(end - 5.4).toFixed(2)}:d=5:curve=qsin[m];`;
   f += `[voice]asplit=2[vo][sc];[m][sc]sidechaincompress=threshold=0.06:ratio=2.2:attack=250:release=1800:knee=4[md];`;
-  if (sfx) f += `[${clips.length + 2}:a]aresample=48000,atrim=0:${end.toFixed(2)},volume=0.5[fx];[vo][md][fx]amix=inputs=3:normalize=0:dropout_transition=0[mix]`;
+  if (sfx) f += `[${clips.length + 2}:a]aresample=48000,atrim=0:${end.toFixed(2)},volume=0.26[fx];[vo][md][fx]amix=inputs=3:normalize=0:dropout_transition=0[mix]`;
   else f += `[vo][md]amix=inputs=2:normalize=0:dropout_transition=0[mix]`;
-} else if (sfx) f += `;[${clips.length + 1}:a]aresample=48000,atrim=0:${end.toFixed(2)},volume=0.5[fx];[voice][fx]amix=inputs=2:normalize=0:dropout_transition=0[mix]`;
+} else if (sfx) f += `;[${clips.length + 1}:a]aresample=48000,atrim=0:${end.toFixed(2)},volume=0.26[fx];[voice][fx]amix=inputs=2:normalize=0:dropout_transition=0[mix]`;
 else f += `;[voice]anull[mix]`;
 args.push("-filter_complex", f, "-map", "[v]", "-map", "[mix]", "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-r", "30", "-movflags", "+faststart", "-c:a", "aac", "-b:a", "192k", "-t", end.toFixed(2), join(OUT, "turnout-demo-voice.mp4"));
 execFileSync("ffmpeg", args, { stdio: ["ignore", "ignore", "inherit"] });

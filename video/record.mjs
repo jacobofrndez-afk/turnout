@@ -87,7 +87,7 @@ if (!app || !next) throw new Error("app frames missing");
 let t0 = Date.now();
 const now = () => (Date.now() - t0) / 1000;
 const marks = [];
-const CAPTIONS = process.env.CAPTIONS === "1";   // subtitles on the product screens; off by default, the picture speaks
+const CAPTIONS = process.env.CAPTIONS !== "0";   // subtitles on the product screens (CAPTIONS=0 to drop them)
 const cuts = [];   // dead waits the mix removes (from, to in clock seconds)
 let logoAt = 0;    // when the closing logo is complete (music swell)
 const sfx = [];    // sonar pings and whooshes, synthesized by music.py at these clock times
@@ -336,17 +336,17 @@ try {
   fx("ping", 0.3);
   await collapsing;
   // The promise, one statement at a time over the radar; then the logo alone; then one signature.
-  // Each statement lands on its words (pauses measured in the voice file: 1.03, 2.12, 3.13 s).
+  // The promise, three statements that light up on their words and stay on screen together.
+  const STACK = ["Right <b>place</b>.", "Right <b>hour</b>.", "Right <b>people</b>."];
+  await tv("dimRadar", 0.2);
+  await tv("stack", STACK, 0);
   await cue("close1", "none");
   const c1 = start("close1");
-  const at = async (t) => { const w = c1 + t - now(); if (w > 0) await sleep(w * 1000); };
-  await at(0.55); await tv("dimRadar", 0.2);
-  await at(0.80); await tv("punch", "The right <b>message</b>.");
-  await at(1.90); await tv("punch", "To the right <b>people</b>.");
-  await at(2.92); await tv("punch", "At the right <b>moment</b>.");
-  await sleep(left("close1", 0) + 350);
-  await tv("punch", "");
-  await sleep(200);
+  const cues1 = (L.close1.cues ?? []).map((c) => c.start);
+  for (let i = 0; i < 3; i++) { const t = cues1[i] ?? i * 1.1; const w = c1 + t - 0.1 - now(); if (w > 0) await sleep(w * 1000); await tv("stack", STACK, i + 1); }
+  await sleep(left("close1", 0) + 1100);
+  await tv("stack", null);
+  await sleep(350);
   sweepPings(1.4);
   fx("whoosh");
   const morphing = tv("morph", LOGO);   // the radar brightens back as it collapses into the mark

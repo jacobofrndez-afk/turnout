@@ -53,6 +53,12 @@
     #tv-punch{position:absolute;left:50%;top:50%;transform:translate(-50%,-46%) scale(.9);width:1600px;text-align:center;font:700 84px/1.1 ${FONT};letter-spacing:-.015em;color:${INK};opacity:0;transition:opacity .22s ease,transform .3s cubic-bezier(.2,.9,.2,1)}
     #tv-punch.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
     #tv-punch b{color:${PINK};font-weight:700}
+    #tv-stack{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:1600px;text-align:center;font:700 86px/1.25 ${FONT};letter-spacing:-.015em;opacity:0;transition:opacity .5s ease}
+    #tv-stack.on{opacity:1}
+    #tv-stack div{color:rgba(246,241,248,.22);transform:translateY(10px) scale(.96);transition:color .35s ease,transform .4s cubic-bezier(.2,.9,.2,1)}
+    #tv-stack div.lit{color:${INK};transform:none}
+    #tv-stack div b{color:inherit;font-weight:700;transition:color .35s ease}
+    #tv-stack div.lit b{color:${PINK}}
     #tv-tag{position:absolute;left:50%;transform:translate(-50%,14px);width:1600px;text-align:center;font:500 46px/1.2 ${FONT};letter-spacing:-.005em;color:${RING};opacity:0;transition:opacity .7s ease,transform .8s cubic-bezier(.2,.8,.2,1)}
     #tv-tag b{color:${PINK};font-weight:600}
     #tv-tag.on{opacity:1;transform:translate(-50%,0)}
@@ -65,7 +71,7 @@
     <div id="tv-journey"><ol>${C.steps.map((s) => `<li><i></i>${s}</li>`).join("")}</ol></div>
     <div id="tv-cap"></div>
     <div id="tv-cur"><svg viewBox="0 0 24 24" width="26" height="26"><path d="M4 2l16 9-7 1.5L17 21l-3 1-4-8.5L4 18z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
-    <div id="tv-stage"><div id="tv-logo"></div><div id="tv-line"></div><div id="tv-punch"></div><div id="tv-tag"></div></div>`;
+    <div id="tv-stage"><div id="tv-logo"></div><div id="tv-line"></div><div id="tv-punch"></div><div id="tv-stack"></div><div id="tv-tag"></div></div>`;
 
   const $ = (id) => document.getElementById(id);
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -256,6 +262,14 @@
 
   // One statement at a time, big, centred: the radar steps back behind it.
   function punch(html) { const p = $("tv-punch"); p.classList.remove("on"); if (!html) return; setTimeout(() => { p.innerHTML = html; p.classList.add("on"); }, 160); }
+  // Three statements stacked at the centre; each lights up on its words and stays lit.
+  function stack(lines, lit) {
+    const st = $("tv-stack");
+    if (!lines) { st.classList.remove("on"); return; }
+    if (st.children.length !== lines.length) st.innerHTML = lines.map((l) => `<div>${l}</div>`).join("");
+    [...st.children].forEach((d, i) => d.classList.toggle("lit", i < lit));
+    st.classList.add("on");
+  }
   function dimRadar(o) { if (!R) return; R.g.style.transition = `transform 1.25s ${EASE}, opacity .6s ease`; R.g.style.opacity = o; }
   // The board collapses into one point, your place, and a flash launches the radar from it.
   async function collapse(x, y, cx, cy) {
@@ -315,5 +329,5 @@
   }
   function show(name = "app") { frames().forEach((f) => { const on = f.name === name; f.classList.toggle("on", on); f.style.zIndex = on ? 2 : 1; }); }
 
-  window.tv = { intro, small, setLogo, morph, fly, stageOn, collapse, finale, line, punch, dimRadar, count, tag, cap, journey, step, spot, unspot, cursor, drift, undrift, dim, show, swap };
+  window.tv = { intro, small, setLogo, morph, fly, stageOn, collapse, finale, line, punch, stack, dimRadar, count, tag, cap, journey, step, spot, unspot, cursor, drift, undrift, dim, show, swap };
 })();

@@ -27,13 +27,13 @@ export const GROUPS = [
     { id: "pick", text: "So instead of your usual special, it picks the one offer they'll actually say yes to." },
   ] },
   { id: "campaign", gapBefore: 0.5, lines: [
-    { id: "touch", text: "You add your words, and the board rewrites itself as you type." },
-    { id: "channels", text: "It picks the channels this crowd actually uses, with a budget you set." },
+    { id: "touch", text: "It writes the whole campaign for you. You just add your own words, and the board at your door updates as you type." },
+    { id: "channels", text: "It picks the channels this crowd actually uses, with a budget you set, so every dollar goes where it pays." },
   ] },
   { id: "approve", gapBefore: 0.4, lines: [{ id: "approve", text: "Then one tap, and it's ready." }] },
-  { id: "receipt", gapBefore: 0.5, lines: [{ id: "receipt", text: "Ready at your door. Nothing sent without you, nothing charged." }] },
-  { id: "board", gapBefore: 0.5, lines: [{ id: "board", text: "Right place, right hour, right people." }] },
-  { id: "close1", gapBefore: 0.7, lines: [{ id: "close1", text: "The right message, to the right people, at the right moment." }] },
+  { id: "receipt", gapBefore: 0.5, lines: [{ id: "receipt", text: "Everything is ready at your door, and nothing goes out without you." }] },
+  { id: "board", gapBefore: 0.5, lines: [{ id: "board", text: "Your board is at the door before the crowd steps out." }] },
+  { id: "close1", gapBefore: 0.7, lines: [{ id: "close1", text: "Right place. Right hour. Right people." }] },
   { id: "close2", gapBefore: 0.3, lines: [{ id: "close2", text: "Turnout. Turn the crowd outside into customers inside." }] },
 ];
 const VOICE = process.env.VOICE ?? "en-US-EmmaMultilingualNeural";

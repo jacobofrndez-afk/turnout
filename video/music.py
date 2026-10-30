@@ -93,10 +93,10 @@ def whoosh(at, dur=1.4, gain=0.3):
         sfx[a:a + end] += gain * band[:end] * env[:end]
 for e in events:
     at = shifted(e["at"])
-    if e["kind"] == "ping": ping(at)
+    if e["kind"] == "ping": ping(at, 1046.5, 0.9, 0.38)
     elif e["kind"] == "ping-soft": ping(at, 1318.5, 0.6, 0.26)
     elif e["kind"] == "ping-deep": ping(at, 523.25, 1.5, 0.6)
-    elif e["kind"] == "ping-sweep": ping(at, 1174.7, 0.7, 0.16)
+    elif e["kind"] == "ping-sweep": ping(at, 1174.7, 0.7, 0.11)
     elif e["kind"] == "ping-long": ping(at, 1046.5, 2.4, 0.3)
     elif e["kind"] == "ping-final": ping(at, 523.25, 4.0, 0.42)
     elif e["kind"] == "whoosh": whoosh(at)

@@ -1,6 +1,8 @@
 # Turnout
 
-**Your marketing team. Your call.**
+**Turn the crowd outside into customers inside.**
+
+Turnout turns local opportunities and Qloo insights into campaigns tailored to your business, ready for you to adjust and approve. Your marketing team. Your call.
 
 Turnout is a marketing assistant for independent businesses. Qualified data and each place’s DNA inform personalised campaigns with a message, timing, channels and planned media cost prepared for the owner to refine and approve. The product ambition is the preparation of a dedicated marketing team, with return on investment as the goal and the business retaining the final decision. In the current Today workflow, approval saves a plan for manual sharing; it does not publish or charge. Public feeds load on page requests, and measured ROI is not yet available. The sections below retain the original hackathon architecture and research; current public-source coverage is documented at the end.
 
@@ -16,7 +18,8 @@ Relevance is relative to the merchant: a 50-seat bar needs twelve extra guests, 
 
 Built for the Qloo Agentic Hackathon (Agents, but with taste), October 2026.
 
-- Live demo: _URL to come_
+- Live demo, the judge path: _Render URL_/today?merchant=m_penn_pour (read the occasion and the decision, change one word of the board, approve, print the board)
+- Demo video (90 s): _YouTube link_
 - Repository: this one, MIT licensed
 - Demo merchants: Penn & Pour (two blocks from Madison Square Garden, New York) and Le Quai 12 (Accor Arena, Paris). Or set up your own place in two minutes at `/start`.
 

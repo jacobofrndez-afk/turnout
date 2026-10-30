@@ -18,15 +18,13 @@ let CAMPAIGN = process.env.CAMPAIGN_ID;
 const HERO = process.env.HERO ?? "m_penn_pour";
 const OTHER = process.env.OTHER ?? "m_quai_bercy";
 const BOARD_TEXT = process.env.BOARD_TEXT ?? "Before Harry? Two cocktails, one price.";
-const HOOK_COUNT = Number(process.env.HOOK_COUNT ?? 20000);
-const HOOK1_SCREEN = process.env.HOOK1_SCREEN ?? `Tonight, <span id="num">0</span> people walk out of Madison Square Garden.`;
 const BLIPS = JSON.parse(process.env.BLIPS ?? "null") ?? [
-  { name: "Madison Square Garden", sub: "20,000 seats · 2 blocks", x: 250, y: -160, big: true },
-  { name: "Nederlander Theatre", x: -260, y: -210 },
-  { name: "New Amsterdam Theatre", x: -340, y: 70 },
-  { name: "Birdland Jazz Club", x: 300, y: 190 },
-  { name: "St. Luke's Theatre", x: -110, y: 300 },
-  { name: "Jacobs Theatre", x: 120, y: -330 },
+  { name: "Arena", sub: "20,000 seats · 2 blocks", x: 250, y: -160, big: true },
+  { name: "Theatre", x: -260, y: -210 },
+  { name: "Stadium", x: -340, y: 70 },
+  { name: "Jazz club", x: 300, y: 190 },
+  { name: "Concert hall", x: -110, y: 300 },
+  { name: "Festival", x: 120, y: -330 },
 ];
 const LINES = JSON.parse(readFileSync(join(OUT, "voice/lines.json"), "utf8"));
 const L = Object.fromEntries(LINES.map((l) => [l.id, l]));
@@ -45,6 +43,15 @@ const browser = await chromium.launch({ channel: "chrome", headless: true, args:
   const urls = [`/calendar?merchant=${HERO}`, `/today?merchant=${HERO}`, `/today?merchant=${OTHER}`];
   if (CAMPAIGN) urls.push(`/campaigns/${CAMPAIGN}?merchant=${HERO}`, `/campaigns/${CAMPAIGN}/board`);
   for (const u of urls) await p.goto(BASE + u, { waitUntil: "networkidle" }).catch(() => {});
+  if (!CAMPAIGN) {
+    await p.goto(`${BASE}/today?merchant=${HERO}`, { waitUntil: "networkidle" });
+    const own = p.getByRole("button", { name: /Make your own version/ });
+    if (await own.count()) await own.first().click(); else await p.locator('a[href*="/campaigns/camp_"]').first().click();
+    await p.waitForURL(/\/campaigns\/camp_/, { timeout: 30000 });
+    CAMPAIGN = new URL(p.url()).pathname.split("/")[2];
+    console.log("draft", CAMPAIGN);
+    for (const u of [`/campaigns/${CAMPAIGN}?merchant=${HERO}`, `/campaigns/${CAMPAIGN}/board`]) await p.goto(BASE + u, { waitUntil: "networkidle" }).catch(() => {});
+  }
   await warm.close();
 }
 const context = await browser.newContext({
@@ -52,7 +59,10 @@ const context = await browser.newContext({
   timezoneId: "America/New_York", recordVideo: { dir: OUT, size: { width: VW, height: VH } },
 });
 await context.addInitScript((dark) => {
-  document.documentElement.style.background = dark;
+  // Keep the canvas dark while the body is faded out; hydration may rewrite the html style, so re-apply it.
+  const paint = () => { const h = document.documentElement; if (h.style.background !== dark) h.style.background = dark; };
+  paint();
+  new MutationObserver(paint).observe(document.documentElement, { attributes: true, attributeFilter: ["style", "class"] });
   const dim = () => { if (document.body) { document.body.style.opacity = "0"; document.body.style.transition = "opacity .55s ease"; return true; } return false; };
   if (!dim()) new MutationObserver((_, o) => { if (dim()) o.disconnect(); }).observe(document.documentElement, { childList: true });
 }, DARK);
@@ -70,14 +80,16 @@ async function overlays() {
       #tv-cap{position:fixed;left:50%;bottom:40px;transform:translateX(-50%);max-width:1300px;padding:16px 30px;border-radius:16px;
         background:rgba(24,16,28,.92);color:#f6f1f8;font:500 32px/1.3 ${font};letter-spacing:.01em;
         opacity:0;transition:opacity .35s ease;z-index:2147483646;pointer-events:none;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+      #tv-tag{position:fixed;left:50%;bottom:162px;transform:translateX(-50%);padding:9px 16px;border-radius:999px;background:rgba(24,16,28,.9);color:#E6A4C2;font:600 22px/1 ${font};letter-spacing:.14em;text-transform:uppercase;opacity:0;transition:opacity .3s ease;z-index:2147483646;pointer-events:none}
       #tv-cur{position:fixed;left:0;top:0;width:26px;height:26px;z-index:2147483645;pointer-events:none;transform:translate(-9999px,-9999px);filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))}
       html{scrollbar-width:none} ::-webkit-scrollbar{display:none}`;
     document.head.appendChild(style);
     const spot = document.createElement("div"); spot.id = "tv-spot";
     const cap = document.createElement("div"); cap.id = "tv-cap";
+    const tag = document.createElement("div"); tag.id = "tv-tag";
     const cur = document.createElement("div"); cur.id = "tv-cur";
     cur.innerHTML = '<svg viewBox="0 0 24 24" width="26" height="26"><path d="M4 2l16 9-7 1.5L17 21l-3 1-4-8.5L4 18z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>';
-    document.documentElement.append(spot, cap, cur);
+    document.documentElement.append(spot, cap, tag, cur);
     document.addEventListener("mousemove", (e) => { cur.style.transform = `translate(${e.clientX - 2}px,${e.clientY - 2}px)`; }, true);
   }, FONT);
 }
@@ -86,11 +98,12 @@ async function reveal() {
   await page.evaluate((z) => { document.body.style.zoom = String(z); }, ZOOM);
   await overlays();
   await page.evaluate(() => { document.body.style.opacity = "1"; });
-  await sleep(600);
+  await sleep(450);
 }
-async function hide() { await page.evaluate(() => { document.body.style.opacity = "0"; }); await sleep(600); }
+async function hide() { await page.evaluate(() => { document.body.style.opacity = "0"; }); await sleep(450); }
 async function cap(text) { await page.evaluate((t) => { const c = document.getElementById("tv-cap"); if (!c) return; c.textContent = t; c.style.opacity = t ? "1" : "0"; }, text); }
-async function say(id, minMs = 0) { await cap(L[id].text); mark(id); await sleep(Math.max(minMs, dur(id) + 600)); }
+async function say(id, minMs = 0) { await cap(L[id].text); mark(id); await sleep(Math.max(minMs, dur(id) + 350)); }
+async function tag(text) { await page.evaluate((t) => { const e = document.getElementById("tv-tag"); if (!e) return; e.textContent = t; e.style.opacity = t ? "1" : "0"; }, text); }
 async function go(path) {
   await hide();
   await page.goto(BASE + path, { waitUntil: "load" });
@@ -173,62 +186,59 @@ async function radarLine(id, html, minMs = 0, count) {
   await page.evaluate((h) => window.line(h), html);
   if (count) { await sleep(260); await page.evaluate((c) => window.count(c, 1300), count); }
   mark(id);
-  await sleep(Math.max(minMs, dur(id) + 700));
+  await sleep(Math.max(minMs, dur(id) + 350));
 }
 
 try {
   // 1. The crowd, on the radar.
   await radar();
-  await sleep(2600);
-  await radarLine("hook1", HOOK1_SCREEN, 4200, HOOK_COUNT);
+  await sleep(1800);
+  await radarLine("hook1", L.hook1.text, 3000);
   await radarLine("hook2", L.hook2.text, 2600);
 
   // 2. The week around the place.
   await go(`/calendar?merchant=${HERO}`);
-  await say("radar1", 3400);
+  await tag("1 · The radar");
   const events = page.getByRole("button", { name: "Events", exact: true });
-  if (await events.count()) { await bring(events, 260, 800); await click(events); await sleep(800); }
+  await cap(L.radar1.text); mark("radar1");
+  await sleep(1200);
+  if (await events.count()) { await bring(events, 260, 700); await click(events); }
+  await sleep(Math.max(600, dur("radar1") - 2600));
   await cap(L.radar2.text); mark("radar2");
-  await scrollTo((await page.evaluate(() => scrollY)) + 760, Math.max(4500, dur("radar2") + 400));
-  await sleep(400);
+  await scrollTo((await page.evaluate(() => scrollY)) + 620, Math.max(2600, dur("radar2") + 100));
+  await sleep(250);
   await cap("");
 
   // 3. Today: the occasion.
   await go(`/today?merchant=${HERO}`);
+  await tag("2 · Tonight's moment");
   const occasionA = page.locator("text=A VERIFIED OCCASION NEARBY");
   const occasionB = page.locator("text=/Checked \\d/");
-  await bring(occasionA, 170, 900);
+  await bring(occasionA, 170, 700);
   await spot(occasionA, occasionB);
-  await drift(occasionA, 9000);
-  await say("today", 6500);
+  await drift(occasionA, 6000);
+  await say("today", 3800);
 
-  // 4. The decision.
+  // 4. The crowd profile and the pick.
   await undrift();
   const sigCard = page.locator("text=YOUR SIGNATURE").locator("xpath=..");
   const recCard = page.locator("text=RECOMMENDED FOR THIS OCCASION").locator("xpath=..");
-  await bring(sigCard, 230, 1000);
-  await spot(sigCard, recCard);
-  await say("qloo", 4800);
-  const why = page.locator("text=Why this works here");
   const evidence = page.locator("text=See Qloo evidence");
+  await bring(sigCard, 230, 800);
+  await tag("3 · The crowd profile");
   await spot(sigCard, evidence);
-  await drift(recCard, 8000);
-  await say("pick", 6000);
+  await say("profile", 3800);
+  await tag("4 · The pick");
+  await spot(sigCard, recCard);
+  await drift(recCard, 6000);
+  await say("pick", 4600);
   await unspot();
   await cap("");
   await undrift();
 
-  // A draft to edit: the given one, or a fresh copy made from Today.
-  if (!CAMPAIGN) {
-    const own = page.getByRole("button", { name: /Make your own version/ });
-    if (await own.count()) { await bring(own, 380); await click(own); await page.waitForURL(/\/campaigns\/camp_/, { timeout: 30000 }); }
-    else { const link = page.locator('a[href*="/campaigns/camp_"]').first(); await bring(link, 380); await click(link); await page.waitForURL(/\/campaigns\/camp_/, { timeout: 30000 }); }
-    CAMPAIGN = new URL(page.url()).pathname.split("/")[2];
-    console.log("draft", CAMPAIGN);
-  }
-
   // 5. Your touch.
   await go(`/campaigns/${CAMPAIGN}?merchant=${HERO}`);
+  await tag("5 · Your touch");
   const taIndex = await page.evaluate(() => {
     const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
     const inv = norm(document.querySelector(".board-invitation")?.textContent);
@@ -238,69 +248,73 @@ try {
   });
   const chalk = page.locator("textarea").nth(Math.max(0, taIndex));
   const board = page.locator("article.campaign-board");
-  await bring(chalk, 260, 900);
+  await bring(chalk, 260, 700);
   await spot(chalk, board);
   await cap(L.touch.text); mark("touch");
-  await sleep(1400);
+  await sleep(900);
   await click(chalk);
   await chalk.fill("");
-  await sleep(250);
-  await chalk.pressSequentially(BOARD_TEXT, { delay: 55 });
-  await sleep(Math.max(1800, dur("touch") - 1400 - BOARD_TEXT.length * 55));
+  await sleep(200);
+  await chalk.pressSequentially(BOARD_TEXT, { delay: 45 });
+  await sleep(Math.max(1200, dur("touch") - 1100 - BOARD_TEXT.length * 45));
   await unspot();
 
   // 6. Approve.
   const review = page.getByRole("button", { name: /Review campaign/ });
-  await bring(review, 480, 900);
+  await bring(review, 480, 700);
   await cap(L.approve.text); mark("approve");
-  await sleep(700);
+  await sleep(500);
   await click(review);
   const approve = page.getByRole("button", { name: /Approve/ });
   await approve.waitFor({ state: "visible", timeout: 15000 });
-  await sleep(900);
-  await bring(approve, 480, 800);
+  await sleep(500);
+  await bring(approve, 480, 600);
   await spot(approve, approve, 14);
-  await sleep(900);
+  await sleep(500);
   await click(approve);
   await page.waitForLoadState("networkidle");
-  await sleep(1000);
+  await sleep(700);
   await overlays();
   await unspot();
 
   // 7. The receipt.
+  await tag("6 · Out the door");
   const receipt = page.locator("text=Materials ready").first();
   const approved = await receipt.waitFor({ state: "visible", timeout: 30000 }).then(() => true).catch(() => false);
   if (!approved) console.error("approval did not show a receipt; continuing to the board");
   const open = page.locator('a[href$="/board"]').first();
-  if (approved) { await bring(receipt, 200, 900); await spot(receipt, (await open.count()) ? open : receipt); }
-  await say("receipt", 6200);
+  if (approved) { await bring(receipt, 200, 700); await spot(receipt, (await open.count()) ? open : receipt); }
+  await say("receipt", 4800);
   await unspot();
   await cap("");
-  if (await open.count()) { await bring(open, 380, 800); await sleep(400); await click(open); await page.waitForLoadState("load"); await page.waitForLoadState("networkidle", { timeout: 4000 }).catch(() => {}); await sleep(300); await reveal(); }
+  if (await open.count()) { await bring(open, 380, 600); await sleep(200); await click(open); await page.waitForLoadState("load"); await page.waitForLoadState("networkidle", { timeout: 4000 }).catch(() => {}); await sleep(200); await reveal(); }
   else await go(`/campaigns/${CAMPAIGN}/board`);
 
   // 8. The board, then full screen.
-  await say("board", 3000);
+  await tag("6 · Out the door");
+  await say("board", 2400);
   try { await click(page.getByRole("button", { name: /Show on a screen/ })); } catch {}
-  await sleep(500);
+  await sleep(400);
   await cap("");
-  await sleep(3400);
+  await sleep(2200);
 
   // 9. The other city.
   await go(`/today?merchant=${OTHER}`);
+  await tag("Any street");
   const sig2 = page.locator("text=YOUR SIGNATURE").locator("xpath=..");
   const rec2 = page.locator("text=RECOMMENDED FOR THIS OCCASION").locator("xpath=..");
-  await bring(sig2, 230, 900);
+  await bring(sig2, 230, 700);
   await spot(sig2, rec2);
-  await say("other", 3800);
+  await say("other", 2800);
   await unspot();
   await cap("");
 
   // 10. The promise, on the radar with the logo.
   await radar({ logoCenter: true });
-  await sleep(1400);
-  await radarLine("promise", "Turn the crowd outside<br>into customers inside.", 4000);
-  await radarLine("sign", `<span style="font-size:44px;font-weight:500;color:#C4AECA">Prepared by Claude. Informed by Qloo. Your call.</span>`, 3400);
+  await sleep(900);
+  await radarLine("promise", "The right message,<br>to the right people,<br>at the right moment.", 3600);
+  await radarLine("promise2", "Turn the crowd outside<br>into customers inside.", 3200);
+  await radarLine("sign", `<span style="font-size:46px;font-weight:500;color:#C4AECA">Turnout. Your marketing agent. Your call.</span>`, 3000);
   await hide();
 } catch (e) {
   console.error("recording stopped early:", e.message.split("\n")[0]);

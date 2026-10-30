@@ -301,31 +301,31 @@ try {
   await unspot();
   await swap();
   await tv("step", 5);
-  await spot(22, approve);
   await moveTo(approve);
   await cue("approve");
-  // One tap: a ripple from the finger, the page gives way to the receipt.
+  // One tap, clean: a ripple from the finger, then the page itself becomes the receipt in one crossfade.
   const ab = await approve.first().boundingBox();
-  await page.mouse.down(); await sleep(80); await page.mouse.up();
   if (ab) await tv("ripple", ab.x + ab.width / 2, ab.y + Math.min(ab.height / 2, 24));
-  await sleep(350);
-  await tv("unspot", true);   // gone at once, so no light box lingers while the page fades
+  await sleep(380);
   await tv("cursor", -200, -200);
-  await tv("fade", app.name(), 0);
+  await sleep(120);
+  const still = await page.screenshot({ clip: { x: 0, y: 0, width: VW, height: VH - BAR }, type: "jpeg", quality: 92 });
+  await tv("freeze", "data:image/jpeg;base64," + still.toString("base64"));
+  await approve.first().dispatchEvent("click");
 
   // Out the door: the receipt, every channel with its status. A slow save is cut out of the film (see cuts).
   const receipt = app.locator(".agent-receipt-success").first();
   const waitFrom = now();
   const approved = await receipt.waitFor({ state: "visible", timeout: 30000 }).then(() => true).catch(() => false);
-  if (now() - waitFrom > 1.4) cuts.push({ from: waitFrom + 0.6, to: now() - 0.05 });
+  if (now() - waitFrom > 1.6) cuts.push({ from: waitFrom + 0.7, to: now() - 0.05 });
   if (!approved) console.error("approval did not show a receipt; continuing");
-  await tv("step", 6);
   const rows = app.locator(".agent-receipt-row");
   const lastRow = (await rows.count()) ? rows.last() : receipt;
   if (approved) await bring(receipt, 150, 0);
-  await tv("fade", app.name(), null); await sleep(480);
-  if (approved) await spot(16, receipt, lastRow);
-  await drift(lastRow, 6000, 1.04);
+  await tv("step", 6);
+  await tv("unfreeze");
+  await sleep(950);
+  await drift(lastRow, 6000, 1.03);
   await cue("receipt");
   await sleep(left("receipt", 0) + 400);
 

@@ -17,6 +17,7 @@
     #tv-view iframe{position:absolute;left:0;top:0;display:block;width:${VW}px;height:${AH}px;border:0;background:#fff;opacity:0;transition:opacity .45s ease}
     #tv-view iframe.on{opacity:1}
     #tv-view iframe:not(.on){pointer-events:none}
+    #tv-freeze{position:absolute;left:0;top:0;width:${VW}px;height:${AH}px;z-index:4;opacity:1;transition:opacity .9s ease;pointer-events:none;display:none}
     #tv-spot{position:absolute;left:0;top:0;width:0;height:0;z-index:3;border-radius:16px;box-shadow:0 0 0 9999px rgba(18,10,22,.5),0 0 0 1.5px rgba(230,164,194,.55);opacity:0;
       transition:left .8s ${EASE},top .8s ${EASE},width .8s ${EASE},height .8s ${EASE},opacity .6s ease;pointer-events:none}
     #tv-journey{position:absolute;left:0;right:0;bottom:0;height:${BAR}px;background:#120a16;display:flex;align-items:center;justify-content:center;transform:translateY(100%);transition:transform .6s cubic-bezier(.2,.8,.2,1);z-index:2}
@@ -72,7 +73,7 @@
     @keyframes pop{0%{transform:scale(0)}60%{transform:scale(1.35)}100%{transform:scale(1)}}`;
   document.head.appendChild(style);
   document.body.innerHTML = `
-    <div id="tv-view"><iframe name="app" src="about:blank"></iframe><iframe name="app2" src="about:blank"></iframe><div id="tv-spot"></div></div>
+    <div id="tv-view"><iframe name="app" src="about:blank"></iframe><iframe name="app2" src="about:blank"></iframe><div id="tv-spot"></div><img id="tv-freeze" alt=""></div>
     <div id="tv-journey"><ol>${C.steps.map((s) => `<li><i></i>${s}</li>`).join("")}</ol></div>
     <div id="tv-cap"></div>
     <div id="tv-cur"><svg viewBox="0 0 24 24" width="26" height="26"><path d="M4 2l16 9-7 1.5L17 21l-3 1-4-8.5L4 18z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
@@ -304,6 +305,9 @@
     Object.assign(s.style, { left: x + "px", top: y + "px", width: w + "px", height: h + "px", opacity: 1 });
   }
   function unspot(now = false) { const s = $("tv-spot"); if (now) { s.style.transition = "none"; s.style.opacity = 0; reflow(s); s.style.transition = ""; } else s.style.opacity = 0; }
+  // Hold a still of the page while it changes underneath, then let the new page show through.
+  function freeze(src) { const f = $("tv-freeze"); f.style.transition = "none"; f.src = src; f.style.display = "block"; f.style.opacity = 1; reflow(f); f.style.transition = ""; }
+  function unfreeze() { const f = $("tv-freeze"); f.style.opacity = 0; setTimeout(() => { f.style.display = "none"; f.removeAttribute("src"); }, 1000); }
   function ripple(x, y) { const r = document.createElement("div"); r.className = "tv-ripple"; r.style.left = x + "px"; r.style.top = y + "px"; document.body.appendChild(r); reflow(r); r.classList.add("on"); setTimeout(() => r.remove(), 800); }
   function cursor(x, y) { $("tv-cur").style.transform = `translate(${x - 2}px,${y - 2}px)`; }
   function drift(x, y, ms, scale) { const v = $("tv-view"); v.style.transition = `transform ${ms}ms cubic-bezier(.3,0,.7,1)`; v.style.transformOrigin = `${x}px ${y}px`; v.style.transform = `scale(${scale})`; }
@@ -337,5 +341,5 @@
   function fade(name, o) { const f = frames().find((x) => x.name === name); if (f) f.style.opacity = o === null ? "" : String(o); }
   function show(name = "app") { frames().forEach((f) => { const on = f.name === name; f.classList.toggle("on", on); f.style.zIndex = on ? 2 : 1; }); }
 
-  window.tv = { intro, small, setLogo, morph, fly, stageOn, collapse, finale, line, punch, stack, dimRadar, count, tag, cap, journey, step, spot, unspot, cursor, drift, undrift, dim, show, swap, fade, ripple };
+  window.tv = { intro, small, setLogo, morph, fly, stageOn, collapse, finale, line, punch, stack, dimRadar, count, tag, cap, journey, step, spot, unspot, cursor, drift, undrift, dim, show, swap, fade, ripple, freeze, unfreeze };
 })();

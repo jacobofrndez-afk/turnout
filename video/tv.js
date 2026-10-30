@@ -46,7 +46,7 @@
     #sw{opacity:0;transition:opacity .5s ease}
     #tv-logo{position:absolute;left:0;top:0;transform-origin:0 0;opacity:0;--mark-ring:${RING};--mark-ink:${INK};--mark-needle:${PINK}}
     #tv-logo svg{display:block;overflow:visible}
-    #tv-logo svg path,#tv-logo svg circle,#tv-logo svg g{transition:fill .9s ease,stroke .9s ease,opacity .45s ease}
+    #tv-logo svg path,#tv-logo svg circle,#tv-logo svg g,#tv-logo svg stop{transition:fill .9s ease,stroke .9s ease,stop-color .9s ease,opacity .45s ease}
     #tv-logo.prep,#tv-logo.prep *{transition:none!important}
     #tv-line{position:absolute;left:50%;bottom:86px;transform:translate(-50%,10px);width:1500px;text-align:center;font:600 52px/1.15 ${FONT};letter-spacing:-.005em;opacity:0;transition:opacity .5s ease,transform .5s ease}
     #tv-line.on{opacity:1;transform:translate(-50%,0)}
@@ -120,7 +120,7 @@
     const fade = [], rings = [], keep = [], other = [];
     fade.push(el("line", { class: "axis", x1: cx - RO - 40, y1: cy, x2: cx + RO + 40, y2: cy }, g));
     fade.push(el("line", { class: "axis", x1: cx, y1: cy - RO - 40, x2: cx, y2: cy + RO + 40 }, g));
-    [21, 15, 8].forEach((u, i) => {
+    [21, 14.5, 8].forEach((u, i) => {
       const r = (u - 0.5) * s;
       [-90, 0, 90, 180].forEach((a0, q) => {
         const p = el("path", { d: arc(cx, cy, r, a0, a0 + 90), fill: "none", stroke: RING, "stroke-opacity": 0.3, "stroke-width": 3, "stroke-linecap": "butt" }, g);
@@ -176,12 +176,13 @@
   }
 
   // The app's header lockup, kept as markup so the stage can draw it at any size with the same geometry.
-  function setLogo(html) {
+  function setLogo(html, meta = {}) {
     const t = document.createElement("div"); t.innerHTML = html;
     const svg = t.firstElementChild;
     ["width", "height", "class", "aria-hidden", "focusable"].forEach((a) => svg.removeAttribute(a));
     const vb = svg.getAttribute("viewBox").split(/[\s,]+/).map(Number);
-    logo = { html: svg.outerHTML, w0: vb[2], h0: vb[3], hx: Math.round((12 * vb[3]) / 64), hy: Math.round((52 * vb[3]) / 64) };
+    const size = vb[3];
+    logo = { html: svg.outerHTML, w0: vb[2], h0: size, hx: meta.hx ?? Math.round((12 * size) / 64), hy: meta.hy ?? Math.round((52 * size) / 64), r0: meta.r0 ?? Math.round((42 * size) / 64), ringW: meta.ringW ?? Math.max(1, Math.round(size / 64)), blipR: meta.blipR ?? Math.max(1, (2.6 * size) / 64) };
   }
   function placeLogo(center, K) {
     const L = $("tv-logo");
@@ -214,7 +215,7 @@
   // The rings collapse into the mark, the sweep becomes the needle, the door draws, the word
   // writes itself: the radar of the street becomes the logo, centred, at K times the header size.
   async function morph({ center, K, keepLine = false }) {
-    const { cx, cy, s, g } = R, f = K / s;
+    const { cx, cy, s, g } = R, f = (K * logo.r0) / (20.5 * s);   // the intro's outer ring lands on the lockup's outer ring
     const toX = center[0] - (logo.w0 * K) / 2 + logo.hx * K, toY = center[1] - (logo.h0 * K) / 2 + logo.hy * K;
     if (!keepLine) line("");
     R.fade.forEach((e) => { if (e.classList.contains("pulse")) e.style.animation = "none"; e.style.opacity = 0; });
@@ -225,8 +226,8 @@
     g.style.transition = `transform 1.1s ${EASE}, opacity 1s ease`;
     g.style.transform = `translate(${toX - cx}px, ${toY - cy}px) scale(${f})`;
     g.style.opacity = 1;   // from the dimmed state behind the statements, if any
-    R.rings.forEach((p) => { p.style.strokeWidth = s + "px"; p.style.strokeOpacity = 1; });
-    if (R.arena) R.arena.style.r = 1.3 * s + "px";
+    R.rings.forEach((p) => { p.style.strokeWidth = (logo.ringW * K) / f + "px"; p.style.strokeOpacity = 1; });
+    if (R.arena) R.arena.style.r = (logo.blipR * K) / f + "px";
     await sleep(300);
     R.other.forEach((p) => (p.style.opacity = 0));
     await sleep(700);
@@ -248,16 +249,24 @@
 
   // The lockup flies into the app's header while the stage clears: same geometry, so it lands on the real logo.
   async function fly(rect) {
-    const L = $("tv-logo");
-    L.style.transition = `transform 1100ms cubic-bezier(.75,0,.2,1)`;
-    L.style.transform = `translate(${rect.x - logo.left}px, ${rect.y - logo.top}px) scale(${rect.width / (logo.w0 * logo.K)})`;
+    const L = $("tv-logo"), w = logo.w0 * logo.K, h = logo.h0 * logo.K;
+    const sc = rect.height / h;
+    L.style.transition = `transform 1100ms cubic-bezier(.75,0,.2,1), opacity .35s ease`;
+    L.style.transform = `translate(${rect.x + rect.width / 2 - (logo.left + w / 2)}px, ${rect.y - logo.top}px) scale(${sc})`;
     await sleep(300);
+    // the header's colours: ring, ink and signal of the light theme
+    const tone = { "#C4AECA": "#927798", "#F6F1F8": "#3B1C42", "#E6A4C2": "#84204D" };
+    L.querySelectorAll("[fill],[stroke],stop").forEach((e) => {
+      for (const a of ["fill", "stroke", "stop-color"]) { const v = (e.getAttribute(a) || "").toUpperCase(); if (tone[v]) e.style[a === "stop-color" ? "stopColor" : a] = tone[v]; }
+    });
     L.style.setProperty("--mark-ring", "#927798"); L.style.setProperty("--mark-ink", "#3B1C42"); L.style.setProperty("--mark-needle", "#84204D");
     await sleep(150);
     $("tv-stage").classList.add("off");
-    await sleep(850);
+    await sleep(650);
+    L.style.opacity = 0;   // the real header lockup is underneath
+    await sleep(350);
     $("tv-stage").style.display = "none";
-    L.style.opacity = 0; L.innerHTML = "";
+    L.innerHTML = "";
     R = null;
   }
   async function stageOn() {

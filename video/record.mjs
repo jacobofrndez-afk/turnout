@@ -42,7 +42,7 @@ const start = (id) => planned[id] + shift;
 
 const VW = 1920, VH = 1080, BAR = 64, ZOOM = 1.25;
 const RADAR = { cx: 960, cy: 470, s: 18, blips: BLIPS };
-const LOGO = { center: [960, 540], K: 9 };
+const LOGO = { center: [960, 540], K: 1.9 };   // the official lockup (762 x 168) at 1.9x
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const FONT = `"Helvetica Neue", Helvetica, Arial, sans-serif`;
 const DARK = "#18101c";
@@ -138,7 +138,7 @@ const left = (id, minMs = 0) => Math.max(minMs, (start(id) + L[id].duration - no
 
 // Load a page into the hidden frame, wait for fonts and for React to be live (hydrated).
 async function load(path) {
-  await next.goto(BASE + path, { waitUntil: "load" });
+  await next.goto(BASE + path, { waitUntil: "load", timeout: 90000 });
   await next.waitForLoadState("networkidle", { timeout: 4000 }).catch(() => {});
   await next.locator(".agent-opportunity, .agent-board-editor, .agent-receipt-success, .campaign-board").first().waitFor({ state: "visible", timeout: 120000 }).catch(() => {});
   await next.evaluate(() => document.fonts.ready);
@@ -202,8 +202,8 @@ try {
   await load(`/today?merchant=${HERO}`);
   [app, next] = [next, app];
   const lockup = app.locator(".turnout-wordmark svg.turnout-logo-wide").first();
-  await tv("setLogo", await lockup.evaluate((e) => e.outerHTML));
-  const lockupRect = await lockup.boundingBox();
+  await tv("setLogo", readFileSync(join(here, "../public/brand/lockup-reverse.svg"), "utf8"), { hx: 32, hy: 137, r0: 110, ringW: 3, blipR: 6.825 });
+  const lockupRect = await lockup.boundingBox();   // where the film's logo lands in the app
   await tv("show", app.name());
 
   // The crowd, on the radar. The narration clock starts here.

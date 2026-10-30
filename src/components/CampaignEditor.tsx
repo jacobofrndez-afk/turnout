@@ -8,6 +8,7 @@ import { ChannelStudio } from './ChannelStudio';
 import { ChannelBudget } from './ChannelBudget';
 import { channelCap, withChannelCaps } from '@/lib/channel-kit';
 import { ChannelIcon } from './ChannelIcon';
+import { CampaignVisual } from './CampaignVisual';
 import { Icon } from './Icon';
 
 export function CampaignEditor({workspace,review,checking,busy,when,board,channelReason,update}:{
@@ -17,6 +18,10 @@ export function CampaignEditor({workspace,review,checking,busy,when,board,channe
  const selectedChannels=<div className="agent-selected-channels">{review.channels.map(channel=><span key={channel}><ChannelIcon channel={channel}/>{CHANNELS[channel]}</span>)}</div>;
  return <fieldset disabled={busy} className="agent-editor workflow-editor" aria-label={checking?'Review your campaign':'Personalize your campaign'}>
   <div className="workflow-content">
+   <section className={`workflow-card workflow-visual ${review.visual?'has-photo':''}`} aria-label="Campaign photo">
+    <header className="workflow-card-heading"><span className="workflow-card-icon"><Icon name="camera" size={19}/></span><div><h3>Your photo</h3><p>{checking?'It travels with every channel, cropped to each format.':'Your offer, your menu, your place. One photo, every channel.'}</p></div>{!checking&&!review.visual&&<span className="workflow-label-tag">Recommended</span>}</header>
+    <CampaignVisual visual={review.visual} onChange={checking?undefined:visual=>update({visual})}/>
+   </section>
    <ChannelStudio workspace={workspace} review={review} board={board} when={when} readOnly={checking} update={update}/>
    <details className="workflow-card workflow-details"><summary>Campaign brief <Icon name="settings" size={16}/></summary><p>The starting idea. Channel versions are edited independently above.</p>
     {checking?<div className="workflow-final-copy"><h4>{review.title}</h4><p>{review.message}</p></div>:<><label>Campaign title<input maxLength={58} value={review.title} onChange={e=>update({title:e.target.value})}/></label><label>Core message<textarea rows={3} maxLength={300} value={review.message} onChange={e=>update({message:e.target.value})}/></label></>}

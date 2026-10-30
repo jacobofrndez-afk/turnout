@@ -27,12 +27,11 @@ export const GROUPS = [
     { id: "pick", text: "So instead of your usual special, it picks the one offer they'll actually say yes to." },
   ] },
   { id: "campaign", gapBefore: 0.5, lines: [
-    { id: "touch", text: "It writes the whole campaign for you. You just add your own words, and the board at your door updates as you type." },
-    { id: "channels", text: "It picks the channels this crowd actually uses, with a budget you set, so every dollar goes where it pays." },
+    { id: "touch", text: "It writes the whole campaign for you. You just add your own words." },
+    { id: "channels", text: "Then it picks the channels this crowd actually uses: a local ad a few blocks from the venue, your socials, a message to your regulars, with a budget you set, so every dollar goes where it pays." },
   ] },
   { id: "approve", gapBefore: 0.4, lines: [{ id: "approve", text: "Then one tap, and it's ready." }] },
-  { id: "receipt", gapBefore: 0.5, lines: [{ id: "receipt", text: "Everything is ready at your door, and nothing goes out without you." }] },
-  { id: "board", gapBefore: 0.5, lines: [{ id: "board", text: "Your board is at the door before the crowd steps out." }] },
+  { id: "receipt", gapBefore: 0.5, lines: [{ id: "receipt", text: "Everything is ready: online, on their phones, and at your door. Nothing goes out without you." }] },
   { id: "close1", gapBefore: 0.7, lines: [{ id: "close1", text: "Right place. Right hour. Right people." }] },
   { id: "close2", gapBefore: 0.3, lines: [{ id: "close2", text: "Turnout. Turn the crowd outside into customers inside." }] },
 ];
@@ -59,12 +58,14 @@ function silences(file) {
 function captionCues(sents, duration) {
   const out = [];
   for (const s of sents) {
+    // long sentences become subtitle-sized chunks, cut at commas and colons, up to about 58 characters each
     const parts = [];
     if (s.text.length > 62) {
-      const mid = s.text.length / 2;
-      let best = -1, bestD = 1e9;
-      for (const m of s.text.matchAll(/[,:;]\s/g)) { const d = Math.abs(m.index - mid); if (d < bestD) { bestD = d; best = m.index + 1; } }
-      if (best > 0) parts.push(s.text.slice(0, best).trim(), s.text.slice(best).trim());
+      const pieces = s.text.split(/(?<=[,:;])\s+/);
+      let cur = "";
+      for (const piece of pieces) { if (cur && (cur + " " + piece).length > 58) { parts.push(cur); cur = piece; } else cur = cur ? cur + " " + piece : piece; }
+      if (cur) parts.push(cur);
+      if (parts.length === 1 && parts[0].length > 80) { const words = parts[0].split(" "); const half = Math.ceil(words.length / 2); parts.splice(0, 1, words.slice(0, half).join(" "), words.slice(half).join(" ")); }
     }
     if (!parts.length) parts.push(s.text);
     let t = s.start;

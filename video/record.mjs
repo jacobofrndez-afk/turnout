@@ -272,14 +272,18 @@ try {
   await tv("cursor", -200, -200);
   await sleep(left("touch", 0) - 1100);
 
-  // Channels and budget: where this crowd really is, and a cap.
+  // Channels: the eight of them first, the local ad among them; then the budget and the reason, on the words.
   const plan = app.locator(".agent-plan-summary").first();
   const reason = app.locator(".channel-choice-reason").first();
   const picks = app.locator(".agent-channel-picks").first();
-  await bring(plan, 150, 700);
+  await bring(picks, 260, 700);
   await tv("step", 4);
-  await spot(16, plan, (await reason.count()) ? reason : picks);
+  await spot(16, picks);
   await cue("channels");
+  const budgetCue = (L.touch.cues ?? []).find((c) => /budget/i.test(c.text));
+  { const w = (start("touch") + (budgetCue ? budgetCue.start : 6) - 0.5 - now()) * 1000; if (w > 0) await sleep(w); }
+  await bring(plan, 150, 700);
+  await spot(16, plan, (await reason.count()) ? reason : picks);
   await sleep(left("channels", 0) - 1500);
   await unspot();
 
@@ -301,33 +305,24 @@ try {
   await unspot();
   await tv("cursor", -200, -200);
 
-  // Out the door: the receipt, then the board. A slow save is cut out of the film (see cuts).
+  // Out the door: the receipt, every channel with its status. A slow save is cut out of the film (see cuts).
   const receipt = app.locator(".agent-receipt-success").first();
   const waitFrom = now();
   const approved = await receipt.waitFor({ state: "visible", timeout: 30000 }).then(() => true).catch(() => false);
   if (now() - waitFrom > 1.1) cuts.push({ from: waitFrom + 0.45, to: now() - 0.05 });
-  if (!approved) console.error("approval did not show a receipt; continuing to the board");
+  if (!approved) console.error("approval did not show a receipt; continuing");
   await tv("step", 6);
-  const preBoard = load(`/campaigns/${CAMPAIGN}/board`);   // behind the receipt
   const rows = app.locator(".agent-receipt-row");
-  const actions = app.locator(".agent-board-actions, .agent-ready-board a").first();
-  if (approved) { await bring(receipt, 150, 700); await spot(16, receipt, (await rows.count()) ? rows.last() : (await actions.count()) ? actions : receipt); }
+  const lastRow = (await rows.count()) ? rows.last() : receipt;
+  if (approved) { await bring(receipt, 150, 700); await spot(16, receipt, lastRow); }
+  await drift(lastRow, 6000, 1.04);
   await cue("receipt");
-  await sleep(left("receipt", 0) - 900);
-  await unspot();
-  await preBoard;
-  const board = next.locator(".campaign-board").first();
-  await board.waitFor({ state: "visible", timeout: 15000 });
-  await bring(board, 120, 0, next);
-  await swap();
-  await spot(18, board);
-  await drift(board, 5000, 1.08);
-  await cue("board");
-  await sleep(left("board", 0) + 500);
+  await sleep(left("receipt", 0) + 400);
 
-  // The board collapses into one point, your place; a flash, and the radar ripples out of it.
+  // The receipt collapses into one point, your place; a flash, and the radar ripples out of it.
   await tv("cap", "");
-  const bb = await board.boundingBox();
+  const b1 = await receipt.boundingBox(), b2 = await lastRow.boundingBox();
+  const bb = b1 && b2 ? { x: b1.x, y: b1.y, width: Math.max(b1.width, b2.width), height: b2.y + b2.height - b1.y } : { x: 560, y: 200, width: 800, height: 600 };
   const collapsing = tv("collapse", bb.x + bb.width / 2, bb.y + bb.height / 2, RADAR.cx, RADAR.cy);
   fx("ping-deep", 1.15);
   await sleep(1350);

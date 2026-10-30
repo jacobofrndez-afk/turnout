@@ -20,6 +20,7 @@ import {preparedBoard} from '../src/server/agent/board';
 import {boardWindow} from '../src/lib/campaign-board';
 import {receiptLabel} from '../src/lib/agent-workspace';
 import {withGenerationBudget} from '../src/server/agent/budget';
+import {ChannelCreativesSchema} from '../src/lib/channel-kit';
 import {crowdChannelAffinity} from '../src/server/workspace/channel-affinity';
 
 mkdirSync('.tmp',{recursive:true});
@@ -36,6 +37,7 @@ const meta=JSON.stringify({sourceCheck:{source:'Ticketmaster',checkedAt:new Date
 db.prepare('INSERT INTO events(id,name,venue_name,lat,lon,starts_at,timezone,segment,meta_json,status) VALUES(?,?,?,?,?,?,?,?,?,?)').run('test_event','Fixture concert','Fixture venue',40.751,-73.99,new Date(starts).toISOString(),'UTC','Music',meta,'onsale');
 const event=getEvent('test_event')!,window=campaignWindows(event)[0];
 const draft=CampaignDraftSchema.parse({language:'en',chosen_offer_id:'test_offer',audience_summary:'Fixture group tastes.',rationale:'The fixture evidence favours the board over the other offer.',windows:[{label:window.label,start_local:localStampAt(window.start,'UTC').slice(11),end_local:localStampAt(window.end,'UTC').slice(11),why:'Before the event.'}],geofenced_ad:{platform:'meta',radius_m:1000,interests:['Food','Music'],headline:'A shared board',body:'Join us before the event.',cta:'Visit',daily_budget_usd:15},google_post:{title:'A shared board',body:'Meet here before the event.',offer_terms:'$20 for two.'},whatsapp:{message:'Meet here before the event.'},storefront:{chalkboard:'A shared board · $20',staff_line:'Welcome.'},dooh:{headline:'A shared board',body:'Nearby.'},confidence:.99,limitations:'Test fixture. No attendance or visits measured.'});
+const fixtureSocial=ChannelCreativesSchema.parse(Object.fromEntries(['facebook','instagram','tiktok','snapchat','google_post'].map(channel=>[channel,{caption:`A ${channel} invitation.`,overlay:'',shots:[]}])));
 function insert(id:string){
  const evidence={offers:[{id:'test_offer',price:'$20'}],profile:{headlinerName:'Fixture artist',tags:[{name:'Food'}],offerFits:[{offerId:'test_offer',title:'A shared board',matches:2,topPlaces:['Fixture reference']}],qlooCalls:{live:4,cached:2}}};
  db.prepare("INSERT INTO campaigns(id,merchant_id,event_id,status,copy_json,dna_version,dna_snapshot_json,channels_json,evidence_json,llm_usage_json) VALUES(?,?,?,'drafted',?,1,?,?,?,?)").run(id,'test_agent','test_event',JSON.stringify(draft),JSON.stringify({...dna,version:1,status:'confirmed'}),'["storefront","whatsapp"]',JSON.stringify(evidence),'{"source":"anthropic"}');
@@ -123,7 +125,7 @@ test('existing Claude writer is callable with a structured provider response and
  const originalFetch=globalThis.fetch;let called=0;process.env.ANTHROPIC_API_KEY='test-key';process.env.AGENT_DAILY_LIMIT='1';
  globalThis.fetch=async(_input,init)=>{
   called++;const body=JSON.parse(String(init?.body));assert.match(body.messages[0].content,/Fixture prompt/);assert.ok(body.output_config.format);
-  return new Response(JSON.stringify({id:'msg_test',type:'message',role:'assistant',model:'claude-opus-5-5',content:[{type:'text',text:JSON.stringify(draft)}],stop_reason:'end_turn',stop_sequence:null,usage:{input_tokens:20,output_tokens:20}}),{headers:{'Content-Type':'application/json'}});
+  return new Response(JSON.stringify({id:'msg_test',type:'message',role:'assistant',model:'claude-opus-5-5',content:[{type:'text',text:JSON.stringify({...draft,social:fixtureSocial})}],stop_reason:'end_turn',stop_sequence:null,usage:{input_tokens:20,output_tokens:20}}),{headers:{'Content-Type':'application/json'}});
  };
  try{
   const generated=await draftWithClaude('Fixture prompt with Qloo evidence.');assert.equal(generated.draft.chosen_offer_id,'test_offer');assert.equal(called,1);
@@ -142,7 +144,7 @@ test('existing Claude writer is callable with a structured provider response and
   const originalFetch=globalThis.fetch;let calls=0;process.env.ANTHROPIC_API_KEY='test-key';process.env.AGENT_DAILY_LIMIT='3';
   globalThis.fetch=async()=>{
    calls++;const copy=calls===1?{...draft,dooh:{...draft.dooh,headline:'A headline that is deliberately longer than the channel allows'}}:draft;
-   return new Response(JSON.stringify({id:'msg_repair',type:'message',role:'assistant',model:'claude-opus-5-5',content:[{type:'text',text:JSON.stringify(copy)}],stop_reason:'end_turn',stop_sequence:null,usage:{input_tokens:20,output_tokens:20}}),{headers:{'Content-Type':'application/json'}});
+   return new Response(JSON.stringify({id:'msg_repair',type:'message',role:'assistant',model:'claude-opus-5-5',content:[{type:'text',text:JSON.stringify({...copy,social:fixtureSocial})}],stop_reason:'end_turn',stop_sequence:null,usage:{input_tokens:20,output_tokens:20}}),{headers:{'Content-Type':'application/json'}});
   };
   try{const result=await draftReviewedWithClaude('Fixture prompt');assert.equal(calls,2);assert.equal(result.draft.dooh.headline,draft.dooh.headline);await assert.rejects(withGenerationBudget(async()=>true),/daily generation limit/);}
   finally{globalThis.fetch=originalFetch;process.env.ANTHROPIC_API_KEY='';delete process.env.AGENT_DAILY_LIMIT;}
@@ -284,4 +286,44 @@ test('preparation reuses saved materials only while the place DNA is unchanged',
  }finally{
   db.prepare("UPDATE merchant_dna SET version=1,status='confirmed' WHERE merchant_id='test_agent'").run();
  }
+});
+
+
+test('approval persists distinct channel versions and separate planned caps',async()=>{
+ const base=insert('channel-kit');
+ const review={...base,channels:['facebook','instagram','tiktok','whatsapp','storefront'],mediaBudgetUsd:18,totalSpendCapUsd:22,channelCaps:{facebook:10,instagram:8,whatsapp:4},channelCreatives:{facebook:{caption:'My Facebook invitation.',overlay:'',shots:[]},instagram:{caption:'My Instagram caption.',overlay:'',shots:[]},tiktok:{caption:'The TikTok hook.',overlay:'A board for two',shots:['Show the place.','Show the board.','Show the price.']}}};
+ const response=await approve(new Request('http://localhost/api/campaigns/channel-kit/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({review})}),{params:Promise.resolve({id:'channel-kit'})});
+ assert.equal(response.status,200);
+ const rows=db.prepare('SELECT channel,payload_json,simulated FROM sends WHERE campaign_id=?').all('channel-kit') as any[];
+ assert.equal(rows.length,5);assert.ok(rows.every(r=>r.simulated===1));
+ const payload=(channel:string)=>JSON.parse(rows.find(r=>r.channel===channel).payload_json);
+ assert.equal(payload('facebook').message,'My Facebook invitation.');
+ assert.equal(payload('facebook').planned_ad_cap_usd,10);
+ assert.equal(payload('instagram').message,'My Instagram caption.');
+ assert.equal(payload('instagram').planned_ad_cap_usd,8);
+ assert.equal(payload('tiktok').shots.length,3);
+ assert.equal(payload('whatsapp').planned_cap_usd,4);
+ assert.equal(agentWorkspace('channel-kit',now)?.review.channelCreatives?.facebook?.caption,'My Facebook invitation.');
+ const copy=copyCampaign('channel-kit',now);
+ assert.equal(agentWorkspace(copy,now)?.review.totalSpendCapUsd,22);
+ assert.equal(agentWorkspace(copy,now)?.review.channelCreatives?.instagram?.caption,'My Instagram caption.');
+});
+test('server rejects tampered per-channel sums and a total ceiling above the DNA limit',()=>{
+ const review={...insert('channel-budget'),channels:['facebook','instagram'],channelCaps:{facebook:15,instagram:15},mediaBudgetUsd:30,totalSpendCapUsd:25};
+ assert.throws(()=>saveAgentReview('channel-budget',review,false,now),/exceed/);
+ assert.throws(()=>saveAgentReview('channel-budget',{...review,mediaBudgetUsd:5},false,now),/match/);
+ assert.throws(()=>saveAgentReview('channel-budget',{...review,totalSpendCapUsd:35},false,now),/saved/);
+ assert.equal(getCampaign('channel-budget')?.status,'drafted');
+});
+
+
+test('historical receipts display the exact previously prepared social copy',()=>{
+ const review={...insert('old-social'),channels:['facebook','storefront'],mediaBudgetUsd:0};
+ saveAgentReview('old-social',review,false,now);
+ const raw=getCampaign('old-social')!;
+ const saved=JSON.parse(raw.review_json!);delete saved.channelCreatives;
+ const oldDraft=JSON.parse(raw.copy_json!);delete oldDraft.social;
+ db.prepare("UPDATE campaigns SET status='prepared',review_json=?,copy_json=? WHERE id='old-social'").run(JSON.stringify(saved),JSON.stringify(oldDraft));
+ db.prepare("INSERT INTO sends(id,campaign_id,channel,status,simulated,payload_json) VALUES('old-social-send','old-social','facebook','ready',1,?)").run(JSON.stringify({message:'The exact historical Facebook post.'}));
+ assert.equal(agentWorkspace('old-social',now)?.review.channelCreatives?.facebook?.caption,'The exact historical Facebook post.');
 });

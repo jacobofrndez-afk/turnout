@@ -17,6 +17,7 @@ import type { ChannelAffinityProfile } from '@/lib/channel-affinity';
 import { campaignWindows, draftFirstWindow } from './prompt';
 import { getCampaign, getDraft } from './run';
 import { eventCampaignPotential } from '@/lib/event-potential';
+import { channelCreative, SOCIAL_CREATIVE_IDS, spendIssues } from '@/lib/channel-kit';
 
 export function eventOpportunity(merchantId:string,event:EventRow,now=Date.now()):AgentOpportunity{
  const m=getMerchant(merchantId)!;
@@ -54,8 +55,16 @@ export function agentWorkspace(id:string,now=Date.now()):AgentWorkspace|undefine
  const start=Math.ceil(Math.max(window.start,now+dna.profile.leadMinutes*60000+60000)/60000)*60000;
  const distribution=recommendDistribution({dna:dna.profile,offer,startLocal:localStampAt(start,m.timezone),timezone:m.timezone,now,category:'culture',channelAffinity:evidence?.channelAffinity,distanceKm:haversineKm(m.lat,m.lon,event.lat,event.lon)});
  const saved=c.review_json?JSON.parse(c.review_json) as SavedAgentReview:undefined;
- const review={revision:c.review_revision??0,title:draft.google_post.title,message:draft.google_post.body,terms:draft.google_post.offer_terms,whatsapp:draft.whatsapp.message,chalkboard:draft.storefront.chalkboard,staffLine:draft.storefront.staff_line,adHeadline:draft.geofenced_ad.headline,adBody:draft.geofenced_ad.body,startLocal:localStampAt(start,m.timezone),endLocal:localStampAt(window.end,m.timezone),channels:distribution.channels,mediaBudgetUsd:distribution.channels.includes('geofenced_ad')?distribution.budgetUsd:0,...saved};
+ const review={revision:c.review_revision??0,title:draft.google_post.title,message:draft.google_post.body,terms:draft.google_post.offer_terms,whatsapp:draft.whatsapp.message,chalkboard:draft.storefront.chalkboard,staffLine:draft.storefront.staff_line,adHeadline:draft.geofenced_ad.headline,adBody:draft.geofenced_ad.body,startLocal:localStampAt(start,m.timezone),endLocal:localStampAt(window.end,m.timezone),channels:distribution.channels,mediaBudgetUsd:distribution.channels.includes('geofenced_ad')?distribution.budgetUsd:0,channelCreatives:draft.social,...saved};
  review.revision=c.review_revision??0;
+ // Historical receipts must keep the copy actually prepared at the time, not new format starters.
+ if(saved&&c.status!=='drafted'&&!saved.channelCreatives){
+  const receipts=getSends(id);
+  review.channelCreatives=Object.fromEntries(SOCIAL_CREATIVE_IDS.map(channel=>{
+   const receipt=receipts.find(r=>r.channel===channel),payload=receipt?.payload_json?JSON.parse(receipt.payload_json):{};
+   return [channel,{caption:payload.message??payload.body??saved.message,overlay:payload.overlay??'',shots:payload.shots??[]}];
+  })) as NonNullable<typeof draft.social>;
+ }
  const profile=evidence?.profile,fit=profile?.offerFits.find(f=>f.offerId===offer.id);
  const potential=eventCampaignPotential({matches:fit?.matches??0,references:fit?.topPlaces.length??0,signature:dna.profile.signatureOfferId===offer.id,start,end:window.end,now,insideArea:haversineKm(m.lat,m.lon,event.lat,event.lon)<=m.radius_m/1000});
  let usage:{source?:string}={};try{usage=JSON.parse(c.llm_usage_json??'{}');}catch{}
@@ -81,14 +90,16 @@ export function saveAgentReview(id:string,raw:unknown,approve=false,now=Date.now
   const originalPrice=c.evidence_json?(JSON.parse(c.evidence_json).offers as {id:string;price:string}[]|undefined)?.find(o=>o.id===offer.id)?.price:undefined;
   if((previous?.offerPrice??originalPrice)!==undefined&&(previous?.offerPrice??originalPrice)!==offer.price)throw new DnaError('The menu price changed. Prepare the campaign again.',409);
   if(input.channels.some(ch=>!campaignChannelOptions(dna.profile.channels).includes(ch)))throw new DnaError('Enable paid ads in your DNA before selecting them.');
-  const paid=input.channels.includes('geofenced_ad');
-  if(paid&&(input.mediaBudgetUsd<10||input.mediaBudgetUsd>dna.profile.dailyBudgetUsd)||!paid&&input.mediaBudgetUsd!==0)throw new DnaError('Keep the budget within your DNA limit; use zero when no ad is selected.');
+  const budgetIssues=spendIssues(input,dna.profile.dailyBudgetUsd,dna.profile.channels.includes('geofenced_ad'));
+  if(budgetIssues.length)throw new DnaError(budgetIssues[0]);
+  // Freeze channel versions; changing the brief must not rewrite approved materials.
+  const social=Object.fromEntries(SOCIAL_CREATIVE_IDS.map(channel=>[channel,channelCreative(channel,input,m.name)])) as NonNullable<typeof draft.social>;
   const timing=validatePlanTiming(input.startLocal,input.endLocal,m.timezone,dna.profile.leadMinutes,now);
   assertOfferWindow(offer.description,input.startLocal,input.endLocal);
   const fits=campaignWindows(event).some(w=>timing.start>=w.start&&timing.end<=w.end);
   if(!fits)throw new DnaError('Keep the campaign inside a suggested event window. Choose another opportunity for other times.');
-  const next={...draft,google_post:{title:input.title,body:input.message,offer_terms:input.terms},whatsapp:{message:input.whatsapp},storefront:{chalkboard:input.chalkboard,staff_line:input.staffLine},geofenced_ad:{...draft.geofenced_ad,headline:input.adHeadline,body:input.adBody,daily_budget_usd:input.mediaBudgetUsd},windows:[{label:campaignWindows(event).find(w=>timing.start>=w.start&&timing.end<=w.end)!.label,start_local:input.startLocal.slice(11),end_local:input.endLocal.slice(11),why:draft.windows[0].why}]};
-  const review:SavedAgentReview={...input,revision:input.revision+1,offerPrice:offer.price,offerSnapshot:{id:offer.id,title:offer.title,description:offer.description,price:offer.price}};
+  const next={...draft,social,google_post:{title:input.title,body:input.message,offer_terms:input.terms},whatsapp:{message:input.whatsapp},storefront:{chalkboard:input.chalkboard,staff_line:input.staffLine},geofenced_ad:{...draft.geofenced_ad,headline:input.adHeadline,body:input.adBody,daily_budget_usd:input.mediaBudgetUsd},windows:[{label:campaignWindows(event).find(w=>timing.start>=w.start&&timing.end<=w.end)!.label,start_local:input.startLocal.slice(11),end_local:input.endLocal.slice(11),why:draft.windows[0].why}]};
+  const review:SavedAgentReview={...input,channelCreatives:social,revision:input.revision+1,offerPrice:offer.price,offerSnapshot:{id:offer.id,title:offer.title,description:offer.description,price:offer.price}};
   getDb().prepare("UPDATE campaigns SET copy_json=?,channels_json=?,window_json=?,review_json=?,review_revision=?,status=?,updated_at=datetime('now') WHERE id=?").run(JSON.stringify(next),JSON.stringify(input.channels),JSON.stringify(next.windows),JSON.stringify(review),review.revision,approve?'approved':'drafted',id);
   return {claimed:approve};
  })();

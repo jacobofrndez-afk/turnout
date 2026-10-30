@@ -1,5 +1,6 @@
 // The campaign draft the agent must produce. Structured output keeps the UI and channels deterministic.
 import { z } from "zod";
+import { ChannelCreativesSchema } from '@/lib/channel-kit';
 
 export const WindowSchema = z.object({
   label: z.string().describe("Short label, e.g. 'Before doors' or 'After the show'"),
@@ -9,6 +10,7 @@ export const WindowSchema = z.object({
 });
 
 export const CampaignDraftSchema = z.object({
+  social:ChannelCreativesSchema.optional(),
   language: z.enum(["en", "fr"]).describe("Use en for new drafts; fr is retained for reading historical drafts"),
   chosen_offer_id: z.string().describe("The id of the offer to push for this event"),
   audience_summary: z.string().describe("Two sentences on who this crowd is, citing Qloo demographics and tags"),
@@ -47,12 +49,13 @@ export type CampaignDraft = z.infer<typeof CampaignDraftSchema>;
 
 // Keep historical drafts readable while requesting a compact, single-window campaign for Today.
 export const CampaignGenerationSchema=CampaignDraftSchema.extend({
+  social:ChannelCreativesSchema,
   rationale:z.string().max(650),audience_summary:z.string().max(300),
   windows:z.array(WindowSchema).length(1),limitations:z.string().max(350),
 });
 
 export function generatedCopyIssues(draft:CampaignDraft):string[]{
- const copy=[draft.google_post.title,draft.google_post.body,draft.google_post.offer_terms,draft.whatsapp.message,draft.storefront.chalkboard,draft.storefront.staff_line,draft.geofenced_ad.headline,draft.geofenced_ad.body].join('\n');
+ const copy=[draft.google_post.title,draft.google_post.body,draft.google_post.offer_terms,draft.whatsapp.message,draft.storefront.chalkboard,draft.storefront.staff_line,draft.geofenced_ad.headline,draft.geofenced_ad.body,...Object.values(draft.social??{}).flatMap(c=>[c.caption,c.overlay])].join('\n');
  const issues:string[]=[];
  if(/\b(?:street|block|neighbou?rhood) (?:will be|is going to be) (?:busy|packed|crowded)\b/i.test(copy))issues.push('Remove unsupported predictions of local footfall. Use the verified event and an invitation, not a claim that the street will be busy.');
  if(/\b(?:tables? (?:are |is )?(?:open|available|waiting|reserved)|your table is here|guaranteed (?:table|seat|space)|seats? (?:are )?available)\b/i.test(copy))issues.push('Remove unverified claims about available or reserved tables, seats or space. Invite people without promising availability.');

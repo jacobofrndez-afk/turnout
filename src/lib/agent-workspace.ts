@@ -4,6 +4,7 @@ import { CHANNEL_IDS, type DnaRecord, type MenuOffer } from './place-dna';
 import { CampaignVisualSchema, type CampaignVisual } from './campaign-creative';
 import type { DistributionRecommendation } from './distribution-recommendation';
 import type { PlanChannel } from './campaign-plan';
+import { ChannelCapsSchema, ChannelCreativesSchema } from './channel-kit';
 
 export const AgentReviewSchema=z.object({
  revision:z.number().int().min(0),
@@ -13,6 +14,9 @@ export const AgentReviewSchema=z.object({
  startLocal:z.string().max(16),endLocal:z.string().max(16),
  channels:z.array(z.enum(CHANNEL_IDS)).min(1).refine(a=>new Set(a).size===a.length),
  mediaBudgetUsd:z.number().int().min(0).max(200),
+ channelCreatives:ChannelCreativesSchema.partial().optional(),
+ channelCaps:ChannelCapsSchema.optional(),
+ totalSpendCapUsd:z.number().int().min(0).max(200).optional(),
  visual:CampaignVisualSchema.optional(),
 });
 export type AgentReview=z.infer<typeof AgentReviewSchema>;

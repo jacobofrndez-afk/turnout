@@ -5,6 +5,8 @@ import { deliverySummary } from "@/lib/delivery";
 import { getDb, newId } from "@/server/db/client";
 import type { Merchant } from "@/server/events/radar";
 import type { CampaignDraft } from "@/server/agent/schema";
+import type { SavedAgentReview } from '@/lib/agent-workspace';
+import { channelCap, channelCreative, campaignSpend } from '@/lib/channel-kit';
 import { submitWhatsApp, whatsappConfigured, whatsappStatus } from "./twilio";
 import { buildSnapPayloads, createGeofencedCampaign, snapConfigured, type GeofencedAdSpec } from "./snapchat";
 
@@ -32,7 +34,8 @@ export function ensureSendColumns(): void {
 export async function publishCampaign(campaignId: string, merchant: Merchant, draft: CampaignDraft, options:{sendDemo?:boolean;createPausedAd?:boolean} = {}): Promise<SendRow[]> {
   ensureSendColumns();
   const db = getDb();
-  const saved = db.prepare("SELECT channels_json, dna_snapshot_json FROM campaigns WHERE id=? AND merchant_id=?").get(campaignId, merchant.id) as { channels_json: string; dna_snapshot_json: string | null } | undefined;
+  const saved = db.prepare("SELECT channels_json, dna_snapshot_json, review_json FROM campaigns WHERE id=? AND merchant_id=?").get(campaignId, merchant.id) as { channels_json: string; dna_snapshot_json: string | null; review_json:string|null } | undefined;
+  const review=saved?.review_json?JSON.parse(saved.review_json) as SavedAgentReview:undefined;
   const channels = saved?.dna_snapshot_json ? JSON.parse(saved.channels_json) as ChannelId[] : (JSON.parse((db.prepare("SELECT channels_json FROM merchants WHERE id = ?").get(merchant.id) as { channels_json: string }).channels_json) as ChannelId[]) ?? [];
   const insert = db.prepare(`INSERT INTO sends (id, campaign_id, channel, recipient_ref, status, provider_sid, simulated, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
   const rows: SendRow[] = [];
@@ -55,7 +58,7 @@ export async function publishCampaign(campaignId: string, merchant: Merchant, dr
             record("whatsapp", "failed: provider rejected the demo message", false, { message: draft.whatsapp.message });
           }
         } else {
-          record("whatsapp", "simulated", true, { to: `${contacts.length} opted-in regulars`, message: draft.whatsapp.message, window: draft.windows[0] });
+          record("whatsapp", "simulated", true, { to: `${contacts.length} fictional demo contacts`, message: draft.whatsapp.message, window: draft.windows[0], planned_cap_usd:review?channelCap(review,'whatsapp'):0, pricing:'Provider quote required before any sending.' });
         }
         break;
       }
@@ -68,11 +71,11 @@ export async function publishCampaign(campaignId: string, merchant: Merchant, dr
           countryCode: merchant.timezone.startsWith("Europe/Paris") ? "fr" : "us",
           startIso: new Date().toISOString().replace(/\.\d{3}Z/, "Z"),
           endIso: new Date(Date.now() + 36 * 3600_000).toISOString().replace(/\.\d{3}Z/, "Z"),
-          dailyBudgetUsd: draft.geofenced_ad.daily_budget_usd,
+          dailyBudgetUsd: review?channelCap(review,'geofenced_ad'):draft.geofenced_ad.daily_budget_usd,
         };
         const payloads = buildSnapPayloads(spec);
         const creative = { headline: draft.geofenced_ad.headline, body: draft.geofenced_ad.body, cta: draft.geofenced_ad.cta, interests_from_qloo: draft.geofenced_ad.interests, schedule: draft.windows };
-        if (options.createPausedAd !== false && draft.geofenced_ad.platform === "snapchat" && snapConfigured()) {
+        if (!review?.channelCaps && options.createPausedAd !== false && draft.geofenced_ad.platform === "snapchat" && snapConfigured()) {
           try {
             const ids = await createGeofencedCampaign(spec);
             record("geofenced_ad", "created (paused)", false, { platform: "snapchat", ...ids, creative, request: payloads, status_note: "Created in your Snapchat ad account, paused. Attach the creative in Ads Manager and start it." }, undefined, ids.campaignId);
@@ -84,7 +87,7 @@ export async function publishCampaign(campaignId: string, merchant: Merchant, dr
             platform: draft.geofenced_ad.platform,
             geofence: { lat: merchant.lat, lon: merchant.lon, radius_m: draft.geofenced_ad.radius_m, note: "centred on the merchant in the demo; the venue in production" },
             creative,
-            daily_budget_usd: draft.geofenced_ad.daily_budget_usd,
+            planned_total_cap_usd: review?channelCap(review,'geofenced_ad'):draft.geofenced_ad.daily_budget_usd,
             request: payloads,
             status_note: "Saved here. No ad was created or scheduled.",
           });
@@ -94,11 +97,13 @@ export async function publishCampaign(campaignId: string, merchant: Merchant, dr
       case "instagram":
       case "facebook":
       case "tiktok":
-      case "snapchat":
-        record(channel, "ready", true, { message: `${draft.google_post.title}\n${draft.google_post.body}\n${draft.google_post.offer_terms}`, status_note: "Saved for manual posting. No social account was accessed and nothing was published." });
+      case "snapchat": {
+        const creative=review?channelCreative(channel,review,merchant.name):draft.social?.[channel];
+        record(channel, "ready", true, { message: creative?.caption??`${draft.google_post.title}\n${draft.google_post.body}\n${draft.google_post.offer_terms}`, overlay:creative?.overlay,shots:creative?.shots,visual:review?.visual,planned_ad_cap_usd:review?channelCap(review,channel):0,total_campaign_cap_usd:review?campaignSpend(review).ceiling:0,status_note: "Content draft only. No video rendered, social post published or paid placement created." });
         break;
+      }
       case "google_post":
-        record("google_post", "simulated", true, { type: "OFFER", title: draft.google_post.title, body: draft.google_post.body, terms: draft.google_post.offer_terms, schedule: draft.windows, status_note: "Saved here for you to copy to your Google listing. Nothing was posted." });
+        record("google_post", "simulated", true, { type: "OFFER", title: draft.google_post.title, body: review?channelCreative('google_post',review,merchant.name).caption:draft.google_post.body, terms: draft.google_post.offer_terms, schedule: draft.windows,visual:review?.visual,planned_ad_cap_usd:review?channelCap(review,'google_post'):0, status_note: "Business post saved for manual use. Any Google Ads budget is a separate unlaunched placement." });
         break;
       case "storefront":
         record("storefront", "ready", true, { chalkboard: draft.storefront.chalkboard, staff_line: draft.storefront.staff_line, status_note: "Yours to chalk on the board and say at the door." });

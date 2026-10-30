@@ -597,3 +597,29 @@ body:has(.campaign-workflow-page) .workspace-header{position:static}
 .agent-selected-channels>span{align-items:flex-start;padding:8px 11px}.agent-selected-channels .chip-text{display:grid;gap:3px}.agent-selected-channels .chip-text b{font-weight:500;font-size:12px}
 .workflow-channel-options button .qloo-channel-note{margin-top:1px}
 .agent-publish-row .qloo-channel-note{margin:4px 0 2px}
+/* The agent at work: a pulse, the real steps lighting up in order, a clock. Nothing is claimed as finished. */
+.agent-working{display:flex;gap:18px;align-items:flex-start;padding:18px 20px;border-radius:13px;background:#fff;border:1px solid #e9e2ee;box-shadow:0 10px 30px -18px rgba(59,28,66,.35);animation:agent-pop .5s cubic-bezier(.22,1,.36,1) both}
+.agent-working-pulse{position:relative;flex:none;width:56px;height:56px;display:grid;place-items:center}
+.agent-working-pulse span{position:absolute;inset:0;border-radius:50%;border:1.5px solid #9a7aa6;opacity:0;animation:working-ring 2.4s cubic-bezier(.2,.6,.3,1) infinite}
+.agent-working-pulse span:nth-child(2){animation-delay:.8s}.agent-working-pulse span:nth-child(3){animation-delay:1.6s}
+.agent-working-pulse i{position:relative;width:34px;height:34px;border-radius:50%;background:var(--plum);color:#fff;display:grid;place-items:center;animation:working-core 2.4s ease-in-out infinite}
+@keyframes working-ring{0%{transform:scale(.55);opacity:.8}100%{transform:scale(1.35);opacity:0}}
+@keyframes working-core{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.agent-working-body{flex:1;min-width:0}
+.agent-working-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.agent-working-head strong{display:block;font-size:15px}.agent-working-head small{display:block;font-size:11px;color:#8a7b93;margin-top:2px}.agent-working-head>span{font-variant-numeric:tabular-nums;font-size:12px;color:#8a7b93;padding-top:2px}
+.agent-working-steps{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:9px}
+.agent-working-steps li{display:flex;gap:10px;align-items:flex-start;color:#a496ab;transition:color .4s}
+.agent-working-steps li strong{display:block;font-size:13px;font-weight:500;color:inherit}
+.agent-working-steps li small{display:block;font-size:11px;color:#8a7b93;margin-top:1px;max-height:0;overflow:hidden;opacity:0;transition:max-height .45s cubic-bezier(.22,1,.36,1),opacity .35s}
+.agent-working-steps li.is-active{color:var(--ink)}.agent-working-steps li.is-active small{max-height:40px;opacity:1}
+.agent-working-steps li.is-done{color:#5a396a}
+.agent-working-mark{flex:none;width:18px;height:18px;margin-top:1px;border-radius:50%;display:grid;place-items:center;border:1.5px solid #ddd3e2;color:#fff;transition:background .35s,border-color .35s}
+.is-done .agent-working-mark{background:#5a396a;border-color:#5a396a;animation:agent-badge .45s cubic-bezier(.3,1.3,.4,1)}
+.is-active .agent-working-mark{border-color:#9a7aa6}.is-active .agent-working-mark i{width:7px;height:7px;border-radius:50%;background:#7c548d;animation:working-dot 1.1s ease-in-out infinite}
+@keyframes working-dot{0%,100%{transform:scale(.7);opacity:.5}50%{transform:scale(1.15);opacity:1}}
+.agent-working-bar{height:3px;border-radius:3px;background:#efe9f2;overflow:hidden;margin-top:14px}
+.agent-working-bar i{display:block;height:100%;width:38%;border-radius:3px;background:linear-gradient(90deg,#c9b4d2,#5a396a,#c9b4d2);animation:working-sweep 1.8s cubic-bezier(.45,0,.3,1) infinite}
+@keyframes working-sweep{0%{transform:translateX(-110%)}100%{transform:translateX(290%)}}
+.agent-working-body>p{font-size:11px;color:#8a7b93;margin:10px 0 0}
+@media(prefers-reduced-motion:reduce){.agent-working-pulse span,.agent-working-pulse i,.agent-working-bar i,.is-active .agent-working-mark i{animation:none}.agent-working-pulse span{opacity:.3;transform:none}}
+@media(max-width:760px){.agent-working{gap:12px;padding:14px}.agent-working-pulse{width:44px;height:44px}}

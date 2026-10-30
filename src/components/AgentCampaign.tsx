@@ -15,6 +15,7 @@ import { ChannelIcon } from './ChannelIcon';
 import { ChannelRecommendationReason } from './ChannelRecommendationReason';
 import { CopyText } from './CopyText';
 import { QlooChannelNote } from './QlooChannelNote';
+import { AgentWorking } from './AgentWorking';
 import { Icon } from './Icon';
 import { LocalityEvidence } from "./LocalityEvidence";
 import { CampaignBoard } from './CampaignBoard';
@@ -35,6 +36,7 @@ export function AgentCampaign({merchantId,event,initial,writerConnected,entry='s
  const workflow=context==='workflow';
  const {view,revision,moving,goTo,section,shell,content,heading:stepHeading,steps}=useCampaignMotion(entry==='saved'?campaignEntryView(initial?.status??'drafted'):entry);
  const [dirty,setDirty]=useState(false);
+ const [workingSince,setWorkingSince]=useState<number|null>(null);
  const checking=view==='review';
  useEffect(()=>{
   if(workflow&&workspace)window.history.replaceState(null,'',campaignWorkflowHref(workspace.id,merchantId,view));
@@ -46,7 +48,7 @@ export function AgentCampaign({merchantId,event,initial,writerConnected,entry='s
  useEffect(()=>{if(!dirty)return;const guard=(e:BeforeUnloadEvent)=>{e.preventDefault();};window.addEventListener('beforeunload',guard);return()=>window.removeEventListener('beforeunload',guard);},[dirty]);
  const update=(next:Partial<AgentReview>)=>{setReview(r=>r?{...r,...next}:r);setDirty(true);setNotice('');};
  async function request(url:string,method:string,body?:unknown,nextView?:CampaignView){
-  setBusy(true);setError('');setNotice('');setHelpLink('');
+  setBusy(true);setError('');setNotice('');setHelpLink('');if(url==='/api/campaigns/prepare')setWorkingSince(Date.now());
   try{
    const response=await fetch(url,{method,headers:body?{'Content-Type':'application/json'}:undefined,body:body?JSON.stringify(body):undefined});
    const data=await response.json().catch(()=>({error:response.status===429?'Please wait a minute before trying again.':'The request could not finish. Your edits are still here.'}));
@@ -65,7 +67,7 @@ export function AgentCampaign({merchantId,event,initial,writerConnected,entry='s
    if(method==='PATCH')setNotice('Your changes are saved. Nothing has been sent.');
    return data.workspace as AgentWorkspace;
   }catch(e){setError(e instanceof Error?e.message:'Please try again.');}
-  finally{setBusy(false);}
+  finally{setBusy(false);setWorkingSince(null);}
  }
  async function openStep(target:CampaignView){
   if(busy||moving)return;
@@ -107,7 +109,7 @@ export function AgentCampaign({merchantId,event,initial,writerConnected,entry='s
   <header className="agent-stage-heading">{!workflow&&<span className="overline">Step {step} of 4{view==='proposal'&&workspace?' · Prepared for your place':''}</span>}<h2 ref={stepHeading} tabIndex={-1}>{view==='proposal'?workspace?'Your campaign, prepared.':'Start with a local opportunity.':view==='personalize'?'Add your own touch.':view==='review'?locked?'Review your saved campaign.':'Everything ready for your approval.':allReady?'Publish it, channel by channel.':'Some channels need attention.'}</h2>{!workflow&&<p>{view==='proposal'?workspace?'See the offer, message, channels and budget. Then make it yours.':'Turnout uses Qloo and your place DNA to prepare a campaign you can adjust.':view==='personalize'?'Edit the message, add a visual or adjust the plan. Review it before approving.':view==='review'?locked?'These are your saved words and settings. Personalize opens an editable copy.':'Check the content and timing. Approval saves your materials; publishing stays in your hands.':'Print the board, then post each message yourself. Turnout sends nothing and charges nothing.'}</p>}</header>
   {!workflow&&view!=='proposal'&&workspace&&<div className="agent-campaign-context"><strong>{workspace.offer.title} · {workspace.offer.price}</strong><span>{event.name} · {workspace.merchantName}</span></div>}
   {view==='proposal'&&<div className="agent-opportunity"><span className="icon-tile"><Icon name="ticket" size={22}/></span><div><span className="overline">A verified occasion nearby</span><h2>{event.headline??event.name}</h2><p><strong>{event.name}</strong> · {event.venue} · {fromDoor(event.distanceKm)} from your place</p><small>Starts {event.when}{event.sourceUrl&&<> · <a href={event.sourceUrl} target="_blank" rel="noreferrer">Source listing ↗</a></>}{event.checkedLabel&&` · Checked ${event.checkedLabel}`}</small>{event.estimateNote&&<p className="agent-note">{event.estimateNote}</p>}</div></div>}
-  {!workspace?<div className="agent-start"><h3>A campaign for this crowd, made for your place.</h3><p>Turnout compares the audience’s tastes with your menu and place DNA, then prepares the message, channels and budget.</p><button type="button" className="action-button" disabled={busy||!writerConnected} onClick={()=>void request('/api/campaigns/prepare','POST',{merchant:merchantId,event:event.id})}><Icon name="spark" size={17}/>{busy?'Reading Qloo & preparing your campaign…':'Prepare my campaign'}</button><p className="agent-note" role="status">{busy?'This can take up to a couple of minutes. Nothing is sent or charged.':!writerConnected?'The campaign writer is not connected yet. You can still explore the other local ideas below.':'Your approval comes after you review the content.'}</p></div>:review&&<>
+  {!workspace?<div className="agent-start">{busy&&workingSince?<AgentWorking startedAt={workingSince} label={event.name}/>:<><h3>A campaign for this crowd, made for your place.</h3><p>Turnout compares the audience’s tastes with your menu and place DNA, then prepares the message, channels and budget.</p><button type="button" className="action-button" disabled={busy||!writerConnected} onClick={()=>void request('/api/campaigns/prepare','POST',{merchant:merchantId,event:event.id})}><Icon name="spark" size={17}/>{busy?'Reading Qloo & preparing your campaign…':'Prepare my campaign'}</button><p className="agent-note" role="status">{busy?'This can take up to a couple of minutes. Nothing is sent or charged.':!writerConnected?'The campaign writer is not connected yet. You can still explore the other local ideas below.':'Your approval comes after you review the content.'}</p></>}</div>:review&&<>
    {view==='proposal'&&<>
    <div className="agent-decision-heading"><div><span className="overline">{workspace.copiedFromId?'Your version · original Qloo analysis':workspace.source==='anthropic'?'Prepared by Claude · informed by Qloo':'Manually supplied draft · Qloo context'}</span><h3>Why this offer?</h3></div><details className="agent-potential"><summary><span>Potential</span><strong>{workspace.potential.score??'—'}<small>{workspace.potential.score!==null?'/100':''}</small></strong><span>Why this index?</span></summary><div>{workspace.potential.factors.map(f=><p key={f.label}>{f.label}<b>{f.points}/{f.max}</b></p>)}<p>Turnout relevance index, not a Qloo probability or sales forecast. Editorial weights have not been calibrated against results.</p></div></details></div>
    <div className="agent-offer-comparison"><article className="agent-offer-card"><span className="overline">Your signature</span><h3>{workspace.signatureOffer?.title??'No signature offer saved'}</h3><strong>{workspace.signatureOffer?.price}</strong><p>From your place DNA</p></article><article className="agent-offer-card is-recommended"><span className="overline">Recommended for this occasion</span><h3>{workspace.offer.title}</h3><strong>{workspace.offer.price}</strong>{workspace.signatureOffer?.id===workspace.offer.id&&<p className="agent-confirmation">This occasion confirms your signature.</p>}<p>{workspace.offer.description}</p></article></div>

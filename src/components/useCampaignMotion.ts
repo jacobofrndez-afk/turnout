@@ -70,17 +70,13 @@ export function useCampaignMotion(initial: CampaignView) {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !panel.animate) { finish(); return; }
     try {
       const height = panel.getBoundingClientRect().height;
-      const d = transition.direction;
-      // The new step comes in from the side it was called from, out of a soft blur, and settles.
-      const reveal = panel.animate([
-        {opacity:0,transform:`translate(${d * 28}px, 10px) scale(.985)`,filter:'blur(5px)'},
-        {opacity:1,transform:'translate(0, 0) scale(1)',filter:'blur(0px)'},
-      ],{duration:620,easing:ease,fill:'both'});
-      const resize = frame.animate([{height:`${transition.height}px`},{height:`${height}px`}],{duration:560,easing:ease,fill:'both'});
+      // The frame stays put; only its height follows. The elements do the moving: each block of the
+      // new step rises into place in turn, the heading first, out of a whisper of blur.
+      const reveal = panel.animate([{opacity:0},{opacity:1}],{duration:160,easing:'ease-out',fill:'both'});
+      const resize = frame.animate([{height:`${transition.height}px`},{height:`${height}px`}],{duration:520,easing:ease,fill:'both'});
       animations.current.push(reveal,resize);
-      // Its blocks follow one after the other, the heading first, each a little from the same side.
-      Array.from(panel.children).slice(0,10).forEach((block,i) => {
-        try { block.animate([{opacity:0,transform:`translate(${d * 10}px, 16px)`},{opacity:1,transform:'none'}],{duration:560,delay:70 + i * 60,easing:ease,fill:'backwards'}); } catch { /* decorative */ }
+      Array.from(panel.children).slice(0,12).forEach((block,i) => {
+        try { block.animate([{opacity:0,transform:'translateY(14px)',filter:'blur(2px)'},{opacity:1,transform:'none',filter:'blur(0px)'}],{duration:540,delay:60 + i * 55,easing:ease,fill:'backwards'}); } catch { /* decorative */ }
       });
       Promise.all([reveal.finished,resize.finished]).then(finish,finish);
     } catch { finish(); }
@@ -108,8 +104,12 @@ export function useCampaignMotion(initial: CampaignView) {
       };
       if (!panel?.animate || reduce) { swap(); return; }
       try {
-        // The current step steps aside, the other way, into a light blur.
-        const leave = panel.animate([{opacity:1,transform:'translate(0, 0) scale(1)',filter:'blur(0px)'},{opacity:0,transform:`translate(${-direction * 22}px, -6px) scale(.985)`,filter:'blur(3px)'}],{duration:220,easing:'cubic-bezier(.4,0,.6,1)',fill:'forwards'});
+        // The current step's elements fade away one after the other, the frame itself does not move.
+        const blocks = Array.from(panel.children).slice(0,12);
+        blocks.forEach((block,i) => {
+          try { block.animate([{opacity:1,transform:'none'},{opacity:0,transform:'translateY(-6px)'}],{duration:160,delay:i * 18,easing:'cubic-bezier(.4,0,.6,1)',fill:'forwards'}); } catch { /* decorative */ }
+        });
+        const leave = panel.animate([{opacity:1},{opacity:0}],{duration:90,delay:Math.min(blocks.length,12) * 18 + 60,easing:'ease-out',fill:'forwards'});
         animations.current = [leave];
         leave.finished.then(swap,swap);
       } catch { swap(); }

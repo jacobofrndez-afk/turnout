@@ -501,6 +501,9 @@ body:has(.workspace-nav a[aria-current=page]) main:not(.identity-page):not(.app-
 .agent-steps li.agent-steps-thumb{position:absolute;left:0;top:var(--y,0px);height:2px;width:var(--w,0px);max-width:none;min-width:0;margin:0!important;padding:0!important;border-radius:2px;background:linear-gradient(90deg,#8e6a9e,#b48fc4);box-shadow:0 0 14px 1px rgba(142,106,158,.45);transform:translateX(var(--x,0px));opacity:var(--on,0);pointer-events:none;transition:transform .7s cubic-bezier(.3,1.25,.4,1),width .7s cubic-bezier(.22,1,.36,1),opacity .3s ease}
 .agent-steps li.agent-steps-progress{position:absolute;left:0;top:var(--y,0px);height:2px;width:var(--p,0px);max-width:none;min-width:0;margin:0!important;padding:0!important;border-radius:2px;background:linear-gradient(90deg,rgba(142,106,158,0),rgba(142,106,158,.28));opacity:var(--on,0);pointer-events:none;transition:width .9s cubic-bezier(.22,1,.36,1),opacity .3s ease}
 .agent-workflow .agent-steps{animation:agent-rise .6s .06s cubic-bezier(.22,1,.36,1) both}
+/* In the campaign workflow the steps are what must stay in sight, not the app menu. */
+body:has(.campaign-workflow-page) .workspace-header{position:static}
+.agent-workflow .agent-steps{position:sticky;top:10px;z-index:24;box-shadow:0 3px 14px #3b1c4203,0 10px 30px -18px #3b1c4226}
 .workflow-card{transition:box-shadow .4s ease,border-color .3s ease}
 .workflow-card:hover{box-shadow:0 10px 28px -18px #3b1c4229,0 4px 20px #3b1c4205;border-color:#ddd2e3}
 .workflow-channel-options button{transition:transform .3s cubic-bezier(.3,1.3,.4,1),background .2s ease,border-color .2s ease,box-shadow .25s ease}

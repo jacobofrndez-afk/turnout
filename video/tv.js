@@ -12,9 +12,10 @@
   style.textContent = `
     html,body{margin:0;width:${VW}px;height:${VH}px;overflow:hidden;background:${DARK};font-family:${FONT};color:${INK}}
     #tv-view{position:absolute;left:0;top:0;width:${VW}px;height:${AH}px;overflow:hidden;background:${DARK};transform-origin:50% 50%}
-    #app{display:block;width:${VW}px;height:${AH}px;border:0;background:#fff;opacity:0;transition:opacity .45s ease}
-    #app.on{opacity:1}
-    #tv-spot{position:absolute;left:0;top:0;width:0;height:0;border-radius:16px;box-shadow:0 0 0 9999px rgba(18,10,22,.5),0 0 0 1.5px rgba(230,164,194,.55);opacity:0;
+    #tv-view iframe{position:absolute;left:0;top:0;display:block;width:${VW}px;height:${AH}px;border:0;background:#fff;opacity:0;transition:opacity .45s ease}
+    #tv-view iframe.on{opacity:1}
+    #tv-view iframe:not(.on){pointer-events:none}
+    #tv-spot{position:absolute;left:0;top:0;width:0;height:0;z-index:3;border-radius:16px;box-shadow:0 0 0 9999px rgba(18,10,22,.5),0 0 0 1.5px rgba(230,164,194,.55);opacity:0;
       transition:left .8s ${EASE},top .8s ${EASE},width .8s ${EASE},height .8s ${EASE},opacity .6s ease;pointer-events:none}
     #tv-journey{position:absolute;left:0;right:0;bottom:0;height:${BAR}px;background:#120a16;display:flex;align-items:center;justify-content:center;transform:translateY(100%);transition:transform .6s cubic-bezier(.2,.8,.2,1);z-index:2}
     #tv-journey.on{transform:none}
@@ -28,15 +29,15 @@
       color:${INK};font:500 31px/1.32 ${FONT};letter-spacing:.005em;opacity:0;transition:opacity .45s ease,transform .45s ease;z-index:3;text-align:center;box-shadow:0 14px 48px rgba(0,0,0,.28);pointer-events:none}
     #tv-cap.on{opacity:1;transform:translate(-50%,0)}
     #tv-cur{position:absolute;left:0;top:0;width:26px;height:26px;z-index:4;pointer-events:none;transform:translate(-9999px,-9999px);transition:transform .55s cubic-bezier(.3,0,.2,1);filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))}
-    #tv-stage{position:absolute;inset:0;background:${DARK};z-index:5;transition:opacity .9s ease}
+    #tv-stage{position:absolute;inset:0;background:${DARK};z-index:5;transition:opacity .8s ease}
     #tv-stage.off{opacity:0;pointer-events:none}
     #tv-radar{position:absolute;left:0;top:0}
-    #rg{transform-box:view-box;transition:transform 1.5s ${EASE}}
+    #rg{transform-box:view-box;transition:transform 1.25s ${EASE}}
     .axis{stroke:${RING};stroke-opacity:.12;stroke-width:1;transition:opacity .5s ease}
     .blip{opacity:0;animation:in .6s ease forwards}
     .blip text{font-family:${FONT};transition:opacity .5s ease}
     .pulse{transform-box:fill-box;transform-origin:center;animation:pulse 2.4s ease-out infinite}
-    .dot{transition:r 1.5s ${EASE},opacity .3s ease}
+    .dot{transition:r 1.25s ${EASE},opacity .3s ease}
     #centre{transition:opacity .5s ease}
     #centre text{font-family:${FONT}}
     #sw{opacity:0;transition:opacity .5s ease}
@@ -54,7 +55,7 @@
     @keyframes pop{0%{transform:scale(0)}60%{transform:scale(1.35)}100%{transform:scale(1)}}`;
   document.head.appendChild(style);
   document.body.innerHTML = `
-    <div id="tv-view"><iframe id="app" name="app" src="about:blank"></iframe><div id="tv-spot"></div></div>
+    <div id="tv-view"><iframe name="app" src="about:blank"></iframe><iframe name="app2" src="about:blank"></iframe><div id="tv-spot"></div></div>
     <div id="tv-journey"><ol>${C.steps.map((s) => `<li><i></i>${s}</li>`).join("")}</ol></div>
     <div id="tv-cap"></div>
     <div id="tv-cur"><svg viewBox="0 0 24 24" width="26" height="26"><path d="M4 2l16 9-7 1.5L17 21l-3 1-4-8.5L4 18z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
@@ -107,24 +108,29 @@
         const p = el("path", { d: arc(cx, cy, r, a0, a0 + 90), fill: "none", stroke: RING, "stroke-opacity": 0.3, "stroke-width": 3, "stroke-linecap": "butt" }, g);
         const len = p.getTotalLength();
         p.style.strokeDasharray = len; p.style.strokeDashoffset = len;
-        p.style.transition = `stroke-dashoffset 1.1s cubic-bezier(.3,0,.2,1) ${120 + i * 160 + q * 40}ms, stroke-width 1.5s ${EASE}, stroke-opacity 1.5s ${EASE}, opacity .9s ease`;
+        p.style.transition = `stroke-dashoffset .9s cubic-bezier(.3,0,.2,1) ${100 + i * 130 + q * 35}ms, stroke-width 1.25s ${EASE}, stroke-opacity 1.25s ${EASE}, opacity .8s ease`;
         rings.push(p); (q === 0 ? keep : other).push(p);
       });
     });
     const [tx, ty] = pt(cx, cy, RO, -30);
     const sweep = el("path", { id: "sw", d: `M${cx} ${cy}L${cx} ${cy - RO}A${RO} ${RO} 0 0 1 ${tx} ${ty}Z`, fill: "url(#swg)" }, g);
     let arena = null;
+    const items = [];
     blips.forEach((b, i) => {
       const bx = cx + b.u * s, by = cy + b.v * s, left = b.u < 0;
       const bg = el("g", { class: "blip", transform: `translate(${bx} ${by})` }, g);
-      bg.style.animationDelay = `${0.9 + i * 0.28}s`;
-      const dot = el("circle", { class: "dot", r: b.big ? 11 : 7, fill: PINK }, bg);
-      const pulse = el("circle", { class: "pulse", r: b.big ? 11 : 7, fill: "none", stroke: PINK, "stroke-width": 2 }, bg);
-      pulse.style.animationDelay = `${0.9 + i * 0.28}s`;
-      const t1 = el("text", { x: left ? -20 : 20, y: b.big ? -6 : 8, "text-anchor": left ? "end" : "start", fill: INK, "font-size": b.big ? 30 : 24, "font-weight": b.big ? 600 : 500 }, bg); t1.textContent = b.name;
-      fade.push(pulse, t1);
-      if (b.sub) { const t2 = el("text", { x: left ? -20 : 20, y: 26, "text-anchor": left ? "end" : "start", fill: RING, "font-size": 22 }, bg); t2.textContent = b.sub; fade.push(t2); }
+      const delay = `${0.5 + i * 0.09}s`;
+      bg.style.animationDelay = delay;
+      const r = b.big ? 11 : b.name ? 7 : 5;
+      const dot = el("circle", { class: "dot", r, fill: PINK, "fill-opacity": b.name ? 1 : 0.75 }, bg);
+      const pulse = el("circle", { class: "pulse", r, fill: "none", stroke: PINK, "stroke-width": 2 }, bg);
+      pulse.style.animationDelay = delay;
+      fade.push(pulse);
+      const item = { b, dot, pulse };
+      if (b.name) { const t1 = el("text", { x: left ? -20 : 20, y: b.big || b.small ? -6 : 8, "text-anchor": left ? "end" : "start", fill: INK, "font-size": b.big ? 30 : 24, "font-weight": b.big ? 600 : 500 }, bg); t1.textContent = b.name; fade.push(t1); item.t1 = t1; }
+      if (b.sub) { const t2 = el("text", { x: left ? -20 : 20, y: 24, "text-anchor": left ? "end" : "start", fill: RING, "font-size": 22 }, bg); t2.textContent = b.sub; fade.push(t2); item.t2 = t2; if (b.small) { t2.style.opacity = 0; t2.style.transition = "opacity .5s ease"; } }
       if (b.big && !arena) arena = dot; else fade.push(dot);
+      items.push(item);
     });
     const centre = el("g", { id: "centre", transform: `translate(${cx} ${cy})` }, g);
     el("circle", { r: 9, fill: INK }, centre);
@@ -133,9 +139,20 @@
     fade.push(centre);
     reflow(svg);
     rings.forEach((p) => (p.style.strokeDashoffset = 0));
-    setTimeout(() => { sweep.style.opacity = 1; }, 900);
+    setTimeout(() => { sweep.style.opacity = 1; }, 700);
     sw.speed = -72; sw.park = null;
-    R = { cx, cy, s, svg, g, sweep, fade, rings, keep, other, arena };
+    R = { cx, cy, s, svg, g, sweep, fade, rings, keep, other, arena, items };
+  }
+  // Small crowds count too: the small venues light up one by one with their own line, the arena steps back.
+  async function small() {
+    if (!R) return;
+    R.items.filter((it) => it.b.big).forEach((it) => { [it.t1, it.t2].forEach((t) => { if (t) { t.style.transition = "opacity .6s ease"; t.style.opacity = 0.45; } }); });
+    for (const it of R.items.filter((it) => it.b.small)) {
+      it.dot.style.transition = "r .35s cubic-bezier(.2,.8,.2,1), opacity .3s ease"; it.dot.style.r = "10px";
+      it.pulse.style.animation = "none"; reflow(it.pulse); it.pulse.style.animation = "pulse 1.6s ease-out 2";
+      if (it.t2) it.t2.style.opacity = 1;
+      await sleep(260);
+    }
   }
 
   // The app's header lockup, kept as markup so the stage can draw it at any size with the same geometry.
@@ -176,10 +193,10 @@
 
   // The rings collapse into the mark, the sweep becomes the needle, the door draws, the word
   // writes itself: the radar of the street becomes the logo, centred, at K times the header size.
-  async function morph({ center, K }) {
+  async function morph({ center, K, keepLine = false }) {
     const { cx, cy, s, g } = R, f = K / s;
     const toX = center[0] - (logo.w0 * K) / 2 + logo.hx * K, toY = center[1] - (logo.h0 * K) / 2 + logo.hy * K;
-    line("");
+    if (!keepLine) line("");
     R.fade.forEach((e) => { if (e.classList.contains("pulse")) e.style.animation = "none"; e.style.opacity = 0; });
     await sleep(120);
     park(1300);
@@ -188,35 +205,35 @@
     g.style.transform = `translate(${toX - cx}px, ${toY - cy}px) scale(${f})`;
     R.rings.forEach((p) => { p.style.strokeWidth = s + "px"; p.style.strokeOpacity = 1; });
     if (R.arena) R.arena.style.r = 1.3 * s + "px";
-    await sleep(400);
+    await sleep(350);
     R.other.forEach((p) => (p.style.opacity = 0));
-    await sleep(1000);
+    await sleep(800);
     parts.rings.style.opacity = 1;
-    await sleep(260);
+    await sleep(220);
     R.keep.forEach((p) => (p.style.opacity = 0));
     R.sweep.style.opacity = 0;
     parts.structure.style.opacity = 1; parts.structure.style.transform = "scale(1)";
     parts.trail.forEach((p) => (p.style.opacity = 1));
-    await sleep(300);
+    await sleep(260);
     parts.blip.style.opacity = 1; parts.blip.style.animation = "pop .45s cubic-bezier(.3,0,.2,1) forwards";
     if (R.arena) R.arena.style.opacity = 0;
-    await sleep(200);
-    parts.strokes.forEach((p, i) => { p.style.transition = `stroke-dashoffset .75s cubic-bezier(.3,0,.2,1) ${i * 70}ms, stroke .9s ease`; p.style.strokeDashoffset = 0; });
-    await sleep(1250);
+    await sleep(160);
+    parts.strokes.forEach((p, i) => { p.style.transition = `stroke-dashoffset .65s cubic-bezier(.3,0,.2,1) ${i * 60}ms, stroke .9s ease`; p.style.strokeDashoffset = 0; });
+    await sleep(1050);
     parts.solids.forEach((p) => (p.style.opacity = 1));
-    await sleep(450);
+    await sleep(350);
   }
 
   // The lockup flies into the app's header while the stage clears: same geometry, so it lands on the real logo.
   async function fly(rect) {
     const L = $("tv-logo");
-    L.style.transition = `transform 1300ms cubic-bezier(.75,0,.2,1)`;
+    L.style.transition = `transform 1100ms cubic-bezier(.75,0,.2,1)`;
     L.style.transform = `translate(${rect.x - logo.left}px, ${rect.y - logo.top}px) scale(${rect.width / (logo.w0 * logo.K)})`;
     await sleep(300);
     L.style.setProperty("--mark-ring", "#927798"); L.style.setProperty("--mark-ink", "#3B1C42"); L.style.setProperty("--mark-needle", "#84204D");
     await sleep(150);
     $("tv-stage").classList.add("off");
-    await sleep(950);
+    await sleep(850);
     $("tv-stage").style.display = "none";
     L.style.opacity = 0; L.innerHTML = "";
     R = null;
@@ -243,9 +260,11 @@
   function unspot() { $("tv-spot").style.opacity = 0; }
   function cursor(x, y) { $("tv-cur").style.transform = `translate(${x - 2}px,${y - 2}px)`; }
   function drift(x, y, ms, scale) { const v = $("tv-view"); v.style.transition = `transform ${ms}ms cubic-bezier(.3,0,.7,1)`; v.style.transformOrigin = `${x}px ${y}px`; v.style.transform = `scale(${scale})`; }
-  function undrift() { const v = $("tv-view"); v.style.transition = `transform 1100ms ${EASE}`; v.style.transform = "scale(1)"; }
-  function dim() { $("app").classList.remove("on"); }
-  function show() { $("app").classList.add("on"); }
+  function undrift() { const v = $("tv-view"); v.style.transition = `transform 800ms ${EASE}`; v.style.transform = "scale(1)"; }
+  // Two frames: the next page loads in the hidden one while the current one is on screen.
+  const frames = () => [...document.querySelectorAll("#tv-view iframe")];
+  function dim() { frames().forEach((f) => f.classList.remove("on")); }
+  function show(name = "app") { frames().forEach((f) => { const on = f.name === name; f.classList.toggle("on", on); f.style.zIndex = on ? 2 : 1; }); }
 
-  window.tv = { intro, setLogo, morph, fly, stageOn, line, count, tag, cap, journey, step, spot, unspot, cursor, drift, undrift, dim, show };
+  window.tv = { intro, small, setLogo, morph, fly, stageOn, line, count, tag, cap, journey, step, spot, unspot, cursor, drift, undrift, dim, show };
 })();

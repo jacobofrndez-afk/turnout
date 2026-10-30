@@ -19,13 +19,15 @@ const HERO = process.env.HERO ?? "m_penn_pour";
 const BOARD_TEXT = process.env.BOARD_TEXT ?? "Before Harry? Two cocktails, one price.";
 const HOOK_COUNT = Number(process.env.HOOK_COUNT ?? 20000);
 // Blips in units of the mark (the hinge is the merchant); the big one sits where the mark's own blip is.
+// Scattered over the whole frame, beyond the rings too; unnamed ones are small dots.
 const BLIPS = JSON.parse(process.env.BLIPS ?? "null") ?? [
   { name: "Arena", sub: "20,000 seats · 2 blocks · out 10:45 pm", u: 16, v: -10, big: true },
-  { name: "Theatre", u: -15, v: -10 },
-  { name: "Stadium", u: -19, v: 4 },
-  { name: "Jazz club", u: 9, v: 13 },
-  { name: "Concert hall", u: -7, v: 17 },
-  { name: "Festival", u: 4, v: -19 },
+  { u: -44, v: -20 }, { name: "Theatre", u: -15, v: -10 }, { u: 46, v: 2 },
+  { name: "Stadium", u: -31, v: 6 }, { u: 20, v: -22 }, { name: "Jazz club", sub: "80 people · next door · out 11 pm", u: 9, v: 13, small: true },
+  { u: -45, v: 14 }, { name: "Festival", u: 4, v: -20 }, { name: "Comedy club", sub: "200 seats · 5 min · out 10:30 pm", u: 28, v: 9, small: true },
+  { u: -22, v: -22 }, { name: "Concert hall", u: -8, v: 18 }, { u: 44, v: -22 },
+  { name: "Opera house", u: -36, v: -13 }, { u: -7, v: -4 }, { name: "Cinema", sub: "Late show · 300 seats · out 9:50 pm", u: -30, v: -17, small: true },
+  { u: -28, v: 19 }, { name: "Club", u: 24, v: 17 }, { u: 11, v: 4 }, { u: 41, v: 19 },
 ];
 const STEPS = ["The crowd", "Who they are", "The offer", "Your words", "Approve", "Out the door"];
 const LINES = JSON.parse(readFileSync(join(OUT, "voice/lines.json"), "utf8"));
@@ -56,7 +58,7 @@ const browser = await chromium.launch({ channel: "chrome", headless: true, args:
     await p.goto(`${BASE}/today?merchant=${HERO}`, { waitUntil: "networkidle" });
     const own = p.getByRole("button", { name: /Make your own version/ });
     if (await own.count()) await own.first().click(); else await p.locator('a[href*="/campaigns/camp_"]').first().click();
-    await p.waitForURL(/\/campaigns\/camp_/, { timeout: 30000 });
+    await p.waitForURL(/\/campaigns\/camp_/, { timeout: 90000 });
     CAMPAIGN = new URL(p.url()).pathname.split("/")[2];
     console.log("draft", CAMPAIGN);
   }
@@ -76,9 +78,10 @@ await context.addInitScript((z) => {
 const page = await context.newPage();
 await page.goto(`${BASE}/api/health`);
 await page.setContent(SHELL, { waitUntil: "load" });
-const app = page.frame({ name: "app" });
-if (!app) throw new Error("app frame missing");
-const t0 = Date.now();
+// Two app frames: `app` is on screen, `next` loads the following page behind it; swap() crossfades.
+let app = page.frame({ name: "app" }), next = page.frame({ name: "app2" });
+if (!app || !next) throw new Error("app frames missing");
+let t0 = Date.now();
 const now = () => (Date.now() - t0) / 1000;
 const marks = [];
 const tv = (fn, ...args) => page.evaluate(({ fn, args }) => window.tv[fn](...args), { fn, args });
@@ -98,16 +101,30 @@ async function cue(id, where = "cap", html) {
 // Time left until the line ends (never negative), to pace what happens while it plays.
 const left = (id, minMs = 0) => Math.max(minMs, (start(id) + L[id].duration - now()) * 1000);
 
+// Load a page into the hidden frame, wait for fonts and for React to be live (hydrated).
 async function load(path) {
-  await app.goto(BASE + path, { waitUntil: "load" });
-  await app.waitForLoadState("networkidle", { timeout: 4000 }).catch(() => {});
-  await app.evaluate(() => document.fonts.ready);
-  await app.evaluate(() => scrollTo(0, 0));
+  await next.goto(BASE + path, { waitUntil: "load" });
+  await next.waitForLoadState("networkidle", { timeout: 4000 }).catch(() => {});
+  await next.evaluate(() => document.fonts.ready);
+  await live(next, "main button, main textarea");
+  await next.evaluate(() => scrollTo(0, 0));
+  return next;
 }
-async function dim() { await tv("dim"); await sleep(470); }
-async function show() { await tv("show"); await sleep(480); }
-async function scrollTo(y, ms = 1000) {
-  await app.evaluate(([y, ms]) => new Promise((res) => {
+// Wait until React has attached its handlers to the matching elements (selective hydration can lag the header).
+async function live(f, selector, ms = 20000) {
+  const t = Date.now();
+  while (Date.now() - t < ms) {
+    const ok = await f.evaluate((sel) => { const els = [...document.querySelectorAll(sel)]; return els.length > 0 && els.every((e) => Object.keys(e).some((k) => k.startsWith("__reactProps"))); }, selector).catch(() => false);
+    if (ok) return true;
+    await sleep(200);
+  }
+  console.error("not hydrated after", ms, "ms:", selector);
+  return false;
+}
+// Crossfade from the page on screen to the one loaded behind it.
+async function swap() { await tv("dim"); await sleep(420); [app, next] = [next, app]; await tv("show", app.name()); await sleep(420); }
+async function scrollTo(y, ms = 1000, f = app) {
+  await f.evaluate(([y, ms]) => new Promise((res) => {
     const s = scrollY, d = Math.max(0, y) - s, t0 = performance.now();
     if (!ms) { window.scrollTo(0, Math.max(0, y)); return res(); }
     const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
@@ -115,8 +132,9 @@ async function scrollTo(y, ms = 1000) {
     requestAnimationFrame(f);
   }), [y, ms]);
 }
-async function topOf(locator) { const b = await locator.first().boundingBox(); const sy = await app.evaluate(() => scrollY); return b ? b.y + sy : 0; }
-async function bring(locator, offset = 120, ms = 1000) { await scrollTo((await topOf(locator)) - offset, ms); await sleep(ms ? 150 : 50); }
+// Document position inside the frame, unaffected by any transform of the view around it.
+async function topOf(locator) { return locator.first().evaluate((el) => el.getBoundingClientRect().top + scrollY).catch(() => 0); }
+async function bring(locator, offset = 120, ms = 800, f = app) { await scrollTo((await topOf(locator)) - offset, ms, f); await sleep(ms ? 150 : 50); }
 async function moveTo(locator) {
   const b = await locator.first().boundingBox(); if (!b) return;
   const x = b.x + b.width / 2, y = b.y + Math.min(b.height / 2, 24);
@@ -124,7 +142,12 @@ async function moveTo(locator) {
   await page.mouse.move(x, y, { steps: 28 });
   await sleep(320);
 }
-async function click(locator) { await moveTo(locator); await page.mouse.down(); await sleep(80); await page.mouse.up(); }
+async function click(locator) {
+  await moveTo(locator);
+  const b = await locator.first().boundingBox();
+  if (b) console.log("click at", Math.round(b.x + b.width / 2), Math.round(b.y + Math.min(b.height / 2, 24)), "hits", await page.evaluate(([x, y]) => { const e = document.elementFromPoint(x, y); const st = document.getElementById("tv-stage"); return (e ? e.tagName + " " + (e.getAttribute("name") || e.id || e.className || "") : "nothing") + " · stage " + getComputedStyle(st).display + "/" + getComputedStyle(st).opacity + " · on=" + [...document.querySelectorAll("#tv-view iframe.on")].map((f) => f.name).join(","); }, [b.x + b.width / 2, b.y + Math.min(b.height / 2, 24)]), "frame", locator._frame?.name?.() ?? "?");
+  await page.mouse.down(); await sleep(80); await page.mouse.up();
+}
 // The spotlight covers whole blocks (cards, sections), never a run of text, so edges never cut a line.
 async function spot(pad, ...locators) {
   const boxes = (await Promise.all(locators.map((l) => l.first().boundingBox()))).filter(Boolean);
@@ -135,29 +158,33 @@ async function spot(pad, ...locators) {
 }
 async function unspot() { await tv("unspot"); }
 async function drift(locator, ms = 7000, scale = 1.04) { const b = await locator.first().boundingBox(); if (!b) return; await tv("drift", b.x + b.width / 2, b.y + b.height / 2, ms, scale); }
-async function undrift() { await tv("undrift"); await sleep(1100); }
+async function undrift() { await tv("undrift"); await sleep(120); }
 const hookHtml = (t) => t.replace(/twenty[- ]thousand/i, '<b id="num">0</b>').replace(/ten forty[- ]five/i, "<b>10:45 pm</b>");
 
 try {
   // Today loads in the dark, under the stage; the header lockup is cloned for the morph.
   await load(`/today?merchant=${HERO}`);
+  [app, next] = [next, app];
   const lockup = app.locator(".turnout-wordmark svg.turnout-logo-wide").first();
   await tv("setLogo", await lockup.evaluate((e) => e.outerHTML));
   const lockupRect = await lockup.boundingBox();
-  await tv("show");
+  await tv("show", app.name());
 
-  // The crowd, on the radar.
+  // The crowd, on the radar. The narration clock starts here.
+  t0 = Date.now();
   await tv("intro", RADAR);
   await cue("hook1", "line");
   await cue("hook2", "line", hookHtml(L.hook2.text));
-  await sleep(300); await tv("count", HOOK_COUNT, 1200);
+  await sleep(300); await tv("count", HOOK_COUNT, 1000);
+  await cue("small", "line", L.small.text.replace(/eighty/i, "<b>80</b>"));
+  await tv("small");
   await cue("hook3", "line");
   await sleep(left("hook3", 0));
 
   // The radar becomes the logo, then the logo takes its place in the product.
   await cue("radar1", "none");
   await tv("morph", LOGO);
-  await sleep(350);
+  await sleep(250);
   await cue("radar2", "cap");
   await tv("fly", lockupRect);
   await tv("journey", true);
@@ -165,7 +192,7 @@ try {
 
   // Tonight's crowd.
   const occasion = app.locator(".agent-opportunity").first();
-  await bring(occasion, 150, 900);
+  await bring(occasion, 150, 800);
   await spot(16, occasion);
   await drift(occasion, 6500);
   await cue("today");
@@ -176,7 +203,7 @@ try {
   const heading = app.locator(".agent-decision-heading").first();
   const evidence = app.locator(".agent-evidence").first();
   const cards = app.locator(".agent-offer-comparison").first();
-  await bring(heading, 140, 1000);
+  await bring(heading, 140, 800);
   await tv("step", 1);
   await spot(16, heading, (await evidence.count()) ? evidence : cards);
   await cue("profile");
@@ -185,34 +212,36 @@ try {
   await spot(14, cards);
   await drift(cards, 7000, 1.05);
   await cue("pick");
+  const preCampaign = load(`/campaigns/${CAMPAIGN}?merchant=${HERO}`);   // behind the Today page
   await sleep(left("pick", 0) - 1100);
   await undrift();
   await unspot();
   await tv("cap", "");
 
-  // Your words: the campaign page, the board rewriting itself.
-  await dim();
-  await load(`/campaigns/${CAMPAIGN}?merchant=${HERO}`);
-  const editor = app.locator(".agent-board-editor").first();
+  // Your words: the campaign page is already loaded behind; place it, then crossfade.
+  await preCampaign;
+  const editor = next.locator(".agent-board-editor").first();
   await editor.waitFor({ state: "visible", timeout: 15000 });
-  await bring(editor, 150, 0);
-  await show();
+  await bring(editor, 150, 0, next);
+  await swap();
   await tv("step", 3);
   await spot(16, editor);
   const chalk = (await editor.locator("textarea").count()) ? editor.locator("textarea").first() : app.locator("textarea").last();
   await cue("touch");
-  await sleep(700);
+  await live(app, "textarea");
+  await sleep(300);
   await click(chalk);
   await chalk.fill("");
   await sleep(200);
-  await chalk.pressSequentially(BOARD_TEXT, { delay: 40 });
+  await chalk.pressSequentially(BOARD_TEXT, { delay: 34 });
   await sleep(left("touch", 500));
   await unspot();
 
   // Approve.
   const review = app.getByRole("button", { name: /Review campaign/ });
-  await bring(review, 520, 900);
+  await bring(review, 520, 600);
   await tv("step", 4);
+  await live(app, "main button");
   await cue("approve");
   await click(review);
   const approve = app.getByRole("button", { name: /Approve/ });
@@ -231,21 +260,18 @@ try {
   const approved = await receipt.waitFor({ state: "visible", timeout: 30000 }).then(() => true).catch(() => false);
   if (!approved) console.error("approval did not show a receipt; continuing to the board");
   await tv("step", 5);
+  const preBoard = load(`/campaigns/${CAMPAIGN}/board`);   // behind the receipt
   const actions = app.locator(".agent-board-actions").first();
-  if (approved) { await bring(receipt, 150, 900); await spot(16, receipt, (await actions.count()) ? actions : receipt); }
+  if (approved) { await bring(receipt, 150, 800); await spot(16, receipt, (await actions.count()) ? actions : receipt); }
   await cue("receipt");
   await sleep(left("receipt", 0) - 1500);
   await unspot();
   await tv("cap", "");
-  const openBoard = app.locator('a[href$="/board"]').first();
-  await dim();
-  if (await openBoard.count()) { await openBoard.click(); await app.waitForURL(/\/board/, { timeout: 15000 }); await app.waitForLoadState("networkidle", { timeout: 4000 }).catch(() => {}); }
-  else await load(`/campaigns/${CAMPAIGN}/board`);
-  const board = app.locator(".campaign-board").first();
+  await preBoard;
+  const board = next.locator(".campaign-board").first();
   await board.waitFor({ state: "visible", timeout: 15000 });
-  await app.evaluate(() => document.fonts.ready);
-  await bring(board, 120, 0);
-  await show();
+  await bring(board, 120, 0, next);
+  await swap();
   await spot(18, board);
   await drift(board, 7500, 1.08);
   await cue("board");
@@ -257,10 +283,11 @@ try {
   await tv("stageOn");
   await tv("intro", RADAR);
   await cue("close1", "line", "Turnout. The right message,<br>to the right people, at the right moment.");
-  await sleep(left("close1", 0) + 300);
-  await tv("morph", LOGO);
+  await sleep(1600);
+  await tv("morph", { ...LOGO, keepLine: true });   // the logo forms while the promise is still spoken
+  await tv("line", "");
   await cue("close2", "tag");
-  await sleep(left("close2", 0) + 2200);
+  await sleep(left("close2", 0) + 1700);
 } catch (e) {
   console.error("recording stopped early:", e.message.split("\n")[0]);
 } finally {

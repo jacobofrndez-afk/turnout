@@ -33,7 +33,7 @@ test('Qloo selects the paid placement but never raises the bounded test cap',()=
  assert.equal(a.promotion.platform,'facebook');assert.equal(b.promotion.platform,'instagram');
  assert.equal(a.budgetUsd,25);assert.equal(b.budgetUsd,a.budgetUsd);assert.equal(a.promotion.radiusKm,b.promotion.radiusKm);
  assert.equal(recommendDistribution({...base,channelAffinity:music,dna:{...base.dna,dailyBudgetUsd:12}}).budgetUsd,12);
- const immediate=recommendDistribution({...base,startLocal:'2030-05-10T17:00',channelAffinity:music});
+ const immediate=recommendDistribution({...base,startLocal:'2030-05-10T15:00',channelAffinity:music});
  assert.ok(!immediate.channels.includes('geofenced_ad'));assert.equal(immediate.budgetUsd,15);
 });
 test('missing, unscored, stale and single-platform data cannot influence rankings',()=>{

@@ -37,3 +37,7 @@ test("custom changes are recognisable and the prepared plan remains available wi
  assert.equal(matchesDistribution(plan,plan.channels,plan.promotion,20),false);
  assert.equal(matchesDistribution(plan,["facebook"],plan.promotion,0),false);
 });
+test("a crowd four to six hours away still gets the local ad, with the short-lead cap",()=>{
+ const plan=recommendDistribution({...base,startLocal:"2030-05-10T19:00"});
+ assert.ok(plan.channels.includes("geofenced_ad"));assert.equal(plan.budgetUsd,15);assert.equal(plan.budgetBasis,"Short-lead test cap");
+});

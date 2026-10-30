@@ -13,7 +13,9 @@ export function recommendDistribution(context:ChannelContext & {distanceKm?:numb
   let hours=0;
   try {hours=(localTimeToInstant(context.startLocal,context.timezone)-context.now)/3600000;}catch{/* Invalid timing never enables a paid recommendation. */}
   const advance=hours>6,canPay=context.dna.channels.includes("geofenced_ad")&&context.dna.dailyBudgetUsd>=10;
-  const paid=advance&&canPay&&context.dna.goal!=="regulars";
+  // A geo-targeted ad is how the crowd outside gets reached: proposed whenever the place allows paid media and there are more
+  // than four hours to brief a creative and pass platform review. Closer than that, the existing audience is the realistic reach.
+  const paid=hours>4&&canPay&&context.dna.goal!=="regulars";
   const placement=strategy.find(c=>c.channel==="facebook"||c.channel==="instagram")!;
   const distance=Number.isFinite(context.distanceKm)&&context.distanceKm!>=0?context.distanceKm!:0;
   const requested=Math.max(advance?2:1,distance);

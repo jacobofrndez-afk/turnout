@@ -1,5 +1,5 @@
 import { recentlyChecked } from "@/lib/event-evidence";
-import { isCrowdEvent } from "./concentration";
+import { isCrowdEvent, presenceWindow } from "./concentration";
 import type { RadarItem } from "./radar";
 
 // The agenda is ordered by the published start time, never by a prepared demo campaign or a guessed headcount.
@@ -8,6 +8,7 @@ export function scheduledAgenda(items: RadarItem[], now = Date.now()): RadarItem
     (event.origin ?? "ticketmaster") === "ticketmaster" &&
     recentlyChecked(event.meta, now) && isCrowdEvent(event) &&
     !["cancelled", "canceled", "postponed"].includes(event.status?.toLowerCase() ?? "") &&
-    Date.parse(event.startsAt) >= now,
+    // A show that has started is still tonight's crowd: it stays until the let-out window has passed.
+    presenceWindow(event).leave > now,
   ).sort((a, b) => Date.parse(a.event.startsAt) - Date.parse(b.event.startsAt) || a.distanceKm - b.distanceKm || a.event.id.localeCompare(b.event.id));
 }

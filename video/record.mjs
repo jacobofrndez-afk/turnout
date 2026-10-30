@@ -82,6 +82,8 @@ const rec0 = Date.now();   // the screencast starts with the page; the narration
 await page.goto(`${BASE}/api/health`);
 await page.setContent(SHELL, { waitUntil: "load" });
 // Two app frames: `app` is on screen, `next` loads the following page behind it; swap() crossfades.
+const displayFont = await page.evaluate(() => document.fonts.load('800 100px "Big Shoulders Display"').then(() => document.fonts.check('800 100px "Big Shoulders Display"')).catch(() => false));
+console.log("display font", displayFont ? "loaded" : "fallback");
 let app = page.frame({ name: "app" }), next = page.frame({ name: "app2" });
 if (!app || !next) throw new Error("app frames missing");
 let t0 = Date.now();
@@ -213,8 +215,8 @@ try {
   await cue("small", "line", "Or <b>80</b> people out of a jazz club.");
   fx("ping-soft", 0.05); fx("ping-soft", 0.31); fx("ping-soft", 0.57);
   await tv("small");
-  const ecc = (L.hook1.cues ?? []).find((c) => /every crowd counts/i.test(c.text));
-  if (ecc) { const w = (start("hook1") + ecc.start - 0.15 - now()) * 1000; if (w > 0) await sleep(w); await tv("line", "<b>Every crowd counts.</b>"); }
+  const ecc = (L.hook1.cues ?? []).find((c) => /yours to win/i.test(c.text));
+  if (ecc) { const w = (start("hook1") + ecc.start - 0.15 - now()) * 1000; if (w > 0) await sleep(w); await tv("line", '<span class="tv-big">Every crowd is yours to win.</span>'); }
   await cue("hook3", "line");
   await sleep(left("hook3", 0));
 
@@ -287,15 +289,17 @@ try {
   await sleep(left("channels", 0) - 1500);
   await unspot();
 
-  // Approve: the review opens under the end of the sentence, "One tap." lands on the click.
+  // Approve: the review opens behind a short fade, the Approve button already in place when the page returns.
   const review = app.getByRole("button", { name: /Review campaign/ });
-  await bring(review, 520, 600);
   await live(app, "main button");
+  await bring(review, 520, 0);
+  await tv("fade", app.name(), 0); await sleep(450);
   await click(review);
   const approve = app.getByRole("button", { name: /Approve/ });
   await approve.waitFor({ state: "visible", timeout: 15000 });
-  await sleep(150);
-  await bring(approve, 520, 500);
+  await bring(approve, 480, 0);
+  await sleep(120);
+  await tv("fade", app.name(), null); await sleep(450);
   await tv("step", 5);
   await spot(12, approve);
   await moveTo(approve);
@@ -332,7 +336,7 @@ try {
   await collapsing;
   // The promise, one statement at a time over the radar; then the logo alone; then one signature.
   // The promise, three statements that light up on their words and stay on screen together.
-  const STACK = ["Right <b>place</b>.", "Right <b>hour</b>.", "Right <b>people</b>."];
+  const STACK = ["The right <b>place</b>.", "At the right <b>hour</b>.", "For the right <b>people</b>."];
   await tv("dimRadar", 0.2);
   await tv("stack", STACK, 0);
   await cue("close1", "none");

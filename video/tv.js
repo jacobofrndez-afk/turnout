@@ -8,6 +8,8 @@
   const PINK = "#E6A4C2", RING = "#C4AECA", INK = "#F6F1F8";
   const EASE = "cubic-bezier(.7,0,.2,1)";
 
+  const link = document.createElement("link"); link.rel = "stylesheet"; link.href = "https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&display=swap"; document.head.appendChild(link);
+  const DISPLAY = `"Big Shoulders Display", ${FONT}`;
   const style = document.createElement("style");
   style.textContent = `
     html,body{margin:0;width:${VW}px;height:${VH}px;overflow:hidden;background:${DARK};font-family:${FONT};color:${INK}}
@@ -48,16 +50,17 @@
     #tv-line{position:absolute;left:50%;bottom:86px;transform:translate(-50%,10px);width:1500px;text-align:center;font:600 54px/1.15 ${FONT};letter-spacing:-.005em;opacity:0;transition:opacity .5s ease,transform .5s ease}
     #tv-line.on{opacity:1;transform:translate(-50%,0)}
     #tv-line b{color:${PINK};font-weight:700}
+    #tv-line .tv-big{display:block;font:800 92px/1.05 ${DISPLAY};text-transform:uppercase;letter-spacing:.02em;color:${PINK}}
     .tv-flash{position:absolute;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;background:radial-gradient(circle,rgba(246,241,248,.95) 0%,rgba(230,164,194,.55) 35%,rgba(230,164,194,0) 70%);transform:scale(.2);opacity:1;transition:transform 1.3s cubic-bezier(.2,.8,.2,1),opacity 1.3s ease}
     .tv-flash.on{transform:scale(26);opacity:0}
     #tv-punch{position:absolute;left:50%;top:50%;transform:translate(-50%,-46%) scale(.9);width:1600px;text-align:center;font:700 84px/1.1 ${FONT};letter-spacing:-.015em;color:${INK};opacity:0;transition:opacity .22s ease,transform .3s cubic-bezier(.2,.9,.2,1)}
     #tv-punch.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
     #tv-punch b{color:${PINK};font-weight:700}
-    #tv-stack{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:1600px;text-align:center;font:700 86px/1.25 ${FONT};letter-spacing:-.015em;opacity:0;transition:opacity .5s ease}
+    #tv-stack{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:1700px;text-align:center;font:800 124px/1.0 ${DISPLAY};text-transform:uppercase;letter-spacing:.015em;opacity:0;transition:opacity .5s ease}
     #tv-stack.on{opacity:1}
-    #tv-stack div{color:rgba(246,241,248,.22);transform:translateY(10px) scale(.96);transition:color .35s ease,transform .4s cubic-bezier(.2,.9,.2,1)}
-    #tv-stack div.lit{color:${INK};transform:none}
-    #tv-stack div b{color:inherit;font-weight:700;transition:color .35s ease}
+    #tv-stack div{color:rgba(246,241,248,.14);transform:translateY(14px) scale(.97);transition:color .4s ease,transform .5s cubic-bezier(.2,.9,.2,1),text-shadow .6s ease}
+    #tv-stack div.lit{color:${INK};transform:none;text-shadow:0 0 40px rgba(230,164,194,.25)}
+    #tv-stack div b{color:inherit;font-weight:800;transition:color .4s ease}
     #tv-stack div.lit b{color:${PINK}}
     #tv-tag{position:absolute;left:50%;transform:translate(-50%,14px);width:1600px;text-align:center;font:500 46px/1.2 ${FONT};letter-spacing:-.005em;color:${RING};opacity:0;transition:opacity .7s ease,transform .8s cubic-bezier(.2,.8,.2,1)}
     #tv-tag b{color:${PINK};font-weight:600}
@@ -327,7 +330,9 @@
     L.style.transformOrigin = "50% 50%"; L.style.transition = "transform 3.2s cubic-bezier(.2,.6,.2,1)"; L.style.transform = "scale(1.035)";
     const t = $("tv-tag"); t.style.transition = "opacity .7s ease, transform 3.2s cubic-bezier(.2,.6,.2,1)"; t.style.transform = "translate(-50%,6px)";
   }
+  // Fade the frame on screen without taking its pointer events away (for a change inside the same page).
+  function fade(name, o) { const f = frames().find((x) => x.name === name); if (f) f.style.opacity = o === null ? "" : String(o); }
   function show(name = "app") { frames().forEach((f) => { const on = f.name === name; f.classList.toggle("on", on); f.style.zIndex = on ? 2 : 1; }); }
 
-  window.tv = { intro, small, setLogo, morph, fly, stageOn, collapse, finale, line, punch, stack, dimRadar, count, tag, cap, journey, step, spot, unspot, cursor, drift, undrift, dim, show, swap };
+  window.tv = { intro, small, setLogo, morph, fly, stageOn, collapse, finale, line, punch, stack, dimRadar, count, tag, cap, journey, step, spot, unspot, cursor, drift, undrift, dim, show, swap, fade };
 })();

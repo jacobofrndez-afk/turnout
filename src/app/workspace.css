@@ -488,3 +488,7 @@ body:has(.workspace-nav a[aria-current=page]) main:not(.identity-page):not(.app-
 @media print{.workflow-actions,.workflow-page-heading{display:none!important}.agent-workflow{animation:none!important}.workflow-editor.agent-editor{display:block}}
 /* A short landscape viewport needs its full height for the form. */
 @media(max-height:600px){.workflow-actions{position:static;backdrop-filter:none}.workflow-page-heading{margin-bottom:18px}.agent-workflow .agent-stage-heading{margin-bottom:18px}}
+.workflow-editor summary::after{display:none}
+.workflow-timing summary>.ui-icon,.workflow-channel-reason summary>.ui-icon,.workflow-copy-detail summary>.ui-icon:last-child{transition:transform 180ms ease}
+.workflow-timing[open]>summary>.ui-icon,.workflow-channel-reason[open]>summary>.ui-icon,.workflow-copy-detail[open]>summary>.ui-icon:last-child{transform:rotate(90deg)}
+@media(prefers-reduced-motion:reduce){.workflow-editor summary>.ui-icon{transition:none}}

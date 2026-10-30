@@ -1,11 +1,12 @@
 // One narration, told as one night. Lines that play over the same screen are spoken as one
-// continuous clip, so the voice flows instead of restarting at every sentence; the pauses inside
-// the clip are measured and give each line its start, so the picture still follows every
-// sentence. A new clip starts only where the scene changes (gapBefore, seconds).
-// Output: out/voice/<group>.mp3 and out/voice/lines.json (flat lines with group, file, offset,
-// duration, first, gapBefore, groupDuration).
+// continuous clip, so the voice flows instead of restarting at every sentence. edge-tts writes
+// the sentence timings of each clip (SRT); they give every line its start inside the clip and
+// the subtitles their cues, so the picture and the captions follow the words. A new clip starts
+// only where the scene changes (gapBefore, seconds).
+// Output: out/voice/<group>.mp3 + .srt and out/voice/lines.json (flat lines with group, file,
+// offset, duration, first, gapBefore, groupDuration; the first line of a clip carries its cues).
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 const here = dirname(fileURLToPath(import.meta.url));
@@ -41,38 +42,80 @@ const RATE = process.env.RATE ?? "+14%";
 mkdirSync(join(here, "out/voice"), { recursive: true });
 
 const probe = (file) => parseFloat(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]).toString());
-// Silences inside the clip (start, end), from ffmpeg's silencedetect.
+const norm = (s) => s.replace(/\s+/g, " ").trim();
+const secs = (hms) => { const [h, m, rest] = hms.split(":"); const [s, ms] = rest.split(","); return +h * 3600 + +m * 60 + +s + +ms / 1000; };
+// Sentence cues from the SRT edge-tts writes next to the audio.
+function sentences(srt) {
+  return srt.split(/\r?\n\r?\n/).map((b) => b.trim().split(/\r?\n/)).filter((l) => l.length >= 3 && /-->/.test(l[1]))
+    .map((l) => { const [a, b] = l[1].split("-->").map((x) => secs(x.trim())); return { start: a, end: b, text: norm(l.slice(2).join(" ")) }; });
+}
+// Silences inside the clip, the fallback when the sentences cannot be matched to the lines.
 function silences(file) {
   const r = spawnSync("ffmpeg", ["-hide_banner", "-i", file, "-af", "silencedetect=noise=-33dB:d=0.12", "-f", "null", "-"], { encoding: "utf8" });
   const starts = [...r.stderr.matchAll(/silence_start: ([0-9.]+)/g)].map((m) => +m[1]);
   const ends = [...r.stderr.matchAll(/silence_end: ([0-9.]+)/g)].map((m) => +m[1]);
   return starts.map((s, i) => ({ start: s, end: ends[i] ?? s }));
 }
+// Subtitle cues: one per sentence, long sentences split at a comma near the middle (time shared by length).
+function captionCues(sents, duration) {
+  const out = [];
+  for (const s of sents) {
+    const parts = [];
+    if (s.text.length > 62) {
+      const mid = s.text.length / 2;
+      let best = -1, bestD = 1e9;
+      for (const m of s.text.matchAll(/[,:;]\s/g)) { const d = Math.abs(m.index - mid); if (d < bestD) { bestD = d; best = m.index + 1; } }
+      if (best > 0) parts.push(s.text.slice(0, best).trim(), s.text.slice(best).trim());
+    }
+    if (!parts.length) parts.push(s.text);
+    let t = s.start;
+    const total = parts.reduce((a, p) => a + p.length, 0);
+    for (const p of parts) { const d = (s.end - s.start) * (p.length / total); out.push({ start: t, end: t + d, text: p }); t += d; }
+  }
+  // a cue stays up until the next one; the last one until the clip settles
+  return out.map((c, i) => ({ start: Math.max(0, c.start - 0.05), end: i + 1 < out.length ? out[i + 1].start - 0.05 : Math.min(duration, c.end + 0.3), text: c.text }));
+}
+
 const out = [];
 for (const g of GROUPS) {
-  const file = join(here, "out/voice", `${g.id}.mp3`);
+  const file = join(here, "out/voice", `${g.id}.mp3`), srt = join(here, "out/voice", `${g.id}.srt`);
   const text = g.lines.map((l) => l.text).join(" ");
-  try { execFileSync(join(here, ".venv/bin/edge-tts"), ["--voice", VOICE, `--rate=${RATE}`, "--text", text, "--write-media", file], { stdio: "pipe" }); }
+  try { execFileSync(join(here, ".venv/bin/edge-tts"), ["--voice", VOICE, `--rate=${RATE}`, "--text", text, "--write-media", file, "--write-subtitles", srt], { stdio: "pipe" }); }
   catch (e) { console.error(g.id, String(e.stderr).split("\n").filter(Boolean).slice(-2).join(" | ")); process.exit(1); }
   const duration = probe(file);
-  const sil = silences(file);
-  const lead = sil[0]?.start === 0 ? sil[0].end : 0;
-  const tail = sil.length && Math.abs(sil[sil.length - 1].end - duration) < 0.05 ? sil[sil.length - 1].start : duration;
-  const inner = sil.filter((s) => s.start > 0.2 && s.end < duration - 0.2 && !(s.start === 0));
-  // Each boundary between two lines is the inner silence nearest to where the text proportion puts it.
-  const chars = g.lines.map((l) => l.text.length), total = chars.reduce((a, b) => a + b, 0);
+  const sents = sentences(readFileSync(srt, "utf8"));
+  // Each line starts with the sentence whose text opens it; the sentences are consumed in order.
   const starts = [0];
-  let cum = 0, used = new Set();
-  for (let i = 0; i < g.lines.length - 1; i++) {
-    cum += chars[i];
-    const expected = lead + (cum / total) * (tail - lead);
-    const pick = inner.filter((s) => !used.has(s)).sort((a, b) => Math.abs((a.start + a.end) / 2 - expected) - Math.abs((b.start + b.end) / 2 - expected))[0];
-    if (pick) { used.add(pick); starts.push(pick.end - 0.04); } else starts.push(expected);
+  let p = 0, ok = sents.length > 0;
+  for (let i = 1; i < g.lines.length && ok; i++) {
+    let covered = "";
+    const target = norm(g.lines[i - 1].text);
+    while (p < sents.length && covered.length < target.length - 2) covered = norm(covered + " " + sents[p++].text);
+    if (p < sents.length && norm(g.lines[i].text).startsWith(sents[p].text.split(" ")[0])) starts.push(Math.max(0, sents[p].start - 0.04));
+    else ok = false;
   }
+  if (!ok) {
+    // fallback: the inner silence nearest to where the text proportion puts each boundary
+    starts.length = 1;
+    const sil = silences(file);
+    const lead = sil[0]?.start === 0 ? sil[0].end : 0;
+    const tail = sil.length && Math.abs(sil[sil.length - 1].end - duration) < 0.05 ? sil[sil.length - 1].start : duration;
+    const inner = sil.filter((s) => s.start > 0.2 && s.end < duration - 0.2);
+    const chars = g.lines.map((l) => l.text.length), total = chars.reduce((a, b) => a + b, 0);
+    let cum = 0; const used = new Set();
+    for (let i = 0; i < g.lines.length - 1; i++) {
+      cum += chars[i];
+      const expected = lead + (cum / total) * (tail - lead);
+      const pick = inner.filter((s) => !used.has(s)).sort((a, b) => Math.abs((a.start + a.end) / 2 - expected) - Math.abs((b.start + b.end) / 2 - expected))[0];
+      if (pick) { used.add(pick); starts.push(pick.end - 0.04); } else starts.push(expected);
+    }
+    console.error(g.id, "sentence match failed, used silences");
+  }
+  const cues = captionCues(sents, duration);
   g.lines.forEach((l, i) => {
     const offset = starts[i], next = i + 1 < starts.length ? starts[i + 1] : duration;
-    out.push({ id: l.id, text: l.text, group: g.id, file, first: i === 0, gapBefore: i === 0 ? g.gapBefore : 0, offset, duration: next - offset, groupDuration: duration });
-    console.log(l.id.padEnd(8), "at", offset.toFixed(2).padStart(5), "for", (next - offset).toFixed(2) + "s", i === 0 ? `(${g.id}, ${duration.toFixed(2)}s)` : "");
+    out.push({ id: l.id, text: l.text, group: g.id, file, first: i === 0, gapBefore: i === 0 ? g.gapBefore : 0, offset, duration: next - offset, groupDuration: duration, ...(i === 0 ? { cues } : {}) });
+    console.log(l.id.padEnd(8), "at", offset.toFixed(2).padStart(5), "for", (next - offset).toFixed(2) + "s", i === 0 ? `(${g.id}, ${duration.toFixed(2)}s, ${cues.length} cues)` : "");
   });
 }
 writeFileSync(join(here, "out/voice/lines.json"), JSON.stringify(out, null, 2));

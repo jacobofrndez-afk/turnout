@@ -87,6 +87,19 @@ if (!app || !next) throw new Error("app frames missing");
 let t0 = Date.now();
 const now = () => (Date.now() - t0) / 1000;
 const marks = [];
+const cuts = [];   // dead waits the mix removes (from, to in clock seconds)
+let capTimers = [];
+// Subtitles: short cues timed on the words of the clip, scheduled from the clip's real start.
+function captions(groupFirstId, startAt) {
+  capTimers.forEach(clearTimeout); capTimers = [];
+  const cues = L[groupFirstId].cues ?? [];
+  for (const c of cues) {
+    const ms = (startAt + c.start - now()) * 1000;
+    capTimers.push(setTimeout(() => tv("cap", c.text).catch(() => {}), Math.max(0, ms)));
+  }
+  const endMs = (startAt + (L[groupFirstId].groupDuration ?? L[groupFirstId].duration) + 0.35 - now()) * 1000;
+  capTimers.push(setTimeout(() => tv("cap", "").catch(() => {}), Math.max(0, endMs)));
+}
 const tv = (fn, ...args) => page.evaluate(({ fn, args }) => window.tv[fn](...args), { fn, args });
 
 // Wait for the narration clock, mark the real start, then show the line where asked.
@@ -96,7 +109,7 @@ async function cue(id, where = "cap", html) {
   if (wait > 0) await sleep(wait * 1000);
   const at = now();
   if (at - target > 0.05 && L[id].first !== false) shift += at - target;   // inside a clip the audio runs on; only a new clip can wait
-  if (where === "cap") await tv("cap", L[id].text);
+  if (where === "cap") { if (L[id].first !== false) captions(id, at); else if (!L[id].cues) await tv("cap", L[id].text); }
   else if (where === "line") await tv("line", html ?? L[id].text);
   else if (where === "tag") await tv("tag", L[id].text);
   marks.push({ id, planned: planned[id], at });
@@ -270,9 +283,11 @@ try {
   await tv("cursor", -200, -200);
   await sleep(left("approve", 300));
 
-  // Out the door: the receipt, then the board.
+  // Out the door: the receipt, then the board. A slow save is cut out of the film (see cuts).
   const receipt = app.locator(".agent-receipt-success").first();
+  const waitFrom = now();
   const approved = await receipt.waitFor({ state: "visible", timeout: 30000 }).then(() => true).catch(() => false);
+  if (now() - waitFrom > 1.1) cuts.push({ from: waitFrom + 0.45, to: now() - 0.05 });
   if (!approved) console.error("approval did not show a receipt; continuing to the board");
   await tv("step", 6);
   const preBoard = load(`/campaigns/${CAMPAIGN}/board`);   // behind the receipt
@@ -311,12 +326,12 @@ try {
   await sleep(left("close1", 0) + 350);
   await tv("punch", "");
   await sleep(200);
-  await tv("morph", LOGO);   // the radar brightens back as it collapses into the mark; the logo is complete before the last words
-  await cue("close2", "none");
-  await tv("tag", "Your marketing agent.");
-  await tv("finale");
-  await sleep(1450);
+  const morphing = tv("morph", LOGO);   // the radar brightens back as it collapses into the mark
+  await sleep(1900);                       // the word starts writing itself here
+  await cue("close2", "none");             // "Your marketing agent" over the writing, "Your call" on the signature
+  await morphing;
   await tv("tag", "Your marketing agent. Your call.");
+  await tv("finale");
   await sleep(left("close2", 0) + 2600);   // the film ends on this image
 } catch (e) {
   console.error("recording stopped early:", e.message.split("\n")[0]);
@@ -328,6 +343,7 @@ try {
   const target = join(OUT, "turnout-demo.webm");
   if (webm) { rmSync(target, { force: true }); renameSync(join(OUT, webm), target); console.log("recorded", target); }
   const lead = (t0 - rec0) / 1000;   // seconds of recording before the narration clock started
-  writeFileSync(join(OUT, "timeline.json"), JSON.stringify({ endAt, lead, marks }, null, 2));
+  writeFileSync(join(OUT, "timeline.json"), JSON.stringify({ endAt, lead, marks, cuts }, null, 2));
+  if (cuts.length) console.log("cuts", cuts.map((c) => (c.to - c.from).toFixed(1) + "s").join(", "));
   console.log("end", endAt.toFixed(1) + "s, clock shifted by", shift.toFixed(1) + "s");
 }

@@ -31,20 +31,18 @@ while pos < total:
     pos += bar
     i += 1
 # slow breathing on the pad
-pad *= 0.8 + 0.2 * np.sin(2 * np.pi * t / 7.0)
-# soft pulse on every beat, a pluck on the off-beats
+pad *= 0.86 + 0.14 * np.sin(2 * np.pi * t / 9.0)
+# no drum: a soft pluck every other beat keeps the pulse without a beat that would stutter under the voice
 pulse = np.zeros(n)
 k = 0
 while k * beat < total:
-    a = int(k * beat * sr); L = int(0.28 * sr); seg = t[:L]
-    kick = np.sin(2 * np.pi * (52 + 30 * np.exp(-seg * 18)) * seg) * np.exp(-seg * 9)
-    pulse[a:a + L] += 0.22 * kick[: min(L, n - a)]
-    if k % 2 == 1:
+    a = int(k * beat * sr)
+    if k % 2 == 0:
         chord = chords[int(k * beat // bar) % len(chords)]
         fr = f(chord[(k // 2) % len(chord)] + 12)
-        L2 = int(0.35 * sr); seg2 = t[:L2]
-        pluck = np.sin(2 * np.pi * fr * seg2) * np.exp(-seg2 * 7)
-        pulse[a:a + L2] += 0.05 * pluck[: min(L2, n - a)]
+        L2 = int(0.6 * sr); seg2 = t[:L2]
+        pluck = (np.sin(2 * np.pi * fr * seg2) + 0.3 * np.sin(2 * np.pi * 2 * fr * seg2)) * np.exp(-seg2 * 4.5) * np.minimum(1, seg2 / 0.01)
+        pulse[a:a + L2] += 0.045 * pluck[: min(L2, n - a)]
     k += 1
 mix = pad + pulse
 # intro swell and tail

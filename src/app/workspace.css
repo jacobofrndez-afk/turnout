@@ -492,3 +492,32 @@ body:has(.workspace-nav a[aria-current=page]) main:not(.identity-page):not(.app-
 .workflow-timing summary>.ui-icon,.workflow-channel-reason summary>.ui-icon,.workflow-copy-detail summary>.ui-icon:last-child{transition:transform 180ms ease}
 .workflow-timing[open]>summary>.ui-icon,.workflow-channel-reason[open]>summary>.ui-icon,.workflow-copy-detail[open]>summary>.ui-icon:last-child{transform:rotate(90deg)}
 @media(prefers-reduced-motion:reduce){.workflow-editor summary>.ui-icon{transition:none}}
+
+/* Premium motion for the campaign steps: a thumb that glides between steps, a step that rises and
+   settles with its blocks arriving one after the other, a receipt that lands with a glint, buttons
+   with a little life. Decorative only; reduced motion turns it all off. */
+.agent-steps{position:relative}
+.agent-steps li::after{display:none}
+.agent-steps li.agent-steps-thumb{position:absolute;left:0;top:var(--y,0px);height:2px;width:var(--w,0px);margin:0!important;padding:0!important;border-radius:2px;background:linear-gradient(90deg,#8e6a9e,#b48fc4);transform:translateX(var(--x,0px));opacity:var(--on,0);pointer-events:none;transition:transform .55s cubic-bezier(.22,1,.36,1),width .55s cubic-bezier(.22,1,.36,1),opacity .3s ease}
+.agent-steps li[aria-current]>button>span{animation:agent-badge .5s cubic-bezier(.22,1,.36,1)}
+@keyframes agent-badge{0%{transform:scale(.85)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes agent-rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes agent-pop{from{opacity:0;transform:translateY(-6px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes agent-shine{from{transform:translateX(-140%) skewX(-18deg)}to{transform:translateX(320%) skewX(-18deg)}}
+@keyframes board-settle{from{opacity:.3;transform:translateY(5px)}to{opacity:1;transform:none}}
+.agent-receipt-success{position:relative;overflow:hidden;animation:agent-pop .55s cubic-bezier(.22,1,.36,1) both}
+.agent-receipt-success::before{content:"";position:absolute;top:0;bottom:0;left:0;width:38%;background:linear-gradient(100deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.6) 50%,rgba(255,255,255,0) 100%);transform:translateX(-140%) skewX(-18deg);animation:agent-shine 1.1s .4s cubic-bezier(.22,1,.36,1) both;pointer-events:none}
+.agent-receipt-row,.agent-ready-board,.agent-selected-channels>span,.workflow-channel-options button{animation:agent-rise .5s cubic-bezier(.22,1,.36,1) both}
+.agent-receipt-row:nth-child(2){animation-delay:.1s}.agent-receipt-row:nth-child(3){animation-delay:.16s}.agent-receipt-row:nth-child(4){animation-delay:.22s}.agent-receipt-row:nth-child(5){animation-delay:.28s}.agent-receipt-row:nth-child(6){animation-delay:.34s}.agent-receipt-row:nth-child(7){animation-delay:.4s}.agent-receipt-row:nth-child(8){animation-delay:.46s}
+.agent-ready-board{animation-delay:.2s}
+.agent-selected-channels>span:nth-child(2),.workflow-channel-options button:nth-child(2){animation-delay:.05s}.agent-selected-channels>span:nth-child(3),.workflow-channel-options button:nth-child(3){animation-delay:.1s}.agent-selected-channels>span:nth-child(4),.workflow-channel-options button:nth-child(4){animation-delay:.15s}.agent-selected-channels>span:nth-child(5),.workflow-channel-options button:nth-child(5){animation-delay:.2s}.agent-selected-channels>span:nth-child(6),.workflow-channel-options button:nth-child(6){animation-delay:.25s}.agent-selected-channels>span:nth-child(7),.workflow-channel-options button:nth-child(7){animation-delay:.3s}.agent-selected-channels>span:nth-child(8),.workflow-channel-options button:nth-child(8){animation-delay:.35s}
+.board-invitation{animation:board-settle .4s cubic-bezier(.22,1,.36,1)}
+.workflow-actions{animation:agent-rise .5s .15s cubic-bezier(.22,1,.36,1) both}
+.agent-campaign .action-button{position:relative;overflow:hidden}
+.agent-campaign .action-button::before{content:"";position:absolute;top:0;bottom:0;left:-70%;width:45%;background:linear-gradient(100deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.22) 50%,rgba(255,255,255,0) 100%);transform:skewX(-18deg);pointer-events:none}
+.agent-campaign .action-button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 10px 24px -12px #3b1c4280}
+.agent-campaign .action-button:hover:not(:disabled)::before{left:130%;transition:left .9s cubic-bezier(.22,1,.36,1)}
+.agent-campaign .action-button:active:not(:disabled){transform:translateY(1px) scale(.992)}
+@media(max-width:640px){.agent-steps li.agent-steps-thumb{display:none}.agent-steps li::after{display:block}}
+@media(prefers-reduced-motion:reduce){.agent-steps li.agent-steps-thumb,.agent-receipt-success,.agent-receipt-success::before,.agent-receipt-row,.agent-ready-board,.agent-selected-channels>span,.workflow-channel-options button,.board-invitation,.workflow-actions,.agent-steps li[aria-current]>button>span{animation:none;transition:none}.agent-campaign .action-button::before{display:none}.agent-campaign .action-button:hover:not(:disabled){transform:none}}
+@media print{.agent-receipt-success::before{display:none}.agent-receipt-success,.agent-receipt-row,.agent-ready-board,.agent-selected-channels>span,.board-invitation,.workflow-actions{animation:none!important}}

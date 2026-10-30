@@ -30,7 +30,7 @@ export function AgentCampaign({merchantId,event,initial,writerConnected,entry='s
  const [navigating,startNavigation]=useTransition();
  const busy=working||navigating;
  const workflow=context==='workflow';
- const {view,revision,moving,goTo,section,shell,content,heading:stepHeading}=useCampaignMotion(entry==='saved'?campaignEntryView(initial?.status??'drafted'):entry);
+ const {view,revision,moving,goTo,section,shell,content,heading:stepHeading,steps}=useCampaignMotion(entry==='saved'?campaignEntryView(initial?.status??'drafted'):entry);
  const [dirty,setDirty]=useState(false);
  const checking=view==='review';
  useEffect(()=>{
@@ -95,7 +95,7 @@ export function AgentCampaign({merchantId,event,initial,writerConnected,entry='s
  const planFacts=review&&<div className="agent-plan-summary"><div><Icon name="clock" size={18}/><span><small>Campaign window</small><strong>{when}</strong></span></div><div><Icon name="wallet" size={18}/><span><small>{paid?'Planned media cap':'Media budget'}</small><strong>{paid?`US$${review.mediaBudgetUsd} max`:'No paid media planned'}</strong></span></div></div>;
  const selectedChannels=review&&<div className="agent-selected-channels" aria-label="Selected channels">{review.channels.map(channel=><span key={channel}><ChannelIcon channel={channel}/>{CHANNELS[channel]}</span>)}</div>;
  return <section ref={section} className={`agent-campaign ${workflow?'agent-workflow':''}`} aria-label="Your prepared campaign" aria-busy={busy||moving}>
-  <ol className="agent-steps" aria-label="Campaign progress">{campaignSteps.map(({view:target,label},i)=><li key={target} aria-current={view===target?'step':undefined} className={step>i+1?'is-complete':''}><button type="button" disabled={busy||moving||(target==='materials'&&!locked)} onClick={()=>void openStep(target)} aria-current={view===target?'step':undefined}><span>{step>i+1?<Icon name="check" size={12}/>:i+1}</span>{label}</button></li>)}</ol>
+  <ol ref={steps} className="agent-steps" aria-label="Campaign progress"><li aria-hidden="true" className="agent-steps-thumb"/>{campaignSteps.map(({view:target,label},i)=><li key={target} aria-current={view===target?'step':undefined} className={step>i+1?'is-complete':''}><button type="button" disabled={busy||moving||(target==='materials'&&!locked)} onClick={()=>void openStep(target)} aria-current={view===target?'step':undefined}><span>{step>i+1?<Icon name="check" size={12}/>:i+1}</span>{label}</button></li>)}</ol>
   {busy&&<p className="agent-busy-status" role="status">{!workspace?'Reading Qloo and preparing your campaign…':locked?'Opening your editable copy…':'Saving your campaign…'}</p>}
   {error&&(!workflow||view==='proposal'||view==='materials')&&<p className="plan-inline-error" role="alert">{error}{helpLink&&<> <Link href={helpLink}>Review opportunity →</Link></>}</p>}
   {!workspace&&!busy&&<p className="agent-note">Personalize or Review will prepare your campaign first.</p>}

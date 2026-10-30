@@ -4,9 +4,11 @@ import numpy as np
 here = os.path.dirname(os.path.abspath(__file__))
 out = os.path.join(here, "out")
 try:
-    total = json.load(open(os.path.join(out, "timeline.json")))["endAt"] + 2.0
+    tl = json.load(open(os.path.join(out, "timeline.json")))
+    total = tl["endAt"] + 2.0
+    logo_at = tl.get("logoAt") or 0
 except Exception:
-    total = 96.0
+    total, logo_at = 96.0, 0
 sr = 48000
 n = int(total * sr)
 t = np.arange(n) / sr
@@ -44,12 +46,26 @@ while k * beat < total:
         pluck = (np.sin(2 * np.pi * fr * seg2) + 0.3 * np.sin(2 * np.pi * 2 * fr * seg2)) * np.exp(-seg2 * 4.5) * np.minimum(1, seg2 / 0.01)
         pulse[a:a + L2] += 0.045 * pluck[: min(L2, n - a)]
     k += 1
-mix = pad + pulse
-# intro swell and tail
+# the close: a bright chord rises over 2.4 s to the moment the logo completes, rings for a beat, then settles
+swell = np.zeros(n)
+if logo_at:
+    rise, hold, decay = 2.4, 0.6, 3.2
+    t0 = logo_at - rise
+    env = np.where(t < t0, 0, np.where(t < logo_at, ((t - t0) / rise) ** 2, np.where(t < logo_at + hold, 1, np.exp(-(t - logo_at - hold) / (decay / 3)))))
+    for midi in [69, 72, 76, 81, 88]:
+        fr = f(midi)
+        swell += 0.07 * env * (np.sin(2 * np.pi * fr * t) + 0.25 * np.sin(2 * np.pi * 2 * fr * t))
+    swell *= 0.9 + 0.1 * np.sin(2 * np.pi * 5.5 * t)
+# the bed keeps its own level; the swell is added on top, capped so the sum never clips
+base = pad + pulse
+base /= np.max(np.abs(base)) + 1e-9
+base *= 0.6
+if np.max(np.abs(swell)) > 0:
+    swell = swell / np.max(np.abs(swell)) * 0.36
+mix = base + swell
 mix *= np.minimum(1, t / 2.5)
-mix *= np.minimum(1, np.maximum(0, (total - t) / 3.0))
-mix /= np.max(np.abs(mix)) + 1e-9
-mix *= 0.6
+mix *= np.minimum(1, np.maximum(0, (total - t) / 4.5))
+mix = np.clip(mix, -0.98, 0.98)
 data = (mix * 32767).astype(np.int16)
 with wave.open(os.path.join(out, "music-bed.wav"), "wb") as w:
     w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr); w.writeframes(data.tobytes())

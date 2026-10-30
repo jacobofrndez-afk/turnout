@@ -88,6 +88,7 @@ let t0 = Date.now();
 const now = () => (Date.now() - t0) / 1000;
 const marks = [];
 const cuts = [];   // dead waits the mix removes (from, to in clock seconds)
+let logoAt = 0;    // when the closing logo is complete (music swell)
 let capTimers = [];
 // Subtitles: short cues timed on the words of the clip, scheduled from the clip's real start.
 function captions(groupFirstId, startAt) {
@@ -328,11 +329,12 @@ try {
   await sleep(200);
   const morphing = tv("morph", LOGO);   // the radar brightens back as it collapses into the mark
   await sleep(1900);                       // the word starts writing itself here
-  await cue("close2", "none");             // "Your marketing agent" over the writing, "Your call" on the signature
+  await cue("close2", "none");             // "Turnout." over the writing, the promise on the signature
   await morphing;
-  await tv("tag", "Your marketing agent. Your call.");
+  logoAt = now();                          // the music swells to this moment
+  await tv("tag", "Turn the crowd <b>outside</b> into customers <b>inside</b>.");
   await tv("finale");
-  await sleep(left("close2", 0) + 2600);   // the film ends on this image
+  await sleep(left("close2", 0) + 3600);   // the film ends on this image, the music settling
 } catch (e) {
   console.error("recording stopped early:", e.message.split("\n")[0]);
 } finally {
@@ -343,7 +345,7 @@ try {
   const target = join(OUT, "turnout-demo.webm");
   if (webm) { rmSync(target, { force: true }); renameSync(join(OUT, webm), target); console.log("recorded", target); }
   const lead = (t0 - rec0) / 1000;   // seconds of recording before the narration clock started
-  writeFileSync(join(OUT, "timeline.json"), JSON.stringify({ endAt, lead, marks, cuts }, null, 2));
+  writeFileSync(join(OUT, "timeline.json"), JSON.stringify({ endAt, lead, marks, cuts, logoAt }, null, 2));
   if (cuts.length) console.log("cuts", cuts.map((c) => (c.to - c.from).toFixed(1) + "s").join(", "));
   console.log("end", endAt.toFixed(1) + "s, clock shifted by", shift.toFixed(1) + "s");
 }

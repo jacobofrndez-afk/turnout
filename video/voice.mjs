@@ -33,9 +33,9 @@ export const GROUPS = [
   ] },
   { id: "approve", gapBefore: 0.3, lines: [{ id: "approve", text: "Everything is ready. You just approve." }] },
   { id: "receipt", gapBefore: 0.5, lines: [{ id: "receipt", text: "The board at your door. A message to your regulars. A local ad within a few blocks. Nothing sent without you. Nothing charged." }] },
-  { id: "board", gapBefore: 0.6, lines: [{ id: "board", text: "Right place. Right hour. Right people. Tonight, the crowd outside becomes customers inside." }] },
+  { id: "board", gapBefore: 0.6, lines: [{ id: "board", text: "Right place. Right hour. Right people. Ready before the crowd steps out." }] },
   { id: "close1", gapBefore: 0.7, lines: [{ id: "close1", text: "Turnout. The right message, to the right people, at the right moment." }] },
-  { id: "close2", gapBefore: 0.3, lines: [{ id: "close2", text: "Your marketing agent. Your call." }] },
+  { id: "close2", gapBefore: 0.3, lines: [{ id: "close2", text: "Turnout. Turn the crowd outside into customers inside." }] },
 ];
 const VOICE = process.env.VOICE ?? "en-US-EmmaMultilingualNeural";
 const RATE = process.env.RATE ?? "+14%";

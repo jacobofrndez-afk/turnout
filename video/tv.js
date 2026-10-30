@@ -50,10 +50,11 @@
     #tv-line b{color:${PINK};font-weight:700}
     .tv-flash{position:absolute;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;background:radial-gradient(circle,rgba(246,241,248,.95) 0%,rgba(230,164,194,.55) 35%,rgba(230,164,194,0) 70%);transform:scale(.2);opacity:1;transition:transform 1.3s cubic-bezier(.2,.8,.2,1),opacity 1.3s ease}
     .tv-flash.on{transform:scale(26);opacity:0}
-    #tv-punch{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.96);width:1600px;text-align:center;font:700 84px/1.1 ${FONT};letter-spacing:-.015em;color:${INK};opacity:0;transition:opacity .28s ease,transform .28s cubic-bezier(.2,.8,.2,1)}
+    #tv-punch{position:absolute;left:50%;top:50%;transform:translate(-50%,-46%) scale(.9);width:1600px;text-align:center;font:700 84px/1.1 ${FONT};letter-spacing:-.015em;color:${INK};opacity:0;transition:opacity .22s ease,transform .3s cubic-bezier(.2,.9,.2,1)}
     #tv-punch.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
     #tv-punch b{color:${PINK};font-weight:700}
-    #tv-tag{position:absolute;left:50%;transform:translate(-50%,10px);width:1500px;text-align:center;font:500 42px/1.2 ${FONT};color:${RING};opacity:0;transition:opacity .7s ease,transform .7s ease}
+    #tv-tag{position:absolute;left:50%;transform:translate(-50%,14px);width:1600px;text-align:center;font:500 46px/1.2 ${FONT};letter-spacing:-.005em;color:${RING};opacity:0;transition:opacity .7s ease,transform .8s cubic-bezier(.2,.8,.2,1)}
+    #tv-tag b{color:${PINK};font-weight:600}
     #tv-tag.on{opacity:1;transform:translate(-50%,0)}
     @keyframes in{to{opacity:1}}
     @keyframes pulse{0%{transform:scale(1);opacity:.9}100%{transform:scale(3.2);opacity:0}}
@@ -254,7 +255,7 @@
   }
 
   // One statement at a time, big, centred: the radar steps back behind it.
-  function punch(html) { const p = $("tv-punch"); p.classList.remove("on"); if (!html) return; setTimeout(() => { p.innerHTML = html; p.classList.add("on"); }, 200); }
+  function punch(html) { const p = $("tv-punch"); p.classList.remove("on"); if (!html) return; setTimeout(() => { p.innerHTML = html; p.classList.add("on"); }, 160); }
   function dimRadar(o) { if (!R) return; R.g.style.transition = `transform 1.25s ${EASE}, opacity .6s ease`; R.g.style.opacity = o; }
   // The board collapses into one point, your place, and a flash launches the radar from it.
   async function collapse(x, y, cx, cy) {
@@ -272,7 +273,7 @@
   }
   function line(html) { const l = $("tv-line"); l.classList.remove("on"); if (!html) return; setTimeout(() => { l.innerHTML = html; l.classList.add("on"); }, 260); }
   function count(to, ms) { const n = $("num"); if (!n) return; const t0 = performance.now(); const f = (now) => { const p = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - p, 3); n.textContent = Math.round(to * e).toLocaleString("en-US"); if (p < 1) requestAnimationFrame(f); }; requestAnimationFrame(f); }
-  function tag(text) { const t = $("tv-tag"); t.textContent = text; t.style.top = logo && logo.top != null ? logo.top + logo.h0 * logo.K + 64 + "px" : "760px"; t.classList.toggle("on", !!text); }
+  function tag(text) { const t = $("tv-tag"); t.innerHTML = text; t.style.top = logo && logo.top != null ? logo.top + logo.h0 * logo.K + 64 + "px" : "760px"; t.classList.toggle("on", !!text); }
   function cap(text) { const c = $("tv-cap"); if (text) { c.textContent = text; c.classList.add("on"); } else c.classList.remove("on"); }
   function journey(on) { $("tv-journey").classList.toggle("on", !!on); }
   function step(i) { [...$("tv-journey").querySelectorAll("li")].forEach((li, k) => { li.classList.toggle("done", k < i); li.classList.toggle("now", k === i); }); }
@@ -302,6 +303,10 @@
   async function finale() {
     const L = $("tv-logo"), parts = logo && logo.parts; if (!parts) return;
     const svg = L.firstElementChild;
+    // a soft glow bursts from behind the lockup as it completes
+    const burst = document.createElement("div"); burst.className = "tv-flash"; burst.style.left = logo.left + (logo.w0 * logo.K) / 2 + "px"; burst.style.top = logo.top + (logo.h0 * logo.K) / 2 + "px";
+    burst.style.transition = "transform 1.8s cubic-bezier(.2,.8,.2,1), opacity 1.8s ease"; burst.style.opacity = .55; burst.style.zIndex = -1;
+    $("tv-stage").insertBefore(burst, L); reflow(burst); burst.style.transform = "scale(60)"; burst.style.opacity = 0; setTimeout(() => burst.remove(), 2000);
     const ping = (delay) => { const c = el("circle", { cx: parts.blip.getAttribute("cx"), cy: parts.blip.getAttribute("cy"), r: parts.blip.getAttribute("r"), fill: "none", stroke: PINK, "stroke-width": 0.6 }, svg); c.style.transformBox = "fill-box"; c.style.transformOrigin = "center"; c.style.animation = `pulse 1.6s ease-out ${delay}ms 1 forwards`; c.style.opacity = 0; setTimeout(() => (c.style.opacity = 1), delay); };
     ping(200); ping(900);
     parts.strokes.forEach((p, i) => { p.style.transition = `stroke .32s ease ${300 + i * 90}ms`; p.style.stroke = PINK; setTimeout(() => { p.style.transition = "stroke .5s ease"; p.style.stroke = ""; }, 650 + i * 90); });

@@ -43,7 +43,7 @@ f += clips.map((c, i) => `[${i + 1}:a]aresample=48000,afade=t=in:d=0.02,afade=t=
 f += clips.map((_, i) => `[a${i}]`).join("") + `amix=inputs=${clips.length}:normalize=0:dropout_transition=0,volume=1.5[voice]`;
 if (music) {
   // Gentle ducking: slow attack and release so the music breathes with the voice instead of pumping.
-  f += `;[${clips.length + 1}:a]aresample=48000,atrim=0:${end.toFixed(2)},volume=${music === bed ? 0.4 : 0.14},afade=t=in:st=0:d=1.5,afade=t=out:st=${(end - 2.5).toFixed(2)}:d=2.5[m];`;
+  f += `;[${clips.length + 1}:a]aresample=48000,atrim=0:${end.toFixed(2)},volume=${music === bed ? 0.4 : 0.14},afade=t=in:st=0:d=1.5,afade=t=out:st=${(end - 4).toFixed(2)}:d=4:curve=qsin[m];`;
   f += `[voice]asplit=2[vo][sc];[m][sc]sidechaincompress=threshold=0.06:ratio=2.2:attack=250:release=1800:knee=4[md];[vo][md]amix=inputs=2:normalize=0:dropout_transition=0[mix]`;
 } else f += `;[voice]anull[mix]`;
 args.push("-filter_complex", f, "-map", "[v]", "-map", "[mix]", "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-r", "30", "-movflags", "+faststart", "-c:a", "aac", "-b:a", "192k", "-t", end.toFixed(2), join(OUT, "turnout-demo-voice.mp4"));

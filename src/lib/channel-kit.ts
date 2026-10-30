@@ -92,3 +92,21 @@ export function campaignMaterials(review:AgentReview,merchantName:string,when:st
  const spend=campaignSpend(review);
  return [review.title,when,review.terms,'',...review.channels.map(channel=>`${CHANNELS[channel]} — ${CHANNEL_FORMATS[channel].format}\n${channelMaterial(channel,review,merchantName)}${channel==='storefront'&&review.staffLine?`\nStaff invitation: ${review.staffLine}`:''}\n${channelCostLabel(channel,review)}`),`Total planned ceiling: US$${spend.ceiling}. Platform fees and minimums must be confirmed before launch.`, 'Materials only. Nothing published, sent or charged.'].join('\n\n');
 }
+/** Where the owner publishes by hand. Turnout posts nothing itself. */
+export const CHANNEL_OPEN:Partial<Record<PlanChannel,{label:string;url:string}>>={
+ facebook:{label:'Open Facebook',url:'https://www.facebook.com/'},
+ instagram:{label:'Open Instagram',url:'https://www.instagram.com/'},
+ tiktok:{label:'Open TikTok',url:'https://www.tiktok.com/'},
+ snapchat:{label:'Open Snapchat',url:'https://www.snapchat.com/'},
+ google_post:{label:'Open Google Business',url:'https://business.google.com/'},
+ whatsapp:{label:'Open WhatsApp Web',url:'https://web.whatsapp.com/'},
+};
+/** The paid channels with their caps, for the summaries. */
+export function paidChannels(review:AgentReview){
+ return review.channels.filter(c=>channelCap(review,c)>0).map(c=>`${CHANNELS[c]} US$${channelCap(review,c)}`);
+}
+/** One line of costs for the action bar and the cards: the ceiling, where the money is planned to go, and that nothing is charged. */
+export function spendLine(review:AgentReview){
+ const spend=campaignSpend(review),paid=paidChannels(review);
+ return spend.ceiling?`US$${spend.ceiling} ceiling · ${paid.length?paid.join(' · '):'no paid channel'} · nothing charged`:'No paid media · nothing charged';
+}

@@ -26,9 +26,11 @@ export function workspaceCampaigns(merchantId: string) {
     const superseded=!!c.dna_snapshot_json&&lead!==undefined&&lead.id!==c.id;
     const stale=progress(c)<=1&&Date.parse(date)<Date.now();
     const versions=lead?.id===c.id?events.filter(o=>o.event_id===c.event_id&&o.dna_snapshot_json&&o.id!==c.id).length:0;
-    return { superseded, stale, versions, legacy: !c.dna_snapshot_json, id: c.id, title: c.title ?? c.name, detail: c.name, status: label, createdAt: c.created_at, date, href: `/campaigns/${c.id}?merchant=${encodeURIComponent(merchantId)}`, planned, kind: "event" as const };
+    let cap:number|null=null;
+    if(c.review_json){try{const r=JSON.parse(c.review_json) as {totalSpendCapUsd?:number;mediaBudgetUsd?:number};cap=r.totalSpendCapUsd??r.mediaBudgetUsd??null;}catch{/* Older records carry no spending plan. */}}
+    return { superseded, stale, versions, cap, legacy: !c.dna_snapshot_json, id: c.id, title: c.title ?? c.name, detail: c.name, status: label, createdAt: c.created_at, date, href: `/campaigns/${c.id}?merchant=${encodeURIComponent(merchantId)}`, planned, kind: "event" as const };
   }), ...quick.map(c => {
     const input = JSON.parse(c.input_json) as { offer?: { title?: string }; availability?: string; plan?: SavedCampaignPlan };
-    return { superseded:false, stale:false, versions:0, legacy: false, id: c.id, title: input.offer?.title ?? "Menu campaign", detail: input.availability ?? "Your menu", status: input.plan ? input.plan.decision === "approved" ? "Approved · share manually" : "Saved plan · not scheduled" : "Draft · not scheduled", createdAt: c.created_at, date: input.plan?.startAt ?? null, href: `/campaigns/quick/${c.id}?merchant=${encodeURIComponent(merchantId)}`, planned: !!input.plan, kind: "menu" as const };
+    return { superseded:false, stale:false, versions:0, cap:null, legacy: false, id: c.id, title: input.offer?.title ?? "Menu campaign", detail: input.availability ?? "Your menu", status: input.plan ? input.plan.decision === "approved" ? "Approved · share manually" : "Saved plan · not scheduled" : "Draft · not scheduled", createdAt: c.created_at, date: input.plan?.startAt ?? null, href: `/campaigns/quick/${c.id}?merchant=${encodeURIComponent(merchantId)}`, planned: !!input.plan, kind: "menu" as const };
   })].sort((a,b) => b.createdAt.localeCompare(a.createdAt));
 }

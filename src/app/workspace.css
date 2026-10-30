@@ -582,3 +582,12 @@ body:has(.campaign-workflow-page) .workspace-header{position:static}
 .account-page .account-section h2,.account-page .account-dna .section-title h2,.account-page .account-offers .section-title h2,.account-page .account-sources h2,.account-channels .section-title h2{font-size:18px;letter-spacing:-.2px}
 .account-page .account-section>p strong{font-size:15px}
 @media(max-width:760px){.account-overview{grid-template-columns:1fr;gap:16px}.account-nav{justify-content:flex-start}.account-nav a{min-height:34px;padding:0 11px;font-size:11px}.page-heading{margin:20px 0 16px}}
+/* Costs in sight on every step, and a last step that says where to publish by hand. */
+.workflow-cost{display:inline-flex;align-items:center;gap:5px;margin-left:12px;padding:3px 9px;border-radius:999px;background:#f4f0f6;color:#5a396a;font-weight:600;font-size:11px;white-space:nowrap}
+.agent-publish-costs{display:flex;align-items:center;gap:7px;font-size:12px;color:#5a396a;background:#f8f6fa;border-radius:9px;padding:10px 12px;margin:-4px 0 10px}
+.agent-publish-actions{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-top:10px}
+.agent-publish-actions .copy-action{margin-top:0}.agent-publish-actions .action-button{min-height:36px;padding:0 14px;font-size:12px}
+.agent-publish-note{font-size:11px;color:#8a7b93}
+.agent-plan-summary em{font-style:normal;font-size:11px;color:#7c6e84}
+.chip-cost{margin-left:6px}
+@media(max-width:760px){.workflow-cost{margin-left:0;margin-top:6px}}

@@ -52,6 +52,6 @@ if (music) {
   else f += `[vo][md]amix=inputs=2:normalize=0:dropout_transition=0[mix]`;
 } else if (sfx) f += `;[${clips.length + 1}:a]aresample=48000,atrim=0:${end.toFixed(2)},volume=0.26[fx];[voice][fx]amix=inputs=2:normalize=0:dropout_transition=0[mix]`;
 else f += `;[voice]anull[mix]`;
-args.push("-filter_complex", f, "-map", "[v]", "-map", "[mix]", "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-r", "30", "-movflags", "+faststart", "-c:a", "aac", "-b:a", "192k", "-t", end.toFixed(2), join(OUT, "turnout-demo-voice.mp4"));
+args.push("-filter_complex", f, "-map", "[v]", "-map", "[mix]", "-c:v", "libx264", "-preset", "slow", "-crf", "14", "-r", "30", "-movflags", "+faststart", "-c:a", "aac", "-b:a", "192k", "-t", end.toFixed(2), join(OUT, "turnout-demo-voice.mp4"));
 execFileSync("ffmpeg", args, { stdio: ["ignore", "ignore", "inherit"] });
 console.log("mixed", clips.length, "clips, retime", k.toFixed(3), "lead", lead.toFixed(2) + "s", "cuts", cuts.map((c) => (c.to - c.from).toFixed(1) + "s").join("+") || "none", sfx ? "sonar" : "no sonar", music ? "with music" : "no music", "->", join(OUT, "turnout-demo-voice.mp4"));

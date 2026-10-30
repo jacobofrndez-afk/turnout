@@ -53,6 +53,8 @@
     #tv-line .tv-big{display:block;font:800 92px/1.05 ${DISPLAY};text-transform:uppercase;letter-spacing:.02em;color:${PINK}}
     .tv-flash{position:absolute;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;background:radial-gradient(circle,rgba(246,241,248,.95) 0%,rgba(230,164,194,.55) 35%,rgba(230,164,194,0) 70%);transform:scale(.2);opacity:1;transition:transform 1.3s cubic-bezier(.2,.8,.2,1),opacity 1.3s ease}
     .tv-flash.on{transform:scale(26);opacity:0}
+    .tv-ripple{position:absolute;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;border:3px solid ${PINK};box-shadow:0 0 24px rgba(230,164,194,.6);opacity:.9;transform:scale(.4);transition:transform .7s cubic-bezier(.2,.8,.2,1),opacity .7s ease;z-index:6;pointer-events:none}
+    .tv-ripple.on{transform:scale(7);opacity:0}
     #tv-punch{position:absolute;left:50%;top:50%;transform:translate(-50%,-46%) scale(.9);width:1600px;text-align:center;font:700 84px/1.1 ${FONT};letter-spacing:-.015em;color:${INK};opacity:0;transition:opacity .22s ease,transform .3s cubic-bezier(.2,.9,.2,1)}
     #tv-punch.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
     #tv-punch b{color:${PINK};font-weight:700}
@@ -297,11 +299,12 @@
   // A hidden spot appears in place; a visible one glides to its next block.
   function spot(x, y, w, h) {
     const s = $("tv-spot");
-    const hidden = getComputedStyle(s).opacity === "0";
+    const hidden = parseFloat(getComputedStyle(s).opacity) < 0.6;   // still fading out counts as hidden: appear in place, do not glide
     if (hidden) { s.style.transition = "opacity .6s ease"; Object.assign(s.style, { left: x + "px", top: y + "px", width: w + "px", height: h + "px" }); reflow(s); s.style.transition = ""; }
     Object.assign(s.style, { left: x + "px", top: y + "px", width: w + "px", height: h + "px", opacity: 1 });
   }
-  function unspot() { $("tv-spot").style.opacity = 0; }
+  function unspot(now = false) { const s = $("tv-spot"); if (now) { s.style.transition = "none"; s.style.opacity = 0; reflow(s); s.style.transition = ""; } else s.style.opacity = 0; }
+  function ripple(x, y) { const r = document.createElement("div"); r.className = "tv-ripple"; r.style.left = x + "px"; r.style.top = y + "px"; document.body.appendChild(r); reflow(r); r.classList.add("on"); setTimeout(() => r.remove(), 800); }
   function cursor(x, y) { $("tv-cur").style.transform = `translate(${x - 2}px,${y - 2}px)`; }
   function drift(x, y, ms, scale) { const v = $("tv-view"); v.style.transition = `transform ${ms}ms cubic-bezier(.3,0,.7,1)`; v.style.transformOrigin = `${x}px ${y}px`; v.style.transform = `scale(${scale})`; }
   function undrift() { const v = $("tv-view"); v.style.transition = `transform 800ms ${EASE}`; v.style.transform = "scale(1)"; }
@@ -334,5 +337,5 @@
   function fade(name, o) { const f = frames().find((x) => x.name === name); if (f) f.style.opacity = o === null ? "" : String(o); }
   function show(name = "app") { frames().forEach((f) => { const on = f.name === name; f.classList.toggle("on", on); f.style.zIndex = on ? 2 : 1; }); }
 
-  window.tv = { intro, small, setLogo, morph, fly, stageOn, collapse, finale, line, punch, stack, dimRadar, count, tag, cap, journey, step, spot, unspot, cursor, drift, undrift, dim, show, swap, fade };
+  window.tv = { intro, small, setLogo, morph, fly, stageOn, collapse, finale, line, punch, stack, dimRadar, count, tag, cap, journey, step, spot, unspot, cursor, drift, undrift, dim, show, swap, fade, ripple };
 })();

@@ -274,6 +274,8 @@ try {
   await sleep(120);
   await chalk.pressSequentially(BOARD_TEXT, { delay: 30 });
   await tv("cursor", -200, -200);
+  const saveDraft = app.getByRole("button", { name: /Save draft/ });
+  if (await saveDraft.count()) await saveDraft.first().dispatchEvent("click");   // the words are saved, so the review opened behind shows them
   await sleep(left("touch", 0) - 1100);
 
   // Channels: the eight of them first, the local ad among them; then the budget and the reason, on the words.
@@ -288,39 +290,41 @@ try {
   { const w = (start("touch") + (budgetCue ? budgetCue.start : 6) - 0.5 - now()) * 1000; if (w > 0) await sleep(w); }
   await bring(plan, 150, 700);
   await spot(16, plan, (await reason.count()) ? reason : picks);
-  await sleep(left("channels", 0) - 1500);
+  await sleep(left("channels", 0) - 2600);
+  // The review opens in the hidden frame and crossfades in with the Approve button already in place.
+  await load(`/campaigns/${CAMPAIGN}?merchant=${HERO}`);
+  await next.getByRole("button", { name: /Review campaign/ }).first().dispatchEvent("click");
+  const approve = next.getByRole("button", { name: /Approve/ });
+  await approve.waitFor({ state: "visible", timeout: 20000 });
+  await bring(approve, 470, 0, next);
+  await sleep(Math.max(0, left("channels", 0) - 700));
   await unspot();
-
-  // Approve: the review opens behind a short fade, the Approve button already in place when the page returns.
-  const review = app.getByRole("button", { name: /Review campaign/ });
-  await live(app, "main button");
-  await bring(review, 520, 0);
-  await tv("fade", app.name(), 0); await sleep(450);
-  await click(review);
-  const approve = app.getByRole("button", { name: /Approve/ });
-  await approve.waitFor({ state: "visible", timeout: 15000 });
-  await bring(approve, 480, 0);
-  await sleep(120);
-  await tv("fade", app.name(), null); await sleep(450);
+  await swap();
   await tv("step", 5);
-  await spot(12, approve);
+  await spot(22, approve);
   await moveTo(approve);
   await cue("approve");
+  // One tap: a ripple from the finger, the page gives way to the receipt.
+  const ab = await approve.first().boundingBox();
   await page.mouse.down(); await sleep(80); await page.mouse.up();
-  await sleep(250);
-  await unspot();
+  if (ab) await tv("ripple", ab.x + ab.width / 2, ab.y + Math.min(ab.height / 2, 24));
+  await sleep(350);
+  await tv("unspot", true);   // gone at once, so no light box lingers while the page fades
   await tv("cursor", -200, -200);
+  await tv("fade", app.name(), 0);
 
   // Out the door: the receipt, every channel with its status. A slow save is cut out of the film (see cuts).
   const receipt = app.locator(".agent-receipt-success").first();
   const waitFrom = now();
   const approved = await receipt.waitFor({ state: "visible", timeout: 30000 }).then(() => true).catch(() => false);
-  if (now() - waitFrom > 1.1) cuts.push({ from: waitFrom + 0.45, to: now() - 0.05 });
+  if (now() - waitFrom > 1.4) cuts.push({ from: waitFrom + 0.6, to: now() - 0.05 });
   if (!approved) console.error("approval did not show a receipt; continuing");
   await tv("step", 6);
   const rows = app.locator(".agent-receipt-row");
   const lastRow = (await rows.count()) ? rows.last() : receipt;
-  if (approved) { await bring(receipt, 150, 700); await spot(16, receipt, lastRow); }
+  if (approved) await bring(receipt, 150, 0);
+  await tv("fade", app.name(), null); await sleep(480);
+  if (approved) await spot(16, receipt, lastRow);
   await drift(lastRow, 6000, 1.04);
   await cue("receipt");
   await sleep(left("receipt", 0) + 400);

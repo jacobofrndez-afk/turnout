@@ -498,7 +498,22 @@ body:has(.workspace-nav a[aria-current=page]) main:not(.identity-page):not(.app-
    with a little life. Decorative only; reduced motion turns it all off. */
 .agent-steps{position:relative}
 .agent-steps li::after{display:none}
-.agent-steps li.agent-steps-thumb{position:absolute;left:0;top:var(--y,0px);height:2px;width:var(--w,0px);margin:0!important;padding:0!important;border-radius:2px;background:linear-gradient(90deg,#8e6a9e,#b48fc4);transform:translateX(var(--x,0px));opacity:var(--on,0);pointer-events:none;transition:transform .55s cubic-bezier(.22,1,.36,1),width .55s cubic-bezier(.22,1,.36,1),opacity .3s ease}
+.agent-steps li.agent-steps-thumb{position:absolute;left:0;top:var(--y,0px);height:2px;width:var(--w,0px);max-width:none;min-width:0;margin:0!important;padding:0!important;border-radius:2px;background:linear-gradient(90deg,#8e6a9e,#b48fc4);box-shadow:0 0 14px 1px rgba(142,106,158,.45);transform:translateX(var(--x,0px));opacity:var(--on,0);pointer-events:none;transition:transform .7s cubic-bezier(.3,1.25,.4,1),width .7s cubic-bezier(.22,1,.36,1),opacity .3s ease}
+.agent-steps li.agent-steps-progress{position:absolute;left:0;top:var(--y,0px);height:2px;width:var(--p,0px);max-width:none;min-width:0;margin:0!important;padding:0!important;border-radius:2px;background:linear-gradient(90deg,rgba(142,106,158,0),rgba(142,106,158,.28));opacity:var(--on,0);pointer-events:none;transition:width .9s cubic-bezier(.22,1,.36,1),opacity .3s ease}
+.agent-workflow .agent-steps{animation:agent-rise .6s .06s cubic-bezier(.22,1,.36,1) both}
+.workflow-card{transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s ease,border-color .3s ease}
+.workflow-card:hover{transform:translateY(-2px);box-shadow:0 14px 34px -18px #3b1c4233,0 4px 20px #3b1c4205;border-color:#ddd2e3}
+.workflow-channel-options button{transition:transform .3s cubic-bezier(.3,1.3,.4,1),background .2s ease,border-color .2s ease,box-shadow .25s ease}
+.workflow-channel-options button:hover:not(:disabled){transform:translateY(-1px)}
+.workflow-channel-options button:active:not(:disabled){transform:scale(.97)}
+.workflow-channel-options button[aria-pressed=true]{animation:agent-select .4s cubic-bezier(.3,1.3,.4,1)}
+.workflow-channel-check{animation:agent-badge .45s cubic-bezier(.3,1.3,.4,1)}
+@keyframes agent-select{0%{transform:scale(.97)}60%{transform:scale(1.03)}100%{transform:scale(1)}}
+.campaign-board{transition:transform .45s cubic-bezier(.22,1,.36,1),box-shadow .45s ease}
+.workflow-board .campaign-board:has(.board-invitation){animation:none}
+.agent-receipt-success svg{animation:agent-badge .6s .25s cubic-bezier(.3,1.3,.4,1) both}
+.workflow-actions .action-button,.workflow-actions .quiet-button,.workflow-back{transition:transform .3s cubic-bezier(.3,1.3,.4,1),background-color .2s ease,box-shadow .2s ease,color .2s ease}
+.workflow-back:hover:not(:disabled)>.ui-icon{transform:rotate(180deg) translateX(3px)}.workflow-back>.ui-icon{transition:transform .3s cubic-bezier(.22,1,.36,1)}
 .agent-steps li[aria-current]>button>span{animation:agent-badge .5s cubic-bezier(.22,1,.36,1)}
 @keyframes agent-badge{0%{transform:scale(.85)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
 @keyframes agent-rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
@@ -518,6 +533,6 @@ body:has(.workspace-nav a[aria-current=page]) main:not(.identity-page):not(.app-
 .agent-campaign .action-button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 10px 24px -12px #3b1c4280}
 .agent-campaign .action-button:hover:not(:disabled)::before{left:130%;transition:left .9s cubic-bezier(.22,1,.36,1)}
 .agent-campaign .action-button:active:not(:disabled){transform:translateY(1px) scale(.992)}
-@media(max-width:640px){.agent-steps li.agent-steps-thumb{display:none}.agent-steps li::after{display:block}}
-@media(prefers-reduced-motion:reduce){.agent-steps li.agent-steps-thumb,.agent-receipt-success,.agent-receipt-success::before,.agent-receipt-row,.agent-ready-board,.agent-selected-channels>span,.workflow-channel-options button,.board-invitation,.workflow-actions,.agent-steps li[aria-current]>button>span{animation:none;transition:none}.agent-campaign .action-button::before{display:none}.agent-campaign .action-button:hover:not(:disabled){transform:none}}
+@media(max-width:640px){.agent-steps li.agent-steps-thumb,.agent-steps li.agent-steps-progress{display:none}.agent-steps li::after{display:block}}
+@media(prefers-reduced-motion:reduce){.agent-workflow .agent-steps,.workflow-card,.workflow-channel-options button,.workflow-channel-check,.campaign-board,.agent-receipt-success svg,.agent-steps li.agent-steps-progress,.agent-steps li.agent-steps-thumb,.agent-receipt-success,.agent-receipt-success::before,.agent-receipt-row,.agent-ready-board,.agent-selected-channels>span,.workflow-channel-options button,.board-invitation,.workflow-actions,.agent-steps li[aria-current]>button>span{animation:none;transition:none}.agent-campaign .action-button::before{display:none}.agent-campaign .action-button:hover:not(:disabled){transform:none}}
 @media print{.agent-receipt-success::before{display:none}.agent-receipt-success,.agent-receipt-row,.agent-ready-board,.agent-selected-channels>span,.board-invitation,.workflow-actions{animation:none!important}}

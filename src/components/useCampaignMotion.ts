@@ -40,6 +40,7 @@ export function useCampaignMotion(initial: CampaignView) {
       // On the rule under the step's own row, whatever the list's padding (the list may wrap on narrow columns).
       const pad = parseFloat(getComputedStyle(list).paddingBottom) || 0;
       list.style.setProperty('--y',`${active.offsetTop + active.offsetHeight + pad - 1}px`);
+      list.style.setProperty('--p',`${active.offsetLeft + active.offsetWidth}px`);   // how far the journey has come
       list.style.setProperty('--on','1');
     };
     place();
@@ -69,15 +70,17 @@ export function useCampaignMotion(initial: CampaignView) {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !panel.animate) { finish(); return; }
     try {
       const height = panel.getBoundingClientRect().height;
+      const d = transition.direction;
+      // The new step comes in from the side it was called from, out of a soft blur, and settles.
       const reveal = panel.animate([
-        {opacity:0,transform:`translateY(${transition.direction * 16}px) scale(.99)`},
-        {opacity:1,transform:'translateY(0) scale(1)'},
-      ],{duration:440,easing:ease,fill:'both'});
-      const resize = frame.animate([{height:`${transition.height}px`},{height:`${height}px`}],{duration:420,easing:ease,fill:'both'});
+        {opacity:0,transform:`translate(${d * 28}px, 10px) scale(.985)`,filter:'blur(5px)'},
+        {opacity:1,transform:'translate(0, 0) scale(1)',filter:'blur(0px)'},
+      ],{duration:620,easing:ease,fill:'both'});
+      const resize = frame.animate([{height:`${transition.height}px`},{height:`${height}px`}],{duration:560,easing:ease,fill:'both'});
       animations.current.push(reveal,resize);
-      // The blocks of the new step arrive one after the other, the heading first.
-      Array.from(panel.children).slice(0,9).forEach((block,i) => {
-        try { block.animate([{opacity:0,transform:'translateY(12px)'},{opacity:1,transform:'none'}],{duration:460,delay:40 + i * 45,easing:ease,fill:'backwards'}); } catch { /* decorative */ }
+      // Its blocks follow one after the other, the heading first, each a little from the same side.
+      Array.from(panel.children).slice(0,10).forEach((block,i) => {
+        try { block.animate([{opacity:0,transform:`translate(${d * 10}px, 16px)`},{opacity:1,transform:'none'}],{duration:560,delay:70 + i * 60,easing:ease,fill:'backwards'}); } catch { /* decorative */ }
       });
       Promise.all([reveal.finished,resize.finished]).then(finish,finish);
     } catch { finish(); }
@@ -105,7 +108,8 @@ export function useCampaignMotion(initial: CampaignView) {
       };
       if (!panel?.animate || reduce) { swap(); return; }
       try {
-        const leave = panel.animate([{opacity:1,transform:'translateY(0) scale(1)'},{opacity:0,transform:`translateY(${-direction * 6}px) scale(.992)`}],{duration:140,easing:'ease-out',fill:'forwards'});
+        // The current step steps aside, the other way, into a light blur.
+        const leave = panel.animate([{opacity:1,transform:'translate(0, 0) scale(1)',filter:'blur(0px)'},{opacity:0,transform:`translate(${-direction * 22}px, -6px) scale(.985)`,filter:'blur(3px)'}],{duration:220,easing:'cubic-bezier(.4,0,.6,1)',fill:'forwards'});
         animations.current = [leave];
         leave.finished.then(swap,swap);
       } catch { swap(); }

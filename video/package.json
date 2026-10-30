@@ -4,8 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "voice": "node voice.mjs",
     "record": "PLAYWRIGHT_BROWSERS_PATH=./.pw-browsers node record.mjs",
-    "mp4": "ffmpeg -y -i out/turnout-demo.webm -c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p -r 30 -movflags +faststart out/turnout-demo.mp4"
+    "mp4": "ffmpeg -y -i out/turnout-demo.webm -c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p -r 30 -movflags +faststart out/turnout-demo.mp4",
+    "mix": "node mix.mjs"
   },
   "keywords": [],
   "author": "",

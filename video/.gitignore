@@ -1,3 +1,4 @@
 .pw-browsers/
 out/
 node_modules/
+.venv/

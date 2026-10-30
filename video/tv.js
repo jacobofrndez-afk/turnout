@@ -88,7 +88,7 @@
 
   // The radar: rings in the proportions of the mark (42, 29, 16 for 64), s pixels per unit of a
   // 32px mark, the sweep leading counter-clockwise, blips in those units around the hinge.
-  function intro({ cx, cy, s, blips }) {
+  function intro({ cx, cy, s, blips, fast = false }) {
     $("tv-radar")?.remove();
     const svg = el("svg", { id: "tv-radar", width: VW, height: VH, viewBox: `0 0 ${VW} ${VH}` });
     $("tv-stage").prepend(svg);
@@ -108,7 +108,7 @@
         const p = el("path", { d: arc(cx, cy, r, a0, a0 + 90), fill: "none", stroke: RING, "stroke-opacity": 0.3, "stroke-width": 3, "stroke-linecap": "butt" }, g);
         const len = p.getTotalLength();
         p.style.strokeDasharray = len; p.style.strokeDashoffset = len;
-        p.style.transition = `stroke-dashoffset .9s cubic-bezier(.3,0,.2,1) ${100 + i * 130 + q * 35}ms, stroke-width 1.25s ${EASE}, stroke-opacity 1.25s ${EASE}, opacity .8s ease`;
+        p.style.transition = `stroke-dashoffset .9s cubic-bezier(.3,0,.2,1) ${(fast ? 60 : 100) + i * (fast ? 90 : 130) + q * 35}ms, stroke-width 1.25s ${EASE}, stroke-opacity 1.25s ${EASE}, opacity .8s ease`;
         rings.push(p); (q === 0 ? keep : other).push(p);
       });
     });
@@ -119,7 +119,7 @@
     blips.forEach((b, i) => {
       const bx = cx + b.u * s, by = cy + b.v * s, left = b.u < 0;
       const bg = el("g", { class: "blip", transform: `translate(${bx} ${by})` }, g);
-      const delay = `${0.5 + i * 0.09}s`;
+      const delay = fast ? `${0.3 + i * 0.045}s` : `${0.5 + i * 0.07}s`;
       bg.style.animationDelay = delay;
       const r = b.big ? 11 : b.name ? 7 : 5;
       const dot = el("circle", { class: "dot", r, fill: PINK, "fill-opacity": b.name ? 1 : 0.75 }, bg);
@@ -264,7 +264,25 @@
   // Two frames: the next page loads in the hidden one while the current one is on screen.
   const frames = () => [...document.querySelectorAll("#tv-view iframe")];
   function dim() { frames().forEach((f) => f.classList.remove("on")); }
+  // Crossfade to the frame that holds the next page: it rises on top while the current one settles back.
+  function swap(name) {
+    const nw = frames().find((f) => f.name === name), old = frames().find((f) => f.name !== name);
+    nw.style.transition = "none"; nw.style.transform = "scale(1.02)"; nw.style.zIndex = 2; old.style.zIndex = 1; reflow(nw);
+    nw.style.transition = "opacity .8s ease, transform .9s cubic-bezier(.2,.8,.2,1)"; nw.classList.add("on"); nw.style.transform = "scale(1)";
+    old.style.transition = "opacity .8s ease .15s, transform .9s cubic-bezier(.4,0,.6,1)"; old.style.transform = "scale(.985)"; old.classList.remove("on");
+    setTimeout(() => { old.style.transform = "none"; old.style.transition = ""; nw.style.transition = ""; }, 1000);
+  }
+  // The close: a wave of light through the word, a ping on the mark, the whole lockup breathing in.
+  async function finale() {
+    const L = $("tv-logo"), parts = logo && logo.parts; if (!parts) return;
+    const svg = L.firstElementChild;
+    const ping = (delay) => { const c = el("circle", { cx: parts.blip.getAttribute("cx"), cy: parts.blip.getAttribute("cy"), r: parts.blip.getAttribute("r"), fill: "none", stroke: PINK, "stroke-width": 0.6 }, svg); c.style.transformBox = "fill-box"; c.style.transformOrigin = "center"; c.style.animation = `pulse 1.6s ease-out ${delay}ms 1 forwards`; c.style.opacity = 0; setTimeout(() => (c.style.opacity = 1), delay); };
+    ping(200); ping(900);
+    parts.strokes.forEach((p, i) => { p.style.transition = `stroke .32s ease ${300 + i * 90}ms`; p.style.stroke = PINK; setTimeout(() => { p.style.transition = "stroke .5s ease"; p.style.stroke = ""; }, 650 + i * 90); });
+    L.style.transformOrigin = "50% 50%"; L.style.transition = "transform 3.2s cubic-bezier(.2,.6,.2,1)"; L.style.transform = "scale(1.035)";
+    const t = $("tv-tag"); t.style.transition = "opacity .7s ease, transform 3.2s cubic-bezier(.2,.6,.2,1)"; t.style.transform = "translate(-50%,6px)";
+  }
   function show(name = "app") { frames().forEach((f) => { const on = f.name === name; f.classList.toggle("on", on); f.style.zIndex = on ? 2 : 1; }); }
 
-  window.tv = { intro, small, setLogo, morph, fly, stageOn, line, count, tag, cap, journey, step, spot, unspot, cursor, drift, undrift, dim, show };
+  window.tv = { intro, small, setLogo, morph, fly, stageOn, finale, line, count, tag, cap, journey, step, spot, unspot, cursor, drift, undrift, dim, show, swap };
 })();

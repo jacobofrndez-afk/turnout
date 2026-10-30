@@ -28,8 +28,9 @@ const BLIPS = JSON.parse(process.env.BLIPS ?? "null") ?? [
   { u: -22, v: -22 }, { name: "Concert hall", u: -8, v: 18 }, { u: 44, v: -22 },
   { name: "Opera house", u: -36, v: -13 }, { u: -7, v: -4 }, { name: "Cinema", sub: "Late show · 300 seats · out 9:50 pm", u: -30, v: -17, small: true },
   { u: -28, v: 19 }, { name: "Club", u: 24, v: 17 }, { u: 11, v: 4 }, { u: 41, v: 19 },
+  { u: 5, v: -7 }, { u: -10, v: 9 }, { u: 13, v: -15 }, { u: -3, v: -14 }, { u: 15, v: 5 }, { u: -17, v: -2 }, { u: 3, v: 8 }, { u: -12, v: 14 },
 ];
-const STEPS = ["The crowd", "Who they are", "The offer", "Your words", "Approve", "Out the door"];
+const STEPS = ["The crowd", "Who they are", "The offer", "Your words", "Channels & budget", "Approve", "Out the door"];
 const LINES = JSON.parse(readFileSync(join(OUT, "voice/lines.json"), "utf8"));
 const L = Object.fromEntries(LINES.map((l) => [l.id, l]));
 // The narration clock: planned start of each line, seconds from the start of the recording.
@@ -76,6 +77,7 @@ await context.addInitScript((z) => {
   if (!add()) new MutationObserver((_, o) => { if (add()) o.disconnect(); }).observe(document.documentElement, { childList: true });
 }, ZOOM);
 const page = await context.newPage();
+const rec0 = Date.now();   // the screencast starts with the page; the narration clock starts later, with the radar
 await page.goto(`${BASE}/api/health`);
 await page.setContent(SHELL, { waitUntil: "load" });
 // Two app frames: `app` is on screen, `next` loads the following page behind it; swap() crossfades.
@@ -122,7 +124,7 @@ async function live(f, selector, ms = 20000) {
   return false;
 }
 // Crossfade from the page on screen to the one loaded behind it.
-async function swap() { await tv("dim"); await sleep(420); [app, next] = [next, app]; await tv("show", app.name()); await sleep(420); }
+async function swap() { await tv("swap", next.name()); [app, next] = [next, app]; await sleep(900); }
 async function scrollTo(y, ms = 1000, f = app) {
   await f.evaluate(([y, ms]) => new Promise((res) => {
     const s = scrollY, d = Math.max(0, y) - s, t0 = performance.now();
@@ -234,13 +236,24 @@ try {
   await chalk.fill("");
   await sleep(200);
   await chalk.pressSequentially(BOARD_TEXT, { delay: 34 });
+  await tv("cursor", -200, -200);
   await sleep(left("touch", 500));
+
+  // Channels and budget: where this crowd really is, and a cap.
+  const plan = app.locator(".agent-plan-summary").first();
+  const reason = app.locator(".channel-choice-reason").first();
+  const picks = app.locator(".agent-channel-picks").first();
+  await bring(plan, 150, 800);
+  await tv("step", 4);
+  await spot(16, plan, (await reason.count()) ? reason : picks);
+  await cue("channels");
+  await sleep(left("channels", 0) - 500);
   await unspot();
 
   // Approve.
   const review = app.getByRole("button", { name: /Review campaign/ });
   await bring(review, 520, 600);
-  await tv("step", 4);
+  await tv("step", 5);
   await live(app, "main button");
   await cue("approve");
   await click(review);
@@ -253,13 +266,14 @@ try {
   await click(approve);
   await sleep(250);
   await unspot();
+  await tv("cursor", -200, -200);
   await sleep(left("approve", 300));
 
   // Out the door: the receipt, then the board.
   const receipt = app.locator(".agent-receipt-success").first();
   const approved = await receipt.waitFor({ state: "visible", timeout: 30000 }).then(() => true).catch(() => false);
   if (!approved) console.error("approval did not show a receipt; continuing to the board");
-  await tv("step", 5);
+  await tv("step", 6);
   const preBoard = load(`/campaigns/${CAMPAIGN}/board`);   // behind the receipt
   const actions = app.locator(".agent-board-actions").first();
   if (approved) { await bring(receipt, 150, 800); await spot(16, receipt, (await actions.count()) ? actions : receipt); }
@@ -281,13 +295,14 @@ try {
 
   // The radar again, and the logo to close.
   await tv("stageOn");
-  await tv("intro", RADAR);
+  await tv("intro", { ...RADAR, fast: true });
   await cue("close1", "line", "Turnout. The right message,<br>to the right people, at the right moment.");
   await sleep(1600);
   await tv("morph", { ...LOGO, keepLine: true });   // the logo forms while the promise is still spoken
   await tv("line", "");
   await cue("close2", "tag");
-  await sleep(left("close2", 0) + 1700);
+  await tv("finale");
+  await sleep(left("close2", 0) + 2400);
 } catch (e) {
   console.error("recording stopped early:", e.message.split("\n")[0]);
 } finally {
@@ -297,6 +312,7 @@ try {
   const webm = readdirSync(OUT).filter((f) => f.endsWith(".webm") && f !== "turnout-demo.webm").sort().pop();
   const target = join(OUT, "turnout-demo.webm");
   if (webm) { rmSync(target, { force: true }); renameSync(join(OUT, webm), target); console.log("recorded", target); }
-  writeFileSync(join(OUT, "timeline.json"), JSON.stringify({ endAt, marks }, null, 2));
+  const lead = (t0 - rec0) / 1000;   // seconds of recording before the narration clock started
+  writeFileSync(join(OUT, "timeline.json"), JSON.stringify({ endAt, lead, marks }, null, 2));
   console.log("end", endAt.toFixed(1) + "s, clock shifted by", shift.toFixed(1) + "s");
 }

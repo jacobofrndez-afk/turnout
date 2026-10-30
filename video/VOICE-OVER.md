@@ -4,7 +4,7 @@ Generic on purpose: the agent and the crowd, no vendor names, the promise at the
 of truth is `voice.mjs` (`npm run voice`, edge-tts, voice `en-US-EmmaMultilingualNeural`, rate +14%; `VOICE=` and `RATE=` override);
 `HOOK2V` and `TODAYV` replace the two lines that quote the night's real event. On screen, a
 journey band stays visible from the first product screen to the last: The crowd, Who they are,
-The offer, Your words, Approve, Out the door.
+The offer, Your words, Channels & budget, Approve, Out the door.
 
 | On screen | Line |
 |---|---|
@@ -16,8 +16,9 @@ The offer, Your words, Approve, Out the door.
 | The logo lands in the product | And above all, it knows who is coming: what kind of people, and what they love. |
 | The crowd | Tonight, ten forty-five: a twenty-thousand-seat show lets out, a short walk from your door. |
 | Who they are | The agent profiles that exact crowd. Who they are, what they love, the places they already go to around you. |
-| The offer | Then it opens your menu and picks the one offer that speaks to them, at that hour. Not your usual special. The right one, for them, tonight. |
+| The offer | Then it opens your menu and picks the one offer that speaks to them, at that hour. Not your usual special. The right one, tonight. |
 | Your words | It writes the campaign. Add your words, and the board rewrites itself. |
+| Channels & budget | It also picks the channels where this crowd really is, and caps the budget. Every dollar goes where it pays. |
 | Approve | Everything is ready. You just approve. |
 | Out the door | The board at your door. A message to your regulars. A local ad within a few blocks. Nothing sent without you. Nothing charged. |
 | The board | Right place. Right hour. Right people. Tonight, the crowd outside becomes customers inside. |

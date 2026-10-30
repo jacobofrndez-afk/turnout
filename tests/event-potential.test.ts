@@ -52,7 +52,7 @@ test('explicit happy hour ends on time and game screenings are not inferred from
 test('missing matches have no numeric score, rather than a fabricated zero',()=>{
   const result=potentialFromProfile(merchant,event,dna,offers,{...analysis,profile:{...profile,offerFits:[]}},now);
   assert.equal(result.score,null);assert.equal(result.offer,undefined);
-  assert.match(result.reason,/not returned enough evidence/);
+  assert.match(result.reason,/Not enough Qloo evidence/);
 });
 test('calendar caches are isolated by place, DNA, menu, area and event schedule',()=>{
   const key=eventPotentialKey(merchant,event,dna,offers);

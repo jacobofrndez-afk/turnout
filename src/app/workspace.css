@@ -412,3 +412,79 @@ body:has(.workspace-nav a[aria-current=page]) main:not(.identity-page):not(.app-
 @media(max-width:640px){.agent-steps li::after{bottom:0}.agent-steps button{padding-bottom:8px}}
 @media(prefers-reduced-motion:reduce){.agent-button-spinner{animation:none}.agent-steps li,.agent-steps li::after,.agent-steps button>span,.agent-campaign .action-button,.agent-campaign .quiet-button{transition:none}.agent-campaign .action-button:active:not(:disabled),.agent-campaign .quiet-button:active:not(:disabled){transform:none}}
 @media print{.app-page{animation:none!important;transform:none!important;opacity:1!important}.agent-step-shell{height:auto!important;overflow:visible!important}.agent-step-content{animation:none!important;transform:none!important;opacity:1!important}}
+
+/* A dedicated campaign workspace: content, decisions, then one clear next action. */
+.campaign-workflow-page{max-width:1200px;padding-top:24px;padding-bottom:32px}
+.workflow-page-heading{display:flex;align-items:center;justify-content:space-between;gap:24px;margin:0 0 24px}
+.workflow-page-heading nav{display:flex;align-items:center;gap:9px;color:#83768b;font-size:12px;margin-bottom:12px}
+.workflow-page-heading nav a{color:#61456d;font-weight:550}.workflow-page-heading nav a:hover{text-decoration:underline;text-underline-offset:4px}
+.workflow-page-heading h1{font-size:27px;margin:0 0 5px;letter-spacing:-.04em}
+.workflow-page-heading p{font-size:12px;color:#7a6b84;margin:0;max-width:700px}
+.workflow-place{display:flex;align-items:center;gap:7px;flex:none;border:1px solid #e5dce9;border-radius:24px;background:white;padding:8px 13px;font-size:12px;color:#65506f}
+.agent-campaign.agent-workflow{max-width:none;padding:0;margin:0;background:none;border:0;border-radius:0}
+.agent-workflow .agent-steps{border:1px solid #e6dfea;border-radius:12px;background:white;padding:13px 24px!important;margin:0 0 25px!important;gap:24px!important;box-shadow:0 3px 14px #3b1c4203}
+.agent-workflow .agent-steps li::after{bottom:-14px;left:0;right:0}
+.agent-workflow .agent-steps button{font-size:12px;gap:9px;width:100%}
+.agent-workflow .agent-steps button>span{width:25px;height:25px;font-size:11px}
+.agent-workflow .agent-stage-heading{margin:0 0 23px;padding:0 2px}
+.agent-workflow .agent-stage-heading h2{font-size:23px;margin:5px 0 6px}
+.agent-workflow .agent-stage-heading>p{font-size:13px;margin:0;max-width:740px}
+.agent-workflow .agent-opportunity,.agent-workflow .agent-offer-comparison,.agent-workflow .agent-proposal-message{max-width:900px}
+.workflow-editor.agent-editor{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(340px,1fr);align-items:start;gap:24px;margin:0}
+.workflow-content,.workflow-settings{display:grid;gap:20px;min-width:0}
+.workflow-card{background:white;border:1px solid #e6dfea;border-radius:14px;padding:24px;min-width:0;box-shadow:0 4px 20px #3b1c4203}
+.workflow-card-heading{display:flex;gap:11px;align-items:center;margin-bottom:20px}
+.workflow-card-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:#f3eef6;color:#7b548a;flex:none}
+.agent-workflow .workflow-card-heading h3{font-size:15px;font-weight:650;letter-spacing:-.02em;margin:0 0 2px}
+.agent-workflow .workflow-card-heading p{font-size:11px;line-height:1.5;margin:0;color:#84738d}
+.workflow-label-tag{margin-left:auto;flex:none;font-size:10px;font-weight:550;color:#7a6086;background:#f6f2f8;border-radius:20px;padding:4px 8px;white-space:nowrap}
+.workflow-editor label{color:#685674;font-size:12px;margin:16px 0 0}
+.workflow-label{display:flex;align-items:center;justify-content:space-between;gap:15px;font-weight:550}
+.workflow-label small{font-size:10px!important;color:#a296a9!important;font-weight:400}
+.workflow-editor input:not([type=checkbox]):not([type=file]),.workflow-editor textarea{border-color:#e2d9e7;border-radius:8px;background:#fff;font-size:13px;line-height:1.7;padding:12px 13px;transition:border-color 180ms ease,box-shadow 180ms ease}
+.workflow-editor input:not([type=checkbox]):focus,.workflow-editor textarea:focus{border-color:#9974a7;box-shadow:0 0 0 3px #9875a710;outline:1px solid #9974a7;outline-offset:0}
+.workflow-message .campaign-visual{margin-top:20px}.workflow-message .visual-add{border-color:#dcd0e4;background:#faf7fc;min-height:76px}
+.workflow-message .campaign-visual-image{max-height:260px;object-fit:contain;background:#faf8fc;border-radius:8px}
+.workflow-message .campaign-visual-controls>span{font-size:10px;color:#93839d;margin-top:8px}
+.workflow-board-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:center}
+.workflow-board-layout>label{margin:0}.workflow-board-layout>label>small{font-size:11px;line-height:1.6;color:#8a7b94}
+.workflow-board-layout>.campaign-board:only-child{grid-column:1/-1;max-width:420px}
+.workflow-board .campaign-board{width:100%;border-width:5px;padding:24px 18px;min-height:300px;gap:17px;box-shadow:0 8px 22px #1726200c}
+.workflow-board .board-place{font-size:9px}.workflow-board .board-invitation{font-size:30px}.workflow-board .board-offer{font-size:11px;padding:12px 0}.workflow-board .board-offer strong{font-size:23px}.workflow-board .board-window{font-size:11px}
+.workflow-window{display:grid;gap:6px;padding-bottom:3px}.workflow-window>span{font-size:11px;color:#8b7896}.workflow-window strong{font-size:13px;font-weight:550}
+.workflow-timing{margin-top:10px}.workflow-timing>summary{display:flex;gap:6px;align-items:center;cursor:pointer;color:#80598e;font-size:11px;font-weight:550;min-height:28px}
+.workflow-timing .agent-fields{grid-template-columns:1fr;gap:0}.workflow-timing small{font-size:10px;line-height:1.5;display:block;margin-top:8px}
+.workflow-budget{display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid #eee8f1;margin-top:16px;padding-top:18px;color:#795787}
+.workflow-budget>div{display:grid;gap:7px}.workflow-budget span{font-size:11px;color:#8a7694}.workflow-budget strong{font-size:18px;line-height:1.1;letter-spacing:-.03em;font-weight:600;color:#42284f}
+.workflow-budget.is-paid strong{font-size:29px}.workflow-budget strong small{font-size:11px;font-weight:400;color:#8a7694;letter-spacing:0}
+.workflow-editor .workflow-budget-input{grid-template-columns:1fr 90px;align-items:center;gap:6px 14px;font-size:11px}
+.workflow-budget-input small{grid-column:1/-1;font-size:10px}.workflow-budget-input input{font-weight:600!important;padding:8px 10px!important}
+.agent-workflow .workflow-disclosure{font-size:10px;line-height:1.65;color:#8a7c94;margin:14px 0 0}
+.workflow-channel-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.workflow-channel-options button{display:flex;position:relative;gap:8px;align-items:center;text-align:left;min-width:0;min-height:63px;padding:10px 17px 10px 9px;border:1px solid #e9e2ed;border-radius:9px;background:white;cursor:pointer;transition:background 180ms ease,border-color 180ms ease,box-shadow 180ms ease}
+.workflow-channel-options button:hover:not(:disabled){border-color:#b9a3c5;background:#fcfafd}.workflow-channel-options button[aria-pressed=true]{border-color:#ac8ebb;background:#f7f3fa;box-shadow:inset 0 0 0 .5px #ac8ebb}
+.workflow-channel-options .social-logo,.workflow-channel-options .channel-icon{width:25px;height:25px;flex:none;border-radius:7px}.workflow-channel-options .social-logo svg{width:15px;height:15px}
+.workflow-channel-options button>span:not(.workflow-channel-check){display:grid;gap:3px;min-width:0}
+.workflow-channel-options strong{font-size:11px;line-height:1.25;font-weight:550;color:#52365e}.workflow-channel-options small{font-size:9px;color:#93829d;line-height:1.35}
+.workflow-channel-check{position:absolute;right:5px;top:5px;color:#7c548d;width:11px;height:11px}
+.workflow-channel-reason{border-top:1px solid #eee8f1;padding-top:12px;margin-top:16px}
+.workflow-channel-reason summary,.workflow-details>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;font-size:12px;font-weight:550;color:#6b4c7b;min-height:24px}
+.workflow-channel-reason .channel-recommendation{margin-top:12px}.workflow-channel-reason p{font-size:11px}
+.workflow-details{padding:18px 22px}.workflow-details input{font-size:12px!important}
+.workflow-final-copy{white-space:pre-wrap;overflow-wrap:anywhere}.agent-workflow .workflow-final-copy h4{font-size:17px;font-weight:600;letter-spacing:-.02em;color:#422a4e;margin-bottom:14px}.agent-workflow .workflow-final-copy p{font-size:14px;line-height:1.8;color:#665471;margin-bottom:14px}.workflow-final-copy small{display:block;font-size:11px;color:#8b7896}
+.workflow-copy-detail{border-top:1px solid #eee8f1;padding:13px 0}.workflow-copy-detail:last-child{padding-bottom:0}.workflow-copy-detail summary{display:flex;align-items:center;gap:9px;cursor:pointer;font-size:12px;font-weight:550;color:#674972;min-height:30px}.workflow-copy-detail summary>.ui-icon:last-child{margin-left:auto}.workflow-copy-detail .social-logo{width:23px;height:23px}.workflow-copy-detail[open] summary{margin-bottom:12px}.workflow-copy-detail>small{display:block;margin-top:10px;font-size:10px;color:#8d7d96}.workflow-copy-detail .workflow-final-copy{font-size:13px;line-height:1.7}
+.workflow-approval{display:flex;align-items:flex-start;gap:12px;background:#eff4ec;border:1px solid #e0e8da;border-radius:12px;padding:20px;color:#648255}.workflow-approval>span{margin-top:3px}.agent-workflow .workflow-approval h3{font-size:13px;margin:0 0 6px;color:#4d6a40}.agent-workflow .workflow-approval p{font-size:11px;line-height:1.7;color:#6a7c62;margin:0}
+.workflow-actions{position:sticky;bottom:16px;z-index:22;border:1px solid #dfd4e5;border-radius:12px;background:rgba(255,255,255,.97);box-shadow:0 6px 32px #32153f12,0 1px 3px #32153f06;padding:14px 18px;margin-top:26px;backdrop-filter:blur(14px)}
+.workflow-actions-inner{display:flex;align-items:center;gap:20px}.workflow-actions-forward{display:flex;align-items:center;gap:12px;margin-left:auto}.workflow-actions .action-button{min-height:44px;padding:11px 20px;border-radius:8px;font-size:12px;box-shadow:0 3px 8px #3b1c4212}.workflow-actions .quiet-button{font-size:12px;padding:10px 13px;min-height:44px}.workflow-actions .quiet-button:disabled{opacity:.45}
+.workflow-back{display:inline-flex;align-items:center;gap:8px;background:none;border:0;color:#785c86;font-size:12px;font-weight:500;cursor:pointer;min-height:44px;white-space:nowrap}.workflow-back>.ui-icon{transform:rotate(180deg)}.workflow-back:hover:not(:disabled){color:#3b1c42}.workflow-back:disabled{opacity:.45;cursor:default}.workflow-save-state{font-size:11px;color:#96869f;margin-left:auto}.workflow-actions>.plan-inline-error{margin:0 0 10px;font-size:12px}
+.agent-workflow>.agent-step-shell:has(.agent-receipt){padding:24px;background:white;border:1px solid #e6dfea;border-radius:14px}
+@keyframes campaign-workspace-open{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes campaign-heading-open{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:no-preference){.app-page.campaign-workflow-page{animation:none}.campaign-workflow-page>.workflow-page-heading{animation:campaign-heading-open 300ms cubic-bezier(.22,1,.36,1) both}.campaign-workflow-page>.agent-workflow{animation:campaign-workspace-open 420ms cubic-bezier(.22,1,.36,1) both}}
+@media(max-width:1000px){.workflow-editor.agent-editor{grid-template-columns:minmax(0,1.35fr) minmax(310px,1fr);gap:18px}.workflow-card{padding:19px}.workflow-board-layout{grid-template-columns:1fr}.workflow-board .campaign-board{max-width:340px}.workflow-channel-options{gap:6px}.workflow-actions-inner{gap:10px}.workflow-save-state{display:none}}
+@media(max-width:800px){.workflow-editor.agent-editor{grid-template-columns:1fr;gap:18px}.workflow-content,.workflow-settings{gap:16px}.workflow-place{display:none}.workflow-page-heading h1{font-size:24px}.workflow-page-heading{margin-bottom:20px}.workflow-board-layout{grid-template-columns:1fr 1fr;gap:18px}.workflow-card-heading p{font-size:12px}.workflow-channel-options strong{font-size:12px}.workflow-channel-options small{font-size:10px}.workflow-channel-options button{padding:12px}.workflow-actions{bottom:82px;padding:12px;margin-top:20px}.workflow-actions-inner{flex-wrap:wrap;gap:5px 12px}.workflow-actions-forward{gap:8px}.workflow-back{font-size:11px}.workflow-actions .action-button{font-size:12px;padding:10px 13px}.agent-workflow .agent-steps{gap:12px!important;padding:12px 16px!important}}
+@media(max-width:540px){.campaign-workflow-page{padding:18px 16px 28px}.workflow-page-heading h1{font-size:22px}.workflow-page-heading nav{margin-bottom:10px}.workflow-page-heading p{font-size:11px}.agent-workflow .agent-stage-heading h2{font-size:21px}.agent-workflow .agent-stage-heading>p{font-size:12px}.agent-workflow .agent-steps{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px!important;padding:10px 12px!important;margin-bottom:22px!important}.agent-workflow .agent-steps button{flex-direction:column;gap:5px;align-items:center;justify-content:center;font-size:10px;padding:2px 0}.agent-workflow .agent-steps li::after{bottom:-11px}.agent-workflow .agent-steps button>span{width:23px;height:23px}.workflow-card{padding:18px;border-radius:12px}.workflow-card-heading{gap:9px;margin-bottom:17px}.workflow-card-heading p{font-size:10px}.workflow-card-icon{width:32px;height:32px}.workflow-board-layout{grid-template-columns:1fr}.workflow-board .campaign-board{max-width:340px;min-height:285px}.workflow-label-tag{font-size:9px}.workflow-actions-inner{display:grid;grid-template-columns:1fr auto;gap:4px 10px}.workflow-actions-forward{display:contents}.workflow-actions .workflow-save{grid-column:2;grid-row:1;min-height:34px;padding:4px 8px;font-size:11px}.workflow-actions .action-button{grid-column:1/-1;width:100%;font-size:13px}.workflow-back{min-height:34px}.workflow-actions{bottom:calc(76px + env(safe-area-inset-bottom));padding:10px 14px}.workflow-actions .quiet-button:not(.workflow-save){font-size:10px;min-height:34px;padding:4px}.agent-workflow>.agent-step-shell:has(.agent-receipt){padding:17px}}
+@media(prefers-reduced-motion:reduce){.campaign-workflow-page>.agent-workflow,.campaign-workflow-page>.workflow-page-heading{animation:none}.workflow-editor input,.workflow-editor textarea,.workflow-channel-options button{transition:none}}
+@media print{.workflow-actions,.workflow-page-heading{display:none!important}.agent-workflow{animation:none!important}.workflow-editor.agent-editor{display:block}}
+/* A short landscape viewport needs its full height for the form. */
+@media(max-height:600px){.workflow-actions{position:static;backdrop-filter:none}.workflow-page-heading{margin-bottom:18px}.agent-workflow .agent-stage-heading{margin-bottom:18px}}

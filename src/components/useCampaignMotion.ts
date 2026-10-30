@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-export type CampaignView = 'proposal' | 'personalize' | 'review' | 'materials';
+import type { CampaignView } from '@/lib/campaign-workflow';
+export type { CampaignView } from '@/lib/campaign-workflow';
 const order: CampaignView[] = ['proposal','personalize','review','materials'];
 const ease = 'cubic-bezier(0.22, 1, 0.36, 1)';
 

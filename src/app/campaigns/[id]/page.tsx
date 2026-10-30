@@ -1,3 +1,5 @@
+import { campaignEntryView } from '@/lib/campaign-workflow';
+import { Icon } from '@/components/Icon';
 import { agentWorkspace } from "@/server/agent/review";
 import { AgentCampaign } from "@/components/AgentCampaign";
 import { EventSource } from "@/components/EventSource";
@@ -23,7 +25,7 @@ const parseUtc = (s: string) => Date.parse(/[zZ]$|[+-]\d\d:\d\d$/.test(s) ? s : 
 
 export const dynamic = "force-dynamic";
 
-export default async function CampaignPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CampaignPage({ params,searchParams }: { params: Promise<{ id: string }>;searchParams:Promise<{view?:string}> }) {
   const { id } = await params;
   let campaign = getCampaign(id);
   if (!campaign) notFound();
@@ -32,7 +34,16 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   const event = getEvent(campaign.event_id);
   if (!merchant || !event) notFound();
   const workspace=campaign.evidence_json?agentWorkspace(id):undefined;
-  if(workspace)return <main className="app-page"><Link href={`/today?merchant=${merchant.id}`} className="text-link">← Today</Link><AgentCampaign key={workspace.id} merchantId={merchant.id} event={workspace.event} initial={workspace} writerConnected={provider()==="anthropic"}/></main>;
+  if(workspace){
+    const entry=campaignEntryView(workspace.status,(await searchParams).view);
+    return <main className="app-page campaign-workflow-page">
+      <header className="workflow-page-heading">
+        <div><nav aria-label="Breadcrumb"><Link href={`/campaigns?merchant=${merchant.id}`}>Campaigns</Link><Icon name="chevron" size={12}/><span>{merchant.name}</span></nav><h1>{workspace.offer.title}</h1><p>{workspace.event.name}</p></div>
+        <span className="workflow-place"><Icon name="pin" size={16}/>{merchant.name}</span>
+      </header>
+      <AgentCampaign key={workspace.id} entry={entry} merchantId={merchant.id} event={workspace.event} initial={workspace} writerConnected={provider()==="anthropic"}/>
+    </main>;
+  }
   // The act, as on Today and Who is coming; a tour title ("Harry Styles: Together, Together") reads like a stutter.
   const actName = (event.origin ?? "ticketmaster") === "ticketmaster" ? ((JSON.parse(event.attractions_json) as { name?: string }[])[0]?.name ?? event.name) : event.name;
   const draft = getDraft(campaign);

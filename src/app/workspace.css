@@ -561,3 +561,24 @@ body:has(.campaign-workflow-page) .workspace-header{position:static}
 .agent-workflow .agent-steps{margin:0 0 18px!important}
 .agent-workflow .agent-stage-heading{margin:0 0 16px;padding:0 2px}
 .agent-workflow .agent-stage-heading h2{font-size:22px;margin:0}
+
+/* Fewer lines before the content: page headings carry the title alone, the place block above already says where we are. */
+.page-heading{margin:22px 0 20px}.page-heading h1{margin:0}
+/* Campaigns: one card per occasion. */
+.campaign-count{margin:22px 0 14px}.campaign-links{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.campaign-library-item h2{margin-top:2px}.campaign-library-item p{margin:6px 0 12px}
+.campaign-versions{display:inline-block;margin-left:10px;font-size:11px;color:#8a7b93;vertical-align:middle}
+/* Calendar: the month, the date jump and the filters share rows; the legend lives inside the filter chips. */
+.calendar-full .calendar-title{flex-wrap:wrap;gap:12px}.calendar-full .calendar-title .calendar-date-jump{margin:0;gap:16px}
+.calendar-full .filter-tabs{margin:16px 0 18px}.filter-tabs button{display:inline-flex;align-items:center;gap:7px}
+.calendar-full .calendar-day-title{margin:0 0 4px;gap:12px;flex-wrap:wrap}.calendar-day-title h3 span{font-weight:400;color:#7c7182;font-size:11px;margin-left:8px}
+.calendar-full .calendar-potential-order{margin:0}
+/* Account: a section map under the title, the place and the plan side by side, one heading size for every section. */
+.account-nav{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.account-nav a{display:inline-flex;align-items:center;min-height:36px;padding:0 13px;border-radius:999px;background:#f4f0f6;color:#5a396a;font-size:12px;font-weight:600;text-decoration:none;transition:background .15s}
+.account-nav a:hover{background:#e7ddeb}
+.account-overview{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:22px}
+.account-page section[id]{scroll-margin-top:92px}
+.account-page .account-section h2,.account-page .account-dna .section-title h2,.account-page .account-offers .section-title h2,.account-page .account-sources h2,.account-channels .section-title h2{font-size:18px;letter-spacing:-.2px}
+.account-page .account-section>p strong{font-size:15px}
+@media(max-width:760px){.account-overview{grid-template-columns:1fr;gap:16px}.account-nav{justify-content:flex-start}.account-nav a{min-height:34px;padding:0 11px;font-size:11px}.page-heading{margin:20px 0 16px}}

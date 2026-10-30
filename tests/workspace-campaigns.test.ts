@@ -35,3 +35,13 @@ test("a reviewed campaign uses its chosen time and keeps superseded drafts out o
   db.prepare("UPDATE campaigns SET status='prepared' WHERE id='retry'").run();
   assert.equal(workspaceCampaigns('place').find(r=>r.id==='retry')?.planned,true);
 });
+
+test("retries on the same occasion fold behind the most recent approved campaign",()=>{
+  db.prepare("INSERT INTO campaigns(id,merchant_id,event_id,status,copy_json,dna_snapshot_json,review_json) VALUES('take2','place','event','prepared','{}','{}',?)").run(JSON.stringify({startLocal:'2030-01-01T17:30'}));
+  const rows=workspaceCampaigns('place');
+  assert.equal(rows.find(r=>r.id==='take2')?.superseded,false);
+  assert.equal(rows.find(r=>r.id==='take2')?.versions,2);
+  assert.equal(rows.find(r=>r.id==='retry')?.superseded,true);
+  assert.equal(rows.find(r=>r.id==='new')?.superseded,true);
+  assert.equal(rows.find(r=>r.id==='old')?.superseded,false);
+});

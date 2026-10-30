@@ -49,7 +49,7 @@ while k * beat < total:
 # the close: a bright chord rises over 2.4 s to the moment the logo completes, rings for a beat, then settles
 swell = np.zeros(n)
 if logo_at:
-    rise, hold, decay = 2.4, 0.6, 3.2
+    rise, hold, decay = 2.4, 0.5, 4.2
     t0 = logo_at - rise
     env = np.where(t < t0, 0, np.where(t < logo_at, ((t - t0) / rise) ** 2, np.where(t < logo_at + hold, 1, np.exp(-(t - logo_at - hold) / (decay / 3)))))
     for midi in [69, 72, 76, 81, 88]:

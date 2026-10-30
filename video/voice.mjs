@@ -16,8 +16,8 @@ export const GROUPS = [
     { id: "hook1", text: "Every night, a crowd walks past your door." },
     { id: "hook2", text: process.env.HOOK2V ?? "Tonight: twenty thousand people, two blocks away, out at ten forty-five." },
     { id: "small", text: "Or eighty people out of a jazz club. Every crowd counts." },
-    { id: "hook3", text: "Most places never see it coming." },
   ] },
+  { id: "hook3", gapBefore: 0.7, lines: [{ id: "hook3", text: "Most places never see it coming." }] },
   { id: "agent", gapBefore: 0.6, lines: [
     { id: "radar1", text: "Turnout does. It's your marketing agent. It watches every event around you, big or small." },
     { id: "radar2", text: "And above all, it knows who is coming: what kind of people, and what they love." },

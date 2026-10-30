@@ -110,7 +110,7 @@ async function cue(id, where = "cap", html) {
   if (wait > 0) await sleep(wait * 1000);
   const at = now();
   if (at - target > 0.05 && L[id].first !== false) shift += at - target;   // inside a clip the audio runs on; only a new clip can wait
-  if (where === "cap") { if (L[id].first !== false) captions(id, at); else if (!L[id].cues) await tv("cap", L[id].text); }
+  if (where === "cap") { if (L[id].first !== false) { if (L[id].cues) captions(id, at); else await tv("cap", L[id].text); } }
   else if (where === "line") await tv("line", html ?? L[id].text);
   else if (where === "tag") await tv("tag", L[id].text);
   marks.push({ id, planned: planned[id], at });
@@ -193,8 +193,10 @@ try {
   await cue("hook1", "line");
   await cue("hook2", "line", hookHtml(L.hook2.text));
   await sleep(300); await tv("count", HOOK_COUNT, 1000);
-  await cue("small", "line", L.small.text.replace(/eighty/i, "<b>80</b>"));
+  await cue("small", "line", "Or <b>80</b> people out of a jazz club.");
   await tv("small");
+  const ecc = (L.hook1.cues ?? []).find((c) => /every crowd counts/i.test(c.text));
+  if (ecc) { const w = (start("hook1") + ecc.start - 0.15 - now()) * 1000; if (w > 0) await sleep(w); await tv("line", "<b>Every crowd counts.</b>"); }
   await cue("hook3", "line");
   await sleep(left("hook3", 0));
 
@@ -334,7 +336,7 @@ try {
   logoAt = now();                          // the music swells to this moment
   await tv("tag", "Turn the crowd <b>outside</b> into customers <b>inside</b>.");
   await tv("finale");
-  await sleep(left("close2", 0) + 3600);   // the film ends on this image, the music settling
+  await sleep(left("close2", 0) + 4300);   // the film ends on this image, the music gone quiet before the cut
 } catch (e) {
   console.error("recording stopped early:", e.message.split("\n")[0]);
 } finally {

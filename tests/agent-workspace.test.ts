@@ -5,8 +5,9 @@ import {resolve} from 'node:path';
 import {getDb} from '../src/server/db/client';
 import {getDna} from '../src/server/merchants/dna';
 import {getEvent} from '../src/server/qloo/crowd';
+import {getMerchant} from '../src/server/events/radar';
 import {campaignWindows} from '../src/server/agent/prompt';
-import {getCampaign,getDraft,draftWithClaude,draftReviewedWithClaude} from '../src/server/agent/run';
+import {getCampaign,getDraft,draftWithClaude,draftReviewedWithClaude,createCampaign} from '../src/server/agent/run';
 import {agentWorkspace,assertAgentEvent,saveAgentReview,eventOpportunity,latestAgentWorkspace} from '../src/server/agent/review';
 import {CampaignDraftSchema,generatedCopyIssues} from '../src/server/agent/schema';
 import {POST as approve} from '../src/app/api/campaigns/[id]/approve/route';
@@ -262,4 +263,21 @@ test('an unapproved campaign and a foreign-origin request cannot be copied',asyn
  insert('not-reviewed');assert.throws(()=>copyCampaign('not-reviewed',now),/Wait for the campaign receipt/);
  const response=await makeVersion(new Request('http://localhost/api/campaigns/replay-source/versions',{method:'POST',headers:{Origin:'https://unrelated.example'}}),{params:Promise.resolve({id:'replay-source'})});
  assert.equal(response.status,403);
+});
+
+
+test('preparation reuses saved materials only while the place DNA is unchanged',async()=>{
+ insert('saved_before_dna_change');
+ db.prepare("UPDATE campaigns SET status='prepared' WHERE id='saved_before_dna_change'").run();
+ const merchant=getMerchant('test_agent')!;
+ assert.equal((await createCampaign(merchant,event)).id,'saved_before_dna_change');
+ // A new, unconfirmed DNA must reach validation, rather than silently opening the old receipt.
+ db.prepare("UPDATE merchant_dna SET version=2,status='suggested' WHERE merchant_id='test_agent'").run();
+ try{
+  await assert.rejects(()=>createCampaign(merchant,event),/Confirm your place DNA/);
+  assert.equal(getCampaign('saved_before_dna_change')?.status,'prepared');
+  assert.equal(getCampaign('saved_before_dna_change')?.dna_version,1);
+ }finally{
+  db.prepare("UPDATE merchant_dna SET version=1,status='confirmed' WHERE merchant_id='test_agent'").run();
+ }
 });

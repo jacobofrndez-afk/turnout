@@ -68,7 +68,7 @@ async function createCampaignOnce(merchant: Merchant, event: EventRow, pickedEnt
     const sameDna = (existing.dna_version ?? 0) === dna.version;
     const draft = getDraft(existing);
     const currentEngine = provider() === 'operator' || !!existing.review_json || existing.evidence_json && JSON.parse(existing.evidence_json).engineVersion === 3;
-    if (draft && (existing.status === "drafted" && sameDna && currentEngine && draftFirstWindow(event, draft.windows, merchant.timezone).end > Date.now()+dna.profile.leadMinutes*60000+30*60000 || ["approved", "sent", "prepared", "partial"].includes(existing.status))) return existing;
+    if (draft && (existing.status === "drafted" && sameDna && currentEngine && draftFirstWindow(event, draft.windows, merchant.timezone).end > Date.now()+dna.profile.leadMinutes*60000+30*60000 || sameDna && ["approved", "sent", "prepared", "partial"].includes(existing.status))) return existing;
     if (sameDna && existing.status === "awaiting_operator" && (provider() === "operator" || Date.now() - Date.parse(existing.created_at.replace(" ", "T") + "Z") < 15 * 60_000)) return existing;
   }
   readyDna(merchant.id);

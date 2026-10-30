@@ -19,22 +19,21 @@ export const GROUPS = [
   ] },
   { id: "hook3", gapBefore: 0.7, lines: [{ id: "hook3", text: "Most places never see it coming." }] },
   { id: "agent", gapBefore: 0.6, lines: [
-    { id: "radar1", text: "Turnout does. It's your marketing agent. It watches every event around you, big or small." },
-    { id: "radar2", text: "And above all, it knows who is coming: what kind of people, and what they love." },
+    { id: "radar1", text: "Turnout does. Your marketing agent." },
+    { id: "radar2", text: "It knows who is coming." },
   ] },
-  { id: "today", gapBefore: 0.6, lines: [
-    { id: "today", text: process.env.TODAYV ?? "Tonight, ten forty-five: a twenty-thousand-seat show lets out, a short walk from your door." },
-    { id: "profile", text: "The agent profiles that exact crowd: who they are, what they love, the places they already go to around you." },
-    { id: "pick", text: "Then it opens your menu and picks the one offer that speaks to them, at that hour. Not your usual special. The right one, tonight." },
+  { id: "today", gapBefore: 0.5, lines: [
+    { id: "today", text: process.env.TODAYV ?? "Tonight's crowd: who they are, what they love, where they already go." },
+    { id: "pick", text: "So, not your usual special. The one offer they will say yes to." },
   ] },
-  { id: "campaign", gapBefore: 0.6, lines: [
-    { id: "touch", text: "It writes the campaign. Add your words, and the board rewrites itself." },
-    { id: "channels", text: "It also picks the channels where this crowd really is, and caps the budget. Every dollar goes where it pays." },
+  { id: "campaign", gapBefore: 0.5, lines: [
+    { id: "touch", text: "Your words. Your board. Rewritten as you type." },
+    { id: "channels", text: "The channels they actually use. A budget you set." },
   ] },
-  { id: "approve", gapBefore: 0.3, lines: [{ id: "approve", text: "Everything is ready. You just approve." }] },
-  { id: "receipt", gapBefore: 0.5, lines: [{ id: "receipt", text: "The board at your door. A message to your regulars. A local ad within a few blocks. Nothing sent without you. Nothing charged." }] },
-  { id: "board", gapBefore: 0.6, lines: [{ id: "board", text: "Right place. Right hour. Right people. Ready before the crowd steps out." }] },
-  { id: "close1", gapBefore: 0.7, lines: [{ id: "close1", text: "Turnout. The right message, to the right people, at the right moment." }] },
+  { id: "approve", gapBefore: 0.4, lines: [{ id: "approve", text: "One tap." }] },
+  { id: "receipt", gapBefore: 0.5, lines: [{ id: "receipt", text: "Ready at your door. Nothing sent without you. Nothing charged." }] },
+  { id: "board", gapBefore: 0.5, lines: [{ id: "board", text: "Right place. Right hour. Right people." }] },
+  { id: "close1", gapBefore: 0.7, lines: [{ id: "close1", text: "The right message, to the right people, at the right moment." }] },
   { id: "close2", gapBefore: 0.3, lines: [{ id: "close2", text: "Turnout. Turn the crowd outside into customers inside." }] },
 ];
 const VOICE = process.env.VOICE ?? "en-US-EmmaMultilingualNeural";

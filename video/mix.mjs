@@ -23,9 +23,12 @@ const clips = tl.marks.filter((m) => lines[m.id] && lines[m.id].first !== false)
 const musicDir = join(here, "music");
 const bed = join(OUT, "music-bed.wav");
 const music = (existsSync(musicDir) ? readdirSync(musicDir).filter((f) => /\.(mp3|m4a|wav|aac)$/i.test(f)).map((f) => join(musicDir, f))[0] : undefined) ?? (existsSync(bed) ? bed : undefined);
+const sfxFile = join(OUT, "sfx.wav");
+const sfx = existsSync(sfxFile) && (tl.sfx ?? []).length ? sfxFile : undefined;
 const args = ["-y", "-i", webm];
 for (const c of clips) args.push("-i", c.file);
 if (music) args.push("-stream_loop", "-1", "-i", music);
+if (sfx) args.push("-i", sfx);
 const end = shifted(tl.endAt);
 let f = `[0:v]setpts=PTS*${k.toFixed(5)},trim=start=${lead.toFixed(3)},setpts=PTS-STARTPTS,format=yuv420p[v0];`;
 if (cuts.length) {
@@ -43,9 +46,12 @@ f += clips.map((c, i) => `[${i + 1}:a]aresample=48000,afade=t=in:d=0.02,afade=t=
 f += clips.map((_, i) => `[a${i}]`).join("") + `amix=inputs=${clips.length}:normalize=0:dropout_transition=0,volume=1.5[voice]`;
 if (music) {
   // Gentle ducking: slow attack and release so the music breathes with the voice instead of pumping.
-  f += `;[${clips.length + 1}:a]aresample=48000,atrim=0:${end.toFixed(2)},volume=${music === bed ? 0.4 : 0.14},afade=t=in:st=0:d=1.5,afade=t=out:st=${(end - 5.4).toFixed(2)}:d=5:curve=qsin[m];`;
-  f += `[voice]asplit=2[vo][sc];[m][sc]sidechaincompress=threshold=0.06:ratio=2.2:attack=250:release=1800:knee=4[md];[vo][md]amix=inputs=2:normalize=0:dropout_transition=0[mix]`;
-} else f += `;[voice]anull[mix]`;
+  f += `;[${clips.length + 1}:a]aresample=48000,atrim=0:${end.toFixed(2)},volume=${music === bed ? 0.5 : 0.16},afade=t=in:st=0:d=1.5,afade=t=out:st=${(end - 5.4).toFixed(2)}:d=5:curve=qsin[m];`;
+  f += `[voice]asplit=2[vo][sc];[m][sc]sidechaincompress=threshold=0.06:ratio=2.2:attack=250:release=1800:knee=4[md];`;
+  if (sfx) f += `[${clips.length + 2}:a]aresample=48000,atrim=0:${end.toFixed(2)},volume=0.5[fx];[vo][md][fx]amix=inputs=3:normalize=0:dropout_transition=0[mix]`;
+  else f += `[vo][md]amix=inputs=2:normalize=0:dropout_transition=0[mix]`;
+} else if (sfx) f += `;[${clips.length + 1}:a]aresample=48000,atrim=0:${end.toFixed(2)},volume=0.5[fx];[voice][fx]amix=inputs=2:normalize=0:dropout_transition=0[mix]`;
+else f += `;[voice]anull[mix]`;
 args.push("-filter_complex", f, "-map", "[v]", "-map", "[mix]", "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-r", "30", "-movflags", "+faststart", "-c:a", "aac", "-b:a", "192k", "-t", end.toFixed(2), join(OUT, "turnout-demo-voice.mp4"));
 execFileSync("ffmpeg", args, { stdio: ["ignore", "ignore", "inherit"] });
-console.log("mixed", clips.length, "clips, retime", k.toFixed(3), "lead", lead.toFixed(2) + "s", "cuts", cuts.map((c) => (c.to - c.from).toFixed(1) + "s").join("+") || "none", music ? "with music" : "no music", "->", join(OUT, "turnout-demo-voice.mp4"));
+console.log("mixed", clips.length, "clips, retime", k.toFixed(3), "lead", lead.toFixed(2) + "s", "cuts", cuts.map((c) => (c.to - c.from).toFixed(1) + "s").join("+") || "none", sfx ? "sonar" : "no sonar", music ? "with music" : "no music", "->", join(OUT, "turnout-demo-voice.mp4"));

@@ -87,8 +87,11 @@ if (!app || !next) throw new Error("app frames missing");
 let t0 = Date.now();
 const now = () => (Date.now() - t0) / 1000;
 const marks = [];
+const CAPTIONS = process.env.CAPTIONS === "1";   // subtitles on the product screens; off by default, the picture speaks
 const cuts = [];   // dead waits the mix removes (from, to in clock seconds)
 let logoAt = 0;    // when the closing logo is complete (music swell)
+const sfx = [];    // sonar pings and whooshes, synthesized by music.py at these clock times
+const fx = (kind, delay = 0) => sfx.push({ at: now() + delay, kind });
 let capTimers = [];
 // Subtitles: short cues timed on the words of the clip, scheduled from the clip's real start.
 function captions(groupFirstId, startAt) {
@@ -110,7 +113,7 @@ async function cue(id, where = "cap", html) {
   if (wait > 0) await sleep(wait * 1000);
   const at = now();
   if (at - target > 0.05 && L[id].first !== false) shift += at - target;   // inside a clip the audio runs on; only a new clip can wait
-  if (where === "cap") { if (L[id].first !== false) { if (L[id].cues) captions(id, at); else await tv("cap", L[id].text); } }
+  if (where === "cap" && CAPTIONS) { if (L[id].first !== false) { if (L[id].cues) captions(id, at); else await tv("cap", L[id].text); } }
   else if (where === "line") await tv("line", html ?? L[id].text);
   else if (where === "tag") await tv("tag", L[id].text);
   marks.push({ id, planned: planned[id], at });
@@ -190,10 +193,12 @@ try {
   // The crowd, on the radar. The narration clock starts here.
   t0 = Date.now();
   await tv("intro", RADAR);
+  fx("ping", 1.0);
   await cue("hook1", "line");
   await cue("hook2", "line", hookHtml(L.hook2.text));
-  await sleep(300); await tv("count", HOOK_COUNT, 1000);
+  await sleep(300); await tv("count", HOOK_COUNT, 1000); fx("ping");
   await cue("small", "line", "Or <b>80</b> people out of a jazz club.");
+  fx("ping-soft", 0.05); fx("ping-soft", 0.31); fx("ping-soft", 0.57);
   await tv("small");
   const ecc = (L.hook1.cues ?? []).find((c) => /every crowd counts/i.test(c.text));
   if (ecc) { const w = (start("hook1") + ecc.start - 0.15 - now()) * 1000; if (w > 0) await sleep(w); await tv("line", "<b>Every crowd counts.</b>"); }
@@ -202,6 +207,7 @@ try {
 
   // The radar becomes the logo, then the logo takes its place in the product.
   await cue("radar1", "none");
+  fx("whoosh");
   await tv("morph", LOGO);
   await sleep(250);
   await cue("radar2", "cap");
@@ -209,33 +215,30 @@ try {
   await tv("journey", true);
   await tv("step", 0);
 
-  // Tonight's crowd.
+  // Tonight's crowd: the occasion, then who they are. The picture moves first, the voice follows.
   const occasion = app.locator(".agent-opportunity").first();
-  await bring(occasion, 150, 800);
-  await spot(16, occasion);
-  await drift(occasion, 6500);
-  await cue("today");
-  await sleep(left("today", 0) - 900);
-  await undrift();
-
-  // Who they are, then the offer.
   const heading = app.locator(".agent-decision-heading").first();
   const evidence = app.locator(".agent-evidence").first();
   const cards = app.locator(".agent-offer-comparison").first();
-  await bring(heading, 140, 800);
+  await bring(occasion, 150, 700);
+  await spot(16, occasion);
+  await drift(occasion, 5000, 1.03);
+  await cue("today");
+  await sleep(900);
+  await undrift();
+  await bring(heading, 140, 700);
   await tv("step", 1);
   await spot(16, heading, (await evidence.count()) ? evidence : cards);
-  await cue("profile");
-  await sleep(left("profile", 0) - 600);
+  await sleep(left("today", 0) - 1100);
+  // The offer.
   await tv("step", 2);
   await spot(14, cards);
-  await drift(cards, 7000, 1.05);
+  await drift(cards, 4500, 1.05);
   await cue("pick");
   const preCampaign = load(`/campaigns/${CAMPAIGN}?merchant=${HERO}`);   // behind the Today page
-  await sleep(left("pick", 0) - 1100);
+  await sleep(left("pick", 0) - 900);
   await undrift();
   await unspot();
-  await tv("cap", "");
 
   // Your words: the campaign page is already loaded behind; place it, then crossfade.
   await preCampaign;
@@ -246,45 +249,43 @@ try {
   await tv("step", 3);
   await spot(16, editor);
   const chalk = (await editor.locator("textarea").count()) ? editor.locator("textarea").first() : app.locator("textarea").last();
-  await cue("touch");
   await live(app, "textarea");
-  await sleep(300);
+  await cue("touch");
   await click(chalk);
   await chalk.fill("");
-  await sleep(200);
-  await chalk.pressSequentially(BOARD_TEXT, { delay: 34 });
+  await sleep(120);
+  await chalk.pressSequentially(BOARD_TEXT, { delay: 30 });
   await tv("cursor", -200, -200);
-  await sleep(left("touch", 0) - 1100);   // the scroll runs over the end of the sentence, so the next one lands on its block
+  await sleep(left("touch", 0) - 1100);
 
   // Channels and budget: where this crowd really is, and a cap.
   const plan = app.locator(".agent-plan-summary").first();
   const reason = app.locator(".channel-choice-reason").first();
   const picks = app.locator(".agent-channel-picks").first();
-  await bring(plan, 150, 800);
+  await bring(plan, 150, 700);
   await tv("step", 4);
   await spot(16, plan, (await reason.count()) ? reason : picks);
   await cue("channels");
-  await sleep(left("channels", 0) - 500);
+  await sleep(left("channels", 0) - 1500);
   await unspot();
 
-  // Approve.
+  // Approve: the review opens under the end of the sentence, "One tap." lands on the click.
   const review = app.getByRole("button", { name: /Review campaign/ });
   await bring(review, 520, 600);
-  await tv("step", 5);
   await live(app, "main button");
-  await cue("approve");
   await click(review);
   const approve = app.getByRole("button", { name: /Approve/ });
   await approve.waitFor({ state: "visible", timeout: 15000 });
-  await sleep(250);
-  await bring(approve, 520, 700);
+  await sleep(150);
+  await bring(approve, 520, 500);
+  await tv("step", 5);
   await spot(12, approve);
-  await sleep(350);
-  await click(approve);
+  await moveTo(approve);
+  await cue("approve");
+  await page.mouse.down(); await sleep(80); await page.mouse.up();
   await sleep(250);
   await unspot();
   await tv("cursor", -200, -200);
-  await sleep(left("approve", 300));
 
   // Out the door: the receipt, then the board. A slow save is cut out of the film (see cuts).
   const receipt = app.locator(".agent-receipt-success").first();
@@ -294,28 +295,30 @@ try {
   if (!approved) console.error("approval did not show a receipt; continuing to the board");
   await tv("step", 6);
   const preBoard = load(`/campaigns/${CAMPAIGN}/board`);   // behind the receipt
-  const actions = app.locator(".agent-board-actions").first();
-  if (approved) { await bring(receipt, 150, 800); await spot(16, receipt, (await actions.count()) ? actions : receipt); }
+  const rows = app.locator(".agent-receipt-row");
+  const actions = app.locator(".agent-board-actions, .agent-ready-board a").first();
+  if (approved) { await bring(receipt, 150, 700); await spot(16, receipt, (await rows.count()) ? rows.last() : (await actions.count()) ? actions : receipt); }
   await cue("receipt");
-  await sleep(left("receipt", 0) - 1500);
+  await sleep(left("receipt", 0) - 900);
   await unspot();
-  await tv("cap", "");
   await preBoard;
   const board = next.locator(".campaign-board").first();
   await board.waitFor({ state: "visible", timeout: 15000 });
   await bring(board, 120, 0, next);
   await swap();
   await spot(18, board);
-  await drift(board, 7500, 1.08);
+  await drift(board, 5000, 1.08);
   await cue("board");
-  await sleep(left("board", 0) - 1600);
+  await sleep(left("board", 0) + 500);
 
   // The board collapses into one point, your place; a flash, and the radar ripples out of it.
   await tv("cap", "");
   const bb = await board.boundingBox();
   const collapsing = tv("collapse", bb.x + bb.width / 2, bb.y + bb.height / 2, RADAR.cx, RADAR.cy);
+  fx("ping-deep", 1.15);
   await sleep(1350);
   await tv("intro", { ...RADAR, fast: true, ripple: true });
+  fx("ping", 0.3);
   await collapsing;
   // The promise, one statement at a time over the radar; then the logo alone; then one signature.
   // Each statement lands on its words (pauses measured in the voice file: 1.03, 2.12, 3.13 s).
@@ -329,11 +332,13 @@ try {
   await sleep(left("close1", 0) + 350);
   await tv("punch", "");
   await sleep(200);
+  fx("whoosh");
   const morphing = tv("morph", LOGO);   // the radar brightens back as it collapses into the mark
   await sleep(1900);                       // the word starts writing itself here
   await cue("close2", "none");             // "Turnout." over the writing, the promise on the signature
   await morphing;
   logoAt = now();                          // the music swells to this moment
+  fx("ping-soft", 0.2); fx("ping-soft", 0.9);
   await tv("tag", "Turn the crowd <b>outside</b> into customers <b>inside</b>.");
   await tv("finale");
   await sleep(left("close2", 0) + 4300);   // the film ends on this image, the music gone quiet before the cut
@@ -347,7 +352,7 @@ try {
   const target = join(OUT, "turnout-demo.webm");
   if (webm) { rmSync(target, { force: true }); renameSync(join(OUT, webm), target); console.log("recorded", target); }
   const lead = (t0 - rec0) / 1000;   // seconds of recording before the narration clock started
-  writeFileSync(join(OUT, "timeline.json"), JSON.stringify({ endAt, lead, marks, cuts, logoAt }, null, 2));
+  writeFileSync(join(OUT, "timeline.json"), JSON.stringify({ endAt, lead, marks, cuts, logoAt, sfx }, null, 2));
   if (cuts.length) console.log("cuts", cuts.map((c) => (c.to - c.from).toFixed(1) + "s").join(", "));
   console.log("end", endAt.toFixed(1) + "s, clock shifted by", shift.toFixed(1) + "s");
 }

@@ -69,4 +69,35 @@ mix = np.clip(mix, -0.98, 0.98)
 data = (mix * 32767).astype(np.int16)
 with wave.open(os.path.join(out, "music-bed.wav"), "wb") as w:
     w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr); w.writeframes(data.tobytes())
-print("bed", round(total, 1), "s")
+# Sonar: pings and whooshes at the moments record.mjs logged, moved up by the cuts the mix makes.
+events = tl.get("sfx", []) if isinstance(globals().get("tl"), dict) else []
+cuts = sorted([c for c in (tl.get("cuts", []) if events else []) if c["to"] - c["from"] > 0.3], key=lambda c: c["from"])
+def shifted(x):
+    return x - sum((c["to"] - c["from"]) + 0.45 for c in cuts if c["to"] <= x)
+sfx = np.zeros(n)
+def ping(at, freq=1046.5, decay=0.9, gain=0.5):
+    a = int(at * sr); L = int(decay * 4 * sr); seg = t[:L]
+    tone = (np.sin(2 * np.pi * freq * seg) + 0.35 * np.sin(2 * np.pi * freq * 2.01 * seg) + 0.12 * np.sin(2 * np.pi * freq * 3.0 * seg)) * np.exp(-seg / decay * 3) * np.minimum(1, seg / 0.004)
+    for d, g in ((0.19, 0.4), (0.38, 0.16)):
+        k = int(d * sr); echo = np.zeros(L); echo[k:] = tone[: L - k] * g; tone = tone + echo
+    end = min(L, n - a)
+    if 0 <= a < n and end > 0:
+        sfx[a:a + end] += gain * tone[:end]
+def whoosh(at, dur=1.4, gain=0.3):
+    a = int(at * sr); L = int(dur * sr); seg = t[:L]
+    noise = np.random.default_rng(7).standard_normal(L)
+    band = np.convolve(noise, np.ones(10) / 10, mode="same") - np.convolve(noise, np.ones(140) / 140, mode="same")
+    env = np.sin(np.pi * np.minimum(1, seg / dur)) ** 2 * (1 - 0.45 * seg / dur)
+    end = min(L, n - a)
+    if 0 <= a < n and end > 0:
+        sfx[a:a + end] += gain * band[:end] * env[:end]
+for e in events:
+    at = shifted(e["at"])
+    if e["kind"] == "ping": ping(at)
+    elif e["kind"] == "ping-soft": ping(at, 1318.5, 0.6, 0.26)
+    elif e["kind"] == "ping-deep": ping(at, 523.25, 1.5, 0.6)
+    elif e["kind"] == "whoosh": whoosh(at)
+sfx = np.clip(sfx, -0.95, 0.95)
+with wave.open(os.path.join(out, "sfx.wav"), "wb") as w:
+    w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr); w.writeframes((sfx * 32767).astype(np.int16).tobytes())
+print("bed", round(total, 1), "s,", len(events), "sonar events")

@@ -13,8 +13,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 
 export const GROUPS = [
   { id: "intro", gapBefore: 1.0, lines: [
-    { id: "hook1", text: "Every night, a crowd walks past your door." },
-    { id: "hook2", text: process.env.HOOK2V ?? "Tonight: twenty thousand people, two blocks away, out at ten forty-five." },
+    { id: "hook1", text: "Every day, a crowd walks past your door." },
+    { id: "hook2", text: process.env.HOOK2V ?? "Like tonight: twenty thousand people, two blocks away, out at ten forty-five." },
     { id: "small", text: "Or eighty people out of a jazz club. Every crowd is yours to win." },
   ] },
   { id: "hook3", gapBefore: 0.7, lines: [{ id: "hook3", text: "Most places never see it coming." }] },
@@ -30,8 +30,8 @@ export const GROUPS = [
     { id: "touch", text: "It writes the whole campaign for you. You just add your own words." },
     { id: "channels", text: "Then it picks the channels this crowd actually uses: a local ad a few blocks from the venue, your socials, a message to your regulars, with a budget you set, so every dollar goes where it pays." },
   ] },
-  { id: "approve", gapBefore: 0.4, lines: [{ id: "approve", text: "Then one tap, and it's ready." }] },
-  { id: "receipt", gapBefore: 0.5, lines: [{ id: "receipt", text: "Everything is ready: online, on their phones, and at your door. Nothing goes out without you." }] },
+  { id: "approve", gapBefore: 0.4, lines: [{ id: "approve", text: "Then, one tap. Your call." }] },
+  { id: "receipt", gapBefore: 0.5, lines: [{ id: "receipt", text: "Everything is set: online, on their phones, and at your door. Nothing goes out without you." }] },
   { id: "close1", gapBefore: 0.7, lines: [{ id: "close1", text: "The right place. At the right hour. For the right people." }] },
   { id: "close2", gapBefore: 0.3, lines: [{ id: "close2", text: "Turnout. Turn the crowd outside into customers inside." }] },
 ];

@@ -47,7 +47,7 @@
     #tv-logo svg{display:block;overflow:visible}
     #tv-logo svg path,#tv-logo svg circle,#tv-logo svg g{transition:fill .9s ease,stroke .9s ease,opacity .45s ease}
     #tv-logo.prep,#tv-logo.prep *{transition:none!important}
-    #tv-line{position:absolute;left:50%;bottom:86px;transform:translate(-50%,10px);width:1500px;text-align:center;font:600 54px/1.15 ${FONT};letter-spacing:-.005em;opacity:0;transition:opacity .5s ease,transform .5s ease}
+    #tv-line{position:absolute;left:50%;bottom:86px;transform:translate(-50%,10px);width:1500px;text-align:center;font:600 52px/1.15 ${FONT};letter-spacing:-.005em;opacity:0;transition:opacity .5s ease,transform .5s ease}
     #tv-line.on{opacity:1;transform:translate(-50%,0)}
     #tv-line b{color:${PINK};font-weight:700}
     #tv-line .tv-big{display:block;font:800 92px/1.05 ${DISPLAY};text-transform:uppercase;letter-spacing:.02em;color:${PINK}}

@@ -193,7 +193,7 @@ async function spot(pad, ...locators) {
 async function unspot() { await tv("unspot"); }
 async function drift(locator, ms = 7000, scale = 1.04) { const b = await locator.first().boundingBox(); if (!b) return; await tv("drift", b.x + b.width / 2, b.y + b.height / 2, ms, scale); }
 async function undrift() { await tv("undrift"); await sleep(120); }
-const hookHtml = (t) => t.replace(/twenty[- ]thousand/i, '<b id="num">0</b>').replace(/ten forty[- ]five/i, "<b>10:45 pm</b>");
+const hookHtml = (t) => t.replace(/twenty[- ]thousand/i, '<b id="num">0</b>').replace(/ten forty[- ]five/i, "<b>10:45&nbsp;pm</b>").replace(/, out at/, ",<br>out at");
 
 try {
   // Today loads in the dark, under the stage; the header lockup is cloned for the morph.

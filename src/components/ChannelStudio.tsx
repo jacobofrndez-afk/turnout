@@ -18,6 +18,7 @@ export function ChannelStudio({workspace,review,board,when,readOnly=false,update
  const channel=review.channels.includes(selected)?selected:review.channels[0];
  const creative=isCreativeChannel(channel)?channelCreative(channel,review,workspace.merchantName):undefined;
  const vertical=channel==='tiktok'||channel==='snapchat';
+ const neutralGoogle=channel==='google_post'&&!!googlePromotionNote(`${review.title} ${review.message} ${review.terms}`);
  const shots=creative?.shots??[];
  useEffect(()=>{setShot(0);setPlaying(false);},[channel]);
  useEffect(()=>{if(!playing)return;const timer=setInterval(()=>setShot(current=>{if(current>=shots.length-1){setPlaying(false);return current;}return current+1;}),3500);return()=>clearInterval(timer);},[playing,shots.length]);
@@ -47,7 +48,7 @@ export function ChannelStudio({workspace,review,board,when,readOnly=false,update
       <div className="kit-phone-caption"><strong>{workspace.merchantName}</strong><p>{caption}</p>{channel==='snapchat'&&<small>{when} · {workspace.offer.price}</small>}</div>
      </div>:channel==='whatsapp'?<div className="kit-chat">{brand}<div className="kit-chat-body"><div className="kit-bubble">{review.visual&&image}<p>{caption}</p><small>{when}</small></div><span className="kit-chat-note">Preview only · not sent</span></div></div>:<div className={`kit-post kit-${channel}`}>{brand}
        {(channel==='instagram'||channel==='google_post')&&image}
-       <div className="kit-post-copy">{channel==='google_post'&&<span className="kit-google-label">Business update</span>}{(channel==='google_post'||channel==='geofenced_ad')&&<h4>{channel==='geofenced_ad'?review.adHeadline:review.title}</h4>}<p>{caption}</p><small>{when}</small>{review.terms&&<small>{review.terms}</small>}</div>
+       <div className="kit-post-copy">{channel==='google_post'&&<span className="kit-google-label">Business update</span>}{(channel==='google_post'||channel==='geofenced_ad')&&<h4>{channel==='geofenced_ad'?review.adHeadline:neutralGoogle?workspace.merchantName:review.title}</h4>}<p>{caption}</p><small>{when}</small>{review.terms&&!neutralGoogle&&<small>{review.terms}</small>}</div>
        {(channel==='facebook'||channel==='geofenced_ad')&&review.visual&&image}
        <div className="kit-post-footer" aria-hidden="true">{channel==='instagram'?'♡    ◯    ↗':channel==='google_post'?'Offer details':channel==='geofenced_ad'?'Visit our place':'Like     ·     Comment     ·     Share'}</div>
       </div>}
@@ -56,6 +57,7 @@ export function ChannelStudio({workspace,review,board,when,readOnly=false,update
      {readOnly&&<CopyText text={caption} label={`Copy ${CHANNELS[channel]} ${channel==='storefront'?'text':'caption'}`}/>}
     </div>
    </div>
+   {neutralGoogle&&<p className="kit-requirement">For Google, use a neutral venue update. The promotional title and offer terms are hidden here.</p>}
    {channel==='google_post'&&googlePromotionNote(caption)&&<p className="kit-requirement">{googlePromotionNote(caption)} <a href="https://support.google.com/business/answer/7400114" target="_blank" rel="noreferrer">Google post policy ↗</a></p>}
    <div className="kit-status"><Icon name="wallet" size={16}/><span>{channelCostLabel(channel,review)}</span></div>
    <p className="kit-requirement">{channel==='storefront'?'Print-ready after approval.':channel==='tiktok'?'Video publishing is not connected. This saves your caption and filming plan.':channel==='whatsapp'?'Prepared only. No WhatsApp sending is enabled; provider pricing must be confirmed before a future send.':channel==='geofenced_ad'?'Ad draft only. Confirm the format, audience and spending limit in your ad platform.':channel==='google_post'?'Copy to your Google Business Profile. A Google Ads campaign is a separate paid placement.':'Save the content, then finish publication in your channel. Connecting an account does not launch a paid campaign.'}</p>

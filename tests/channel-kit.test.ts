@@ -43,3 +43,9 @@ test('legacy local ads remain readable and unselected or printing budgets cannot
  assert.equal(AgentReviewSchema.safeParse({...review,channelCreatives:{facebook:{caption:'x'.repeat(601),overlay:'',shots:[]}}}).success,false);
  assert.ok(channelStarter('facebook',review,'The place').caption.length<=600);
 });
+
+test('Google starters turn alcohol promotions into a neutral venue invitation',()=>{
+ const google=channelStarter('google_post',{...review,title:'Two cocktails',message:'Two cocktails for $16.',terms:'Happy hour cocktails.'},'Penn & Pour');
+ assert.doesNotMatch(google.caption,/cocktail|\$16/i);
+ assert.match(google.caption,/Penn & Pour/);
+});

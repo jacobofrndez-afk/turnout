@@ -3,3 +3,4 @@
 @media(max-width:600px){.kit-format{flex-direction:column}.kit-format>span{font-size:9px}.kit-tabs{gap:6px}.kit-tabs button{padding:8px 9px;font-size:11px}.kit-total strong{font-size:24px}.kit-preview-column{order:-1}.kit-phone{max-width:230px}.kit-post,.kit-chat{max-width:100%}}
 
 .kit-google-ad{border:1px dashed #cbbad6;border-radius:10px;padding:14px;margin:16px auto;max-width:390px}.kit-google-ad small{display:block;font-size:10px;color:#8e7898;line-height:1.5}.kit-google-ad strong{display:block;margin:10px 0 6px;font-size:14px;color:#59416c}.kit-google-ad p{font-size:12px;line-height:1.6;margin:0 0 8px;color:#7d6987}
+.kit-phone .kit-phone-top strong,.kit-phone .kit-phone-caption strong,.kit-phone .kit-no-photo strong{color:#f5eef9}.kit-phone .kit-no-photo span{color:#d0bedb}

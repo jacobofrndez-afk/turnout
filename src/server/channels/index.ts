@@ -6,6 +6,7 @@ import { getDb, newId } from "@/server/db/client";
 import type { Merchant } from "@/server/events/radar";
 import type { CampaignDraft } from "@/server/agent/schema";
 import type { SavedAgentReview } from '@/lib/agent-workspace';
+import { googlePromotionNote } from '@/lib/channel-recommendation';
 import { channelCap, channelCreative, campaignSpend } from '@/lib/channel-kit';
 import { submitWhatsApp, whatsappConfigured, whatsappStatus } from "./twilio";
 import { buildSnapPayloads, createGeofencedCampaign, snapConfigured, type GeofencedAdSpec } from "./snapchat";
@@ -102,9 +103,11 @@ export async function publishCampaign(campaignId: string, merchant: Merchant, dr
         record(channel, "ready", true, { message: creative?.caption??`${draft.google_post.title}\n${draft.google_post.body}\n${draft.google_post.offer_terms}`, overlay:creative?.overlay,shots:creative?.shots,visual:review?.visual,planned_ad_cap_usd:review?channelCap(review,channel):0,total_campaign_cap_usd:review?campaignSpend(review).ceiling:0,status_note: "Content draft only. No video rendered, social post published or paid placement created." });
         break;
       }
-      case "google_post":
-        record("google_post", "simulated", true, { type: "OFFER", title: draft.google_post.title, body: review?channelCreative('google_post',review,merchant.name).caption:draft.google_post.body, terms: draft.google_post.offer_terms, schedule: draft.windows,visual:review?.visual,planned_ad_cap_usd:review?channelCap(review,'google_post'):0, status_note: "Business post saved for manual use. Any Google Ads budget is a separate unlaunched placement." });
+      case "google_post": {
+        const neutral=!!review&&!!googlePromotionNote(`${review.title} ${review.message} ${review.terms}`);
+        record("google_post", "simulated", true, { type: neutral?"STANDARD":"OFFER", title: neutral?merchant.name:draft.google_post.title, body: review?channelCreative('google_post',review,merchant.name).caption:draft.google_post.body, terms: neutral?undefined:draft.google_post.offer_terms, schedule: draft.windows,visual:review?.visual,planned_ad_cap_usd:review?channelCap(review,'google_post'):0, status_note: "Business post saved for manual use. Any Google Ads budget is a separate unlaunched placement." });
         break;
+      }
       case "storefront":
         record("storefront", "ready", true, { chalkboard: draft.storefront.chalkboard, staff_line: draft.storefront.staff_line, status_note: "Yours to chalk on the board and say at the door." });
         break;

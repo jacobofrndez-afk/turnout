@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { AgentReview } from './agent-workspace';
 import type { PlanChannel } from './campaign-plan';
 import { CHANNEL_IDS, CHANNELS } from './place-dna';
+import { googlePromotionNote } from './channel-recommendation';
 
 export const SOCIAL_CREATIVE_IDS = ['facebook','instagram','tiktok','snapchat','google_post'] as const;
 export type CreativeChannel = typeof SOCIAL_CREATIVE_IDS[number];
@@ -40,7 +41,7 @@ export function channelStarter(channel:CreativeChannel,review:AgentReview,mercha
   case 'instagram':return {caption:`${review.title}\n\n${caption}`,overlay:'',shots:[]};
   case 'tiktok':return {caption:`${review.title} · ${merchantName}`,overlay:review.title,shots:[`Open on the entrance to ${merchantName}.`,`Show the offer up close. On-screen text: ${review.title}.`,'Finish with the price and the confirmed campaign time.']};
   case 'snapchat':return {caption:review.title,overlay:review.chalkboard,shots:[]};
-  case 'google_post':return {caption,overlay:'',shots:[]};
+  case 'google_post':return {caption:googlePromotionNote(`${review.title} ${caption} ${review.terms}`)?`Meet at ${merchantName}. Plan your visit around the time below.`:caption,overlay:'',shots:[]};
  }
 }
 export function channelCreative(channel:CreativeChannel,review:AgentReview,merchantName:string):ChannelCreative{

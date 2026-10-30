@@ -22,11 +22,11 @@ const args = ["-y", "-i", webm];
 for (const c of clips) args.push("-i", c.file);
 if (music) args.push("-stream_loop", "-1", "-i", music);
 const end = tl.endAt;
-let f = `[0:v]setpts=PTS*${k.toFixed(5)},trim=start=${lead.toFixed(3)},setpts=PTS-STARTPTS,fade=t=in:st=0:d=0.6,fade=t=out:st=${(end - 1.4).toFixed(2)}:d=1.4,format=yuv420p[v];`;
+let f = `[0:v]setpts=PTS*${k.toFixed(5)},trim=start=${lead.toFixed(3)},setpts=PTS-STARTPTS,fade=t=in:st=0:d=0.6,format=yuv420p[v];`;   // no fade out: the film ends on its last image
 f += clips.map((c, i) => `[${i + 1}:a]aresample=48000,adelay=${Math.round(c.start * 1000)}:all=1[a${i}]`).join(";") + ";";
 f += clips.map((_, i) => `[a${i}]`).join("") + `amix=inputs=${clips.length}:normalize=0:dropout_transition=0,volume=1.5[voice]`;
 if (music) {
-  f += `;[${clips.length + 1}:a]aresample=48000,atrim=0:${end.toFixed(2)},volume=${music === bed ? 0.5 : 0.16},afade=t=in:st=0:d=1.5,afade=t=out:st=${(end - 3).toFixed(2)}:d=3[m];`;
+  f += `;[${clips.length + 1}:a]aresample=48000,atrim=0:${end.toFixed(2)},volume=${music === bed ? 0.5 : 0.16},afade=t=in:st=0:d=1.5,afade=t=out:st=${(end - 2.5).toFixed(2)}:d=2.5[m];`;
   f += `[voice]asplit=2[vo][sc];[m][sc]sidechaincompress=threshold=0.03:ratio=6:attack=40:release=700[md];[vo][md]amix=inputs=2:normalize=0:dropout_transition=0[mix]`;
 } else f += `;[voice]anull[mix]`;
 args.push("-filter_complex", f, "-map", "[v]", "-map", "[mix]", "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-r", "30", "-movflags", "+faststart", "-c:a", "aac", "-b:a", "192k", "-t", end.toFixed(2), join(OUT, "turnout-demo-voice.mp4"));

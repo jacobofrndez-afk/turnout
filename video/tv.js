@@ -32,7 +32,7 @@
     #tv-stage{position:absolute;inset:0;background:${DARK};z-index:5;transition:opacity .8s ease}
     #tv-stage.off{opacity:0;pointer-events:none}
     #tv-radar{position:absolute;left:0;top:0}
-    #rg{transform-box:view-box;transition:transform 1.25s ${EASE}}
+    #rg{transform-box:view-box;transition:transform 1.1s ${EASE}}
     .axis{stroke:${RING};stroke-opacity:.12;stroke-width:1;transition:opacity .5s ease}
     .blip{opacity:0;animation:in .6s ease forwards}
     .blip text{font-family:${FONT};transition:opacity .5s ease}
@@ -209,16 +209,16 @@
     park(1300);
     const parts = placeLogo(center, K);
     await sleep(150);
-    g.style.transition = `transform 1.25s ${EASE}, opacity 1.1s ease`;
+    g.style.transition = `transform 1.1s ${EASE}, opacity 1s ease`;
     g.style.transform = `translate(${toX - cx}px, ${toY - cy}px) scale(${f})`;
     g.style.opacity = 1;   // from the dimmed state behind the statements, if any
     R.rings.forEach((p) => { p.style.strokeWidth = s + "px"; p.style.strokeOpacity = 1; });
     if (R.arena) R.arena.style.r = 1.3 * s + "px";
-    await sleep(350);
+    await sleep(300);
     R.other.forEach((p) => (p.style.opacity = 0));
-    await sleep(800);
+    await sleep(700);
     parts.rings.style.opacity = 1;
-    await sleep(220);
+    await sleep(200);
     R.keep.forEach((p) => (p.style.opacity = 0));
     R.sweep.style.opacity = 0;
     parts.structure.style.opacity = 1; parts.structure.style.transform = "scale(1)";
@@ -227,10 +227,10 @@
     parts.blip.style.opacity = 1; parts.blip.style.animation = "pop .45s cubic-bezier(.3,0,.2,1) forwards";
     if (R.arena) R.arena.style.opacity = 0;
     await sleep(160);
-    parts.strokes.forEach((p, i) => { p.style.transition = `stroke-dashoffset .65s cubic-bezier(.3,0,.2,1) ${i * 60}ms, stroke .9s ease`; p.style.strokeDashoffset = 0; });
-    await sleep(1050);
+    parts.strokes.forEach((p, i) => { p.style.transition = `stroke-dashoffset .6s cubic-bezier(.3,0,.2,1) ${i * 55}ms, stroke .9s ease`; p.style.strokeDashoffset = 0; });
+    await sleep(950);
     parts.solids.forEach((p) => (p.style.opacity = 1));
-    await sleep(350);
+    await sleep(300);
   }
 
   // The lockup flies into the app's header while the stage clears: same geometry, so it lands on the real logo.

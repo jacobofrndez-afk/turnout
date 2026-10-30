@@ -299,24 +299,24 @@ try {
   await tv("intro", { ...RADAR, fast: true, ripple: true });
   await collapsing;
   // The promise, one statement at a time over the radar; then the logo alone; then one signature.
+  // Each statement lands on its words (pauses measured in the voice file: 1.03, 2.12, 3.13 s).
   await cue("close1", "none");
-  const d1 = L.close1.duration * 1000;
-  await sleep(d1 * 0.14);
-  await tv("dimRadar", 0.2);
-  await tv("punch", "The right <b>message</b>.");
-  await sleep(d1 * 0.29);
-  await tv("punch", "To the right <b>people</b>.");
-  await sleep(d1 * 0.28);
-  await tv("punch", "At the right <b>moment</b>.");
-  await sleep(left("close1", 0) + 400);
+  const c1 = start("close1");
+  const at = async (t) => { const w = c1 + t - now(); if (w > 0) await sleep(w * 1000); };
+  await at(0.55); await tv("dimRadar", 0.2);
+  await at(0.80); await tv("punch", "The right <b>message</b>.");
+  await at(1.90); await tv("punch", "To the right <b>people</b>.");
+  await at(2.92); await tv("punch", "At the right <b>moment</b>.");
+  await sleep(left("close1", 0) + 350);
   await tv("punch", "");
-  await sleep(250);
-  const morphing = tv("morph", LOGO);   // brightens back as it collapses into the mark
-  await cue("close2", "none");   // spoken while the logo forms
-  await morphing;
-  await tv("tag", L.close2.text);
+  await sleep(200);
+  await tv("morph", LOGO);   // the radar brightens back as it collapses into the mark; the logo is complete before the last words
+  await cue("close2", "none");
+  await tv("tag", "Your marketing agent.");
   await tv("finale");
-  await sleep(2800);
+  await sleep(1450);
+  await tv("tag", "Your marketing agent. Your call.");
+  await sleep(left("close2", 0) + 2600);   // the film ends on this image
 } catch (e) {
   console.error("recording stopped early:", e.message.split("\n")[0]);
 } finally {

@@ -19,7 +19,11 @@ export function firstSentences(text: string, max: number): string {
     out += sentence + " ";
     start = i + 2;
   }
-  return out.trim() || `${text.slice(0, max - 1).trim()}…`;
+  if (out.trim()) return out.trim();
+  // One sentence longer than the room: cut on a word, never mid-word.
+  const head = text.slice(0, max - 1);
+  const cut = head.lastIndexOf(" ");
+  return `${(cut > max * 0.6 ? head.slice(0, cut) : head).trim().replace(/[,;:]$/, "")}…`;
 }
 
 // Scores are analyst words. Bracketed ones go, such as "(+0.75)"; a bare 0.NN becomes a band so the sentence still reads:

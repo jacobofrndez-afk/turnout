@@ -16,12 +16,12 @@ export function CampaignEditor({workspace,review,checking,busy,when,board,channe
  workspace:AgentWorkspace;review:AgentReview;checking:boolean;busy:boolean;when:string;
  board:CampaignBoardData;channelReason:ReactNode;update:(next:Partial<AgentReview>)=>void;
 }){
- const selectedChannels=<div className="agent-selected-channels">{review.channels.map(channel=><span key={channel}><ChannelIcon channel={channel}/>{CHANNELS[channel]}</span>)}</div>;
+ const selectedChannels=<div className="agent-selected-channels">{review.channels.map(channel=><span key={channel}><ChannelIcon channel={channel}/><span className="chip-text"><b>{CHANNELS[channel]}</b><QlooChannelNote workspace={workspace} channel={channel} now={Date.now()}/></span></span>)}</div>;
  return <fieldset disabled={busy} className="agent-editor workflow-editor" aria-label={checking?'Review your campaign':'Personalize your campaign'}>
   <div className="workflow-content">
    <section className={`workflow-card workflow-visual ${review.visual?'has-photo':''}`} aria-label="Campaign photo">
     <header className="workflow-card-heading"><span className="workflow-card-icon"><Icon name="camera" size={19}/></span><div><h3>Your photo</h3><p>{checking?'It travels with every channel, cropped to each format.':'Your offer, your menu, your place. One photo, every channel.'}</p></div>{!checking&&!review.visual&&<span className="workflow-label-tag">Recommended</span>}</header>
-    <CampaignVisual visual={review.visual} onChange={checking?undefined:visual=>update({visual})}/>
+    {checking&&!review.visual?<p className="workflow-empty-note">No photo added. Your words carry the board and the posts.</p>:<CampaignVisual visual={review.visual} onChange={checking?undefined:visual=>update({visual})}/>}
    </section>
    <ChannelStudio workspace={workspace} review={review} board={board} when={when} readOnly={checking} update={update}/>
    <details className="workflow-card workflow-details"><summary>Campaign brief <Icon name="settings" size={16}/></summary><p>The starting idea. Channel versions are edited independently above.</p>

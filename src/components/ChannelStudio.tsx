@@ -62,6 +62,6 @@ export function ChannelStudio({workspace,review,board,when,readOnly=false,update
    <div className="kit-status"><Icon name="wallet" size={16}/><span>{channelCostLabel(channel,review)}</span></div>
    <p className="kit-requirement">{channel==='storefront'?'Print-ready after approval.':channel==='tiktok'?'Video publishing is not connected. This saves your caption and filming plan.':channel==='whatsapp'?'Prepared only. No WhatsApp sending is enabled; provider pricing must be confirmed before a future send.':channel==='geofenced_ad'?'Ad draft only. Confirm the format, audience and spending limit in your ad platform.':channel==='google_post'?'Copy to your Google Business Profile. A Google Ads campaign is a separate paid placement.':'Save the content, then finish publication in your channel. Connecting an account does not launch a paid campaign.'}</p>
   </div>
-  {channel!=='storefront'&&<div className="kit-visual"><strong>Campaign photo</strong><p>Used in the previews above. Each format crops it differently.</p><CampaignVisual visual={review.visual} onChange={readOnly?undefined:visual=>update?.({visual})} preview={false}/></div>}
+  {channel!=='storefront'&&<div className="kit-visual"><strong>Campaign photo</strong><p>{review.visual?'Used in the previews above. Each format crops it differently.':'No photo added. The previews use your words only.'}</p><CampaignVisual visual={review.visual} onChange={readOnly?undefined:visual=>update?.({visual})} preview={false}/></div>}
  </section>;
 }

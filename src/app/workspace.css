@@ -623,3 +623,28 @@ body:has(.campaign-workflow-page) .workspace-header{position:static}
 .agent-working-body>p{font-size:11px;color:#8a7b93;margin:10px 0 0}
 @media(prefers-reduced-motion:reduce){.agent-working-pulse span,.agent-working-pulse i,.agent-working-bar i,.is-active .agent-working-mark i{animation:none}.agent-working-pulse span{opacity:.3;transform:none}}
 @media(max-width:760px){.agent-working{gap:12px;padding:14px}.agent-working-pulse{width:44px;height:44px}}
+/* Selected channels on the proposal: one grid of equal cards, the Qloo line wrapping inside, no ragged pile. */
+.agent-selected-channels{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin:12px 0 16px}
+.agent-selected-channels>span{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;min-width:0}
+.agent-selected-channels .chip-text{min-width:0}.agent-selected-channels .chip-text b{display:block;line-height:1.3}
+.agent-selected-channels .qloo-channel-note{white-space:normal;line-height:1.35;margin-top:3px}
+@media(max-width:760px){.agent-selected-channels{grid-template-columns:1fr;gap:8px}}
+/* Activity: what the hourly scan found, as cards in the app layout. */
+.activity-page .section-intro{margin:-6px 0 18px;max-width:620px}
+.activity-list{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.activity-item{display:flex;gap:14px;align-items:flex-start;padding:18px 20px}.activity-item>div{flex:1;min-width:0}
+.activity-when{display:block;font-size:11px;color:#8a7b93;margin-bottom:4px}
+.activity-item h2{font-size:16px;margin:0 0 6px}.activity-item p{font-size:13px;color:#5f5366;line-height:1.55}
+.activity-foot{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-top:12px}
+.chip-danger{background:#fbe9e7;color:#8c2f24}
+.activity-drafts{margin-top:28px}.activity-drafts .section-title span{font-size:11px;color:#8a7b93}
+.activity-page .calendar-note{margin-top:22px}
+/* Review without a photo says so instead of showing an empty card. */
+.workflow-empty-note{font-size:12px;color:#8a7b93;margin:4px 0 0}
+/* The menu photo form: a file control that looks like ours. */
+.photo-upload input[type=file]{display:block;width:100%;padding:12px;border:1.5px dashed #cfbfd6;border-radius:10px;background:#faf7fc;font-size:13px;color:#5a396a;cursor:pointer}
+.photo-upload input[type=file]::file-selector-button{margin-right:12px;padding:8px 14px;border:0;border-radius:8px;background:var(--plum);color:#fff;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.qloo-channel-note em{font-style:normal;font-weight:400;color:#7c6e84}
+.qloo-channel-note.has-qloo em{color:#6f5680}
+@media(max-width:560px){.workflow-channel-options .qloo-context{display:none}}
+.activity-list>li.activity-item{display:flex;width:auto;max-width:none;gap:14px;grid-template-columns:none}

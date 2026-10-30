@@ -99,3 +99,10 @@ export function latestAgentWorkspace(merchantId:string,eventId:string,dnaVersion
  const campaign=getDb().prepare("SELECT id FROM campaigns WHERE merchant_id=? AND event_id=? AND dna_version=? AND copy_json IS NOT NULL AND copy_parent_id IS NULL ORDER BY created_at DESC,rowid DESC LIMIT 1").get(merchantId,eventId,dnaVersion) as {id:string}|undefined;
  return campaign?agentWorkspace(campaign.id):undefined;
 }
+
+/** Resume only the campaign explicitly named for this place, occasion and current DNA. */
+export function resumeAgentWorkspace(id:string,merchantId:string,eventId:string,dnaVersion:number):AgentWorkspace|undefined{
+ const campaign=getCampaign(id);
+ if(!campaign?.evidence_json||campaign.merchant_id!==merchantId||campaign.event_id!==eventId||campaign.dna_version!==dnaVersion)return;
+ return agentWorkspace(id);
+}

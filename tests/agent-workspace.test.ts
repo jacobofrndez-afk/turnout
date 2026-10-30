@@ -8,7 +8,7 @@ import {getEvent} from '../src/server/qloo/crowd';
 import {getMerchant} from '../src/server/events/radar';
 import {campaignWindows} from '../src/server/agent/prompt';
 import {getCampaign,getDraft,draftWithClaude,draftReviewedWithClaude,createCampaign} from '../src/server/agent/run';
-import {agentWorkspace,assertAgentEvent,saveAgentReview,eventOpportunity,latestAgentWorkspace} from '../src/server/agent/review';
+import {agentWorkspace,assertAgentEvent,saveAgentReview,eventOpportunity,latestAgentWorkspace,resumeAgentWorkspace} from '../src/server/agent/review';
 import {CampaignDraftSchema,generatedCopyIssues} from '../src/server/agent/schema';
 import {POST as approve} from '../src/app/api/campaigns/[id]/approve/route';
 import {copyCampaign} from '../src/server/agent/versions';
@@ -230,6 +230,10 @@ test('two visitors can edit and approve separate versions while Today and the or
    assert.equal(result.workspace.status,'drafted');assert.equal(result.workspace.copiedFromId,'replay-source');
    assert.deepEqual(result.workspace.receipts,[]);assert.equal(result.workspace.review.message,review.message);
    assert.equal(result.workspace.review.revision,1);assert.match(result.href,new RegExp(result.workspace.id));
+   assert.equal(resumeAgentWorkspace(result.workspace.id,'test_agent','test_event',1)?.id,result.workspace.id);
+   assert.equal(resumeAgentWorkspace(result.workspace.id,'another_place','test_event',1),undefined);
+   assert.equal(resumeAgentWorkspace(result.workspace.id,'test_agent','another_event',1),undefined);
+   assert.equal(resumeAgentWorkspace(result.workspace.id,'test_agent','test_event',2),undefined);
    assert.deepEqual(result.workspace.proof,JSON.parse(JSON.stringify(agentWorkspace('replay-source',now)!.proof)));
    assert.deepEqual(JSON.parse(getCampaign(result.workspace.id)!.llm_usage_json!),{source:'anthropic',inherited_from:'replay-source'});
   }

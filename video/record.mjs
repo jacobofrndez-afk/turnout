@@ -92,6 +92,18 @@ const cuts = [];   // dead waits the mix removes (from, to in clock seconds)
 let logoAt = 0;    // when the closing logo is complete (music swell)
 const sfx = [];    // sonar pings and whooshes, synthesized by music.py at these clock times
 const fx = (kind, delay = 0) => sfx.push({ at: now() + delay, kind });
+let introAt = 0;
+// The sweep turns counter-clockwise at 72 degrees a second from straight up; each time it crosses one of the
+// main venues while the radar is on screen, a soft ping. Called when the radar leaves the screen.
+function sweepPings(from = 0.9) {
+  const until = now() - introAt - 0.25;
+  for (const b of BLIPS) {
+    if (!b.name || !(b.big || /Theatre|Stadium|Festival|Concert hall|Comedy club|Opera house/.test(b.name))) continue;
+    const theta = (Math.atan2(b.v, b.u) * 180) / Math.PI;
+    let tau = ((((-90 - theta) % 360) + 360) % 360) / 72;
+    for (; tau < until; tau += 5) if (tau >= from) sfx.push({ at: introAt + tau, kind: b.big ? "ping" : "ping-sweep" });
+  }
+}
 let capTimers = [];
 // Subtitles: short cues timed on the words of the clip, scheduled from the clip's real start.
 function captions(groupFirstId, startAt) {
@@ -193,6 +205,7 @@ try {
   // The crowd, on the radar. The narration clock starts here.
   t0 = Date.now();
   await tv("intro", RADAR);
+  introAt = now();
   fx("ping", 1.0);
   await cue("hook1", "line");
   await cue("hook2", "line", hookHtml(L.hook2.text));
@@ -207,6 +220,7 @@ try {
 
   // The radar becomes the logo, then the logo takes its place in the product.
   await cue("radar1", "none");
+  sweepPings();
   fx("whoosh");
   await tv("morph", LOGO);
   await sleep(250);
@@ -318,6 +332,7 @@ try {
   fx("ping-deep", 1.15);
   await sleep(1350);
   await tv("intro", { ...RADAR, fast: true, ripple: true });
+  introAt = now();
   fx("ping", 0.3);
   await collapsing;
   // The promise, one statement at a time over the radar; then the logo alone; then one signature.
@@ -332,13 +347,14 @@ try {
   await sleep(left("close1", 0) + 350);
   await tv("punch", "");
   await sleep(200);
+  sweepPings(1.4);
   fx("whoosh");
   const morphing = tv("morph", LOGO);   // the radar brightens back as it collapses into the mark
   await sleep(1900);                       // the word starts writing itself here
   await cue("close2", "none");             // "Turnout." over the writing, the promise on the signature
   await morphing;
   logoAt = now();                          // the music swells to this moment
-  fx("ping-soft", 0.2); fx("ping-soft", 0.9);
+  fx("ping-long", 0.2); fx("ping-long", 0.9); fx("ping-final", 1.8);   // the sonar rings out into the end
   await tv("tag", "Turn the crowd <b>outside</b> into customers <b>inside</b>.");
   await tv("finale");
   await sleep(left("close2", 0) + 4300);   // the film ends on this image, the music gone quiet before the cut

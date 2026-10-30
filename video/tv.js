@@ -148,7 +148,7 @@
     if (ripple) { g.style.transition = "transform 1.3s cubic-bezier(.2,.8,.2,1)"; g.style.transform = "scale(1)"; setTimeout(() => { g.style.transition = ""; }, 1400); }
     rings.forEach((p) => (p.style.strokeDashoffset = 0));
     setTimeout(() => { sweep.style.opacity = 1; }, 700);
-    sw.speed = -72; sw.park = null;
+    sw.speed = -72; sw.park = null; sw.a = 0; sw.last = 0;
     R = { cx, cy, s, svg, g, sweep, fade, rings, keep, other, arena, items };
   }
   // Small crowds count too: the small venues light up one by one with their own line, the arena steps back.

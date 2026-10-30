@@ -96,6 +96,9 @@ for e in events:
     if e["kind"] == "ping": ping(at)
     elif e["kind"] == "ping-soft": ping(at, 1318.5, 0.6, 0.26)
     elif e["kind"] == "ping-deep": ping(at, 523.25, 1.5, 0.6)
+    elif e["kind"] == "ping-sweep": ping(at, 1174.7, 0.7, 0.16)
+    elif e["kind"] == "ping-long": ping(at, 1046.5, 2.4, 0.3)
+    elif e["kind"] == "ping-final": ping(at, 523.25, 4.0, 0.42)
     elif e["kind"] == "whoosh": whoosh(at)
 sfx = np.clip(sfx, -0.95, 0.95)
 with wave.open(os.path.join(out, "sfx.wav"), "wb") as w:

@@ -19,25 +19,25 @@ export const GROUPS = [
   ] },
   { id: "hook3", gapBefore: 0.7, lines: [{ id: "hook3", text: "Most places never see it coming." }] },
   { id: "agent", gapBefore: 0.6, lines: [
-    { id: "radar1", text: "Turnout does. Your marketing agent." },
-    { id: "radar2", text: "It knows who is coming." },
+    { id: "radar1", text: "Turnout does. It's your marketing agent." },
+    { id: "radar2", text: "And it knows exactly who's coming." },
   ] },
   { id: "today", gapBefore: 0.5, lines: [
-    { id: "today", text: process.env.TODAYV ?? "Tonight's crowd: who they are, what they love, where they already go." },
-    { id: "pick", text: "So, not your usual special. The one offer they will say yes to." },
+    { id: "today", text: process.env.TODAYV ?? "Tonight's crowd: who they are, what they love, and where they already go." },
+    { id: "pick", text: "So instead of your usual special, it picks the one offer they'll actually say yes to." },
   ] },
   { id: "campaign", gapBefore: 0.5, lines: [
-    { id: "touch", text: "Your words. Your board. Rewritten as you type." },
-    { id: "channels", text: "The channels they actually use. A budget you set." },
+    { id: "touch", text: "You add your words, and the board rewrites itself as you type." },
+    { id: "channels", text: "It picks the channels this crowd actually uses, with a budget you set." },
   ] },
-  { id: "approve", gapBefore: 0.4, lines: [{ id: "approve", text: "One tap." }] },
-  { id: "receipt", gapBefore: 0.5, lines: [{ id: "receipt", text: "Ready at your door. Nothing sent without you. Nothing charged." }] },
-  { id: "board", gapBefore: 0.5, lines: [{ id: "board", text: "Right place. Right hour. Right people." }] },
+  { id: "approve", gapBefore: 0.4, lines: [{ id: "approve", text: "Then one tap, and it's ready." }] },
+  { id: "receipt", gapBefore: 0.5, lines: [{ id: "receipt", text: "Ready at your door. Nothing sent without you, nothing charged." }] },
+  { id: "board", gapBefore: 0.5, lines: [{ id: "board", text: "Right place, right hour, right people." }] },
   { id: "close1", gapBefore: 0.7, lines: [{ id: "close1", text: "The right message, to the right people, at the right moment." }] },
   { id: "close2", gapBefore: 0.3, lines: [{ id: "close2", text: "Turnout. Turn the crowd outside into customers inside." }] },
 ];
 const VOICE = process.env.VOICE ?? "en-US-EmmaMultilingualNeural";
-const RATE = process.env.RATE ?? "+14%";
+const RATE = process.env.RATE ?? "+8%";
 mkdirSync(join(here, "out/voice"), { recursive: true });
 
 const probe = (file) => parseFloat(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]).toString());

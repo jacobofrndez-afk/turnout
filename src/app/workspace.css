@@ -591,3 +591,9 @@ body:has(.campaign-workflow-page) .workspace-header{position:static}
 .agent-plan-summary em{font-style:normal;font-size:11px;color:#7c6e84}
 .chip-cost{margin-left:6px}
 @media(max-width:760px){.workflow-cost{margin-left:0;margin-top:6px}}
+/* Qloo, channel by channel: the platform rank for this crowd, or the rule that chose the channel. */
+.qloo-channel-note{display:flex;align-items:center;gap:4px;font-size:10px;line-height:1.3;color:#8a7b93;font-weight:400}
+.qloo-channel-note.has-qloo{color:#5a396a;font-weight:600}
+.agent-selected-channels>span{align-items:flex-start;padding:8px 11px}.agent-selected-channels .chip-text{display:grid;gap:3px}.agent-selected-channels .chip-text b{font-weight:500;font-size:12px}
+.workflow-channel-options button .qloo-channel-note{margin-top:1px}
+.agent-publish-row .qloo-channel-note{margin:4px 0 2px}

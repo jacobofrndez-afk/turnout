@@ -6,6 +6,7 @@ import { campaignChannelOptions } from '@/lib/campaign-plan';
 import { CHANNELS } from '@/lib/place-dna';
 import { ChannelStudio } from './ChannelStudio';
 import { ChannelBudget } from './ChannelBudget';
+import { QlooChannelNote } from './QlooChannelNote';
 import { channelCap, withChannelCaps } from '@/lib/channel-kit';
 import { ChannelIcon } from './ChannelIcon';
 import { CampaignVisual } from './CampaignVisual';
@@ -39,7 +40,7 @@ export function CampaignEditor({workspace,review,checking,busy,when,board,channe
     {checking?selectedChannels:<div className="workflow-channel-options">{campaignChannelOptions(workspace.dna.profile.channels).map(channel=><button type="button" key={channel} aria-pressed={review.channels.includes(channel)} onClick={()=>{
      const channels=review.channels.includes(channel)?review.channels.filter(c=>c!==channel):[...review.channels,channel];
      if(channels.length)update(withChannelCaps(review,channels,{...review.channelCaps,...(channel==='geofenced_ad'&&channels.includes(channel)?{geofenced_ad:Math.min(15,workspace.dna.profile.dailyBudgetUsd)}:{})}));
-    }}><ChannelIcon channel={channel}/><span><strong>{CHANNELS[channel]}</strong><small>{channel==='geofenced_ad'?'Paid advertising':channel==='storefront'?'In your venue':channel==='whatsapp'?'Prepared message':channelCap(review,channel)>0?'Post + planned ad':'Organic post'}</small></span><span className="workflow-channel-check">{review.channels.includes(channel)&&<Icon name="check" size={11}/>}</span></button>)}</div>}
+    }}><ChannelIcon channel={channel}/><span><strong>{CHANNELS[channel]}</strong><small>{channel==='geofenced_ad'?'Paid advertising':channel==='storefront'?'In your venue':channel==='whatsapp'?'Prepared message':channelCap(review,channel)>0?'Post + planned ad':'Organic post'}</small><QlooChannelNote workspace={workspace} channel={channel} now={Date.now()}/></span><span className="workflow-channel-check">{review.channels.includes(channel)&&<Icon name="check" size={11}/>}</span></button>)}</div>}
     {!checking&&channelReason&&<details className="workflow-channel-reason"><summary>Why these channels? <Icon name="chevron" size={14}/></summary>{channelReason}</details>}
    </section>
    <ChannelBudget workspace={workspace} review={review} readOnly={checking} update={update}/>

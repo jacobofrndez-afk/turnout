@@ -1,22 +1,32 @@
-// Lays the voice clips over the recording at the moments in out/timeline.json and writes out/turnout-demo-voice.mp4.
+// Lays the narration on the recording. The screencast clock runs a few percent slow, so the
+// video is first retimed to the script clock (setpts), then each line is placed at its planned
+// moment, or at the real one when the shot came late. A track in video/music/ is ducked under
+// the voice. Output: out/turnout-demo-voice.mp4.
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 const here = dirname(fileURLToPath(import.meta.url));
 const OUT = join(here, "out");
-const video = join(OUT, "turnout-demo.mp4");
+const webm = join(OUT, "turnout-demo.webm");
 const tl = JSON.parse(readFileSync(join(OUT, "timeline.json"), "utf8"));
 const lines = Object.fromEntries(JSON.parse(readFileSync(join(OUT, "voice/lines.json"), "utf8")).map((l) => [l.id, l]));
-const vdur = parseFloat(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", video]).toString());
-// The screencast clock runs a few percent slower than the script clock (a 109 s script gives a
-// 118 s file), uniformly as far as the frames show; scale the moments so the end of both match.
-const scale = vdur / tl.endAt;
-const clips = tl.marks.filter((m) => lines[m.id]).map((m) => ({ ...m, at: Math.max(0, m.at * scale + 0.1), file: lines[m.id].file }));
-const args = ["-y", "-i", video];
+const vdur = parseFloat(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", webm]).toString());
+const k = tl.endAt / vdur;                     // retime factor, about 0.93
+const clips = tl.marks.filter((m) => lines[m.id]).map((m) => ({ ...m, start: Math.max(m.planned, m.at + 0.08), file: lines[m.id].file }));
+const musicDir = join(here, "music");
+const music = existsSync(musicDir) ? readdirSync(musicDir).filter((f) => /\.(mp3|m4a|wav|aac)$/i.test(f)).map((f) => join(musicDir, f))[0] : undefined;
+const args = ["-y", "-i", webm];
 for (const c of clips) args.push("-i", c.file);
-const chains = clips.map((c, i) => `[${i + 1}:a]aresample=48000,adelay=${Math.round(c.at * 1000)}:all=1[a${i}]`).join(";");
-const mix = `${chains};${clips.map((_, i) => `[a${i}]`).join("")}amix=inputs=${clips.length}:normalize=0:dropout_transition=0,volume=1.6[mix]`;
-args.push("-filter_complex", mix, "-map", "0:v", "-map", "[mix]", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", join(OUT, "turnout-demo-voice.mp4"));
+if (music) args.push("-stream_loop", "-1", "-i", music);
+const end = tl.endAt;
+let f = `[0:v]setpts=PTS*${k.toFixed(5)},fade=t=in:st=0:d=0.6,fade=t=out:st=${(end - 0.9).toFixed(2)}:d=0.9,format=yuv420p[v];`;
+f += clips.map((c, i) => `[${i + 1}:a]aresample=48000,adelay=${Math.round(c.start * 1000)}:all=1[a${i}]`).join(";") + ";";
+f += clips.map((_, i) => `[a${i}]`).join("") + `amix=inputs=${clips.length}:normalize=0:dropout_transition=0,volume=1.5[voice]`;
+if (music) {
+  f += `;[${clips.length + 1}:a]aresample=48000,atrim=0:${end.toFixed(2)},volume=0.16,afade=t=in:st=0:d=1.5,afade=t=out:st=${(end - 3).toFixed(2)}:d=3[m];`;
+  f += `[voice]asplit=2[vo][sc];[m][sc]sidechaincompress=threshold=0.03:ratio=6:attack=40:release=700[md];[vo][md]amix=inputs=2:normalize=0:dropout_transition=0[mix]`;
+} else f += `;[voice]anull[mix]`;
+args.push("-filter_complex", f, "-map", "[v]", "-map", "[mix]", "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-r", "30", "-movflags", "+faststart", "-c:a", "aac", "-b:a", "192k", "-t", end.toFixed(2), join(OUT, "turnout-demo-voice.mp4"));
 execFileSync("ffmpeg", args, { stdio: ["ignore", "ignore", "inherit"] });
-console.log("mixed", clips.length, "clips, clock scale", scale.toFixed(3), "->", join(OUT, "turnout-demo-voice.mp4"));
+console.log("mixed", clips.length, "lines, retime", k.toFixed(3), music ? "with music" : "no music", "->", join(OUT, "turnout-demo-voice.mp4"));

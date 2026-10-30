@@ -354,3 +354,29 @@ body:has(.workspace-nav a[aria-current=page]) main:not(.identity-page):not(.app-
 
 .agent-version{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px;margin:18px 0;background:#f6f2f9;border:1px solid #e5dbec;border-radius:12px}.agent-version strong{font-size:14px}.agent-version p{font-size:12px;margin:5px 0 0}.agent-version .action-button{flex:none;font-size:12px}
 @media(max-width:640px){.agent-version{display:block;padding:15px}.agent-version .action-button{margin-top:14px;width:100%;justify-content:center}}
+
+/* One task per screen, with the next action stated before the user approves. */
+.account-plan{display:flex;gap:14px;align-items:center;padding:18px 22px;margin-bottom:22px}
+.account-plan h2{font-size:15px;font-weight:600}.account-plan h2 span{font-weight:400;color:#705c7c}
+.account-plan p{font-size:12px;color:#647454;margin-top:5px}
+.agent-stage-heading{margin-bottom:23px}.agent-stage-heading .overline{font-size:10px;color:#80678c}
+.agent-stage-heading h2{margin:7px 0 8px;scroll-margin-top:100px;outline:none}.agent-stage-heading>p{font-size:13px;line-height:1.65;max-width:600px;color:#72627c}
+.agent-steps{gap:8px!important;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.agent-steps li{min-width:0}.agent-steps button{display:flex;align-items:center;gap:7px;font:inherit;color:inherit;background:transparent;cursor:pointer;padding:4px 0;min-height:34px;text-align:left}
+.agent-steps button:disabled{cursor:default}.agent-steps button:focus-visible{outline:2px solid #9672a3;outline-offset:4px;border-radius:4px}
+.agent-steps button>span{width:22px;height:22px;border:1px solid #e6dfea;border-radius:50%;display:grid;place-items:center;font-size:11px;flex:none}
+.agent-steps li[aria-current] button>span{background:var(--plum);border-color:var(--plum);color:white}
+.agent-steps .is-complete button>span{background:#edf2e9;color:#536b45;border-color:#edf2e9}
+.agent-campaign-context{display:grid;gap:4px;padding:14px 16px;border-radius:9px;background:#f7f4f9;margin-bottom:22px;font-size:13px}
+.agent-campaign-context>span{font-size:11px;color:#80718a}
+.agent-proposal-message{margin-top:23px;padding:20px;border:1px solid #e4d8ec;border-left:3px solid #9672a3;border-radius:10px;background:#faf7fc}
+.agent-proposal-message .overline{font-size:10px;color:#80678c}.agent-proposal-message h3{font-size:17px;margin:8px 0}.agent-proposal-message>p{font-size:14px;line-height:1.75;white-space:pre-wrap;color:#493650}
+.agent-selected-channels{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 16px}.agent-selected-channels>span{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #e3dbe9;border-radius:8px;font-size:12px}
+.agent-selected-channels .social-logo{width:24px;height:24px;border-radius:6px}.agent-selected-channels .social-logo svg{width:16px;height:16px}
+.agent-channel-heading{font-size:14px;margin:20px 0 12px}.agent-actions>.agent-note{margin-top:0;max-width:240px}
+.agent-ready-board{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:center;margin:22px 0}
+.agent-ready-board>div:first-child p{font-size:13px;line-height:1.6;margin:10px 0 16px}
+.agent-ready-board .campaign-board{width:100%;padding:22px 18px;min-height:300px;gap:15px;border-width:5px}
+.agent-ready-board .board-invitation{font-size:26px}.agent-ready-board .board-offer{font-size:12px;padding:12px 0;gap:6px}.agent-ready-board .board-offer strong{font-size:21px}.agent-ready-board .board-window{font-size:11px}
+.agent-receipt{margin-top:0;border-top:0;padding-top:0}.agent-receipt-row .copy-action{margin-top:8px;font-size:12px;min-height:32px}
+@media(max-width:640px){.agent-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.agent-stage-heading h2{font-size:21px}.agent-ready-board{grid-template-columns:1fr}.agent-actions>.agent-note{max-width:none}.account-plan{padding:16px}.account-plan h2{font-size:14px}}

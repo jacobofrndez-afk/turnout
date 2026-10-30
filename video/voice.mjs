@@ -8,24 +8,24 @@ import { dirname, join } from "node:path";
 const here = dirname(fileURLToPath(import.meta.url));
 
 export const LINES = [
-  { id: "hook1", gapBefore: 1.8, text: "Every night, a crowd walks past your door." },
-  { id: "hook2", gapBefore: 0.5, text: process.env.HOOK2V ?? "Tonight, it's twenty thousand people, two blocks away." },
-  { id: "hook3", gapBefore: 0.5, text: "Most places never see it coming." },
-  { id: "radar1", gapBefore: 1.1, text: "Turnout does. It's your marketing agent." },
-  { id: "radar2", gapBefore: 0.4, text: "It watches every event around your place, all week, and spots the moments that can fill your room." },
-  { id: "today", gapBefore: 1.1, text: process.env.TODAYV ?? "Tonight, that moment is a twenty-thousand-seat show, a short walk from your door." },
-  { id: "profile", gapBefore: 0.5, text: "The agent profiles the crowd. Who they are, what they like, where they go." },
-  { id: "pick", gapBefore: 0.5, text: "Then it opens your menu, and picks the one offer that speaks to them. Not your usual. The right one for tonight." },
-  { id: "touch", gapBefore: 1.1, text: "It writes the campaign. You add your words, and the board rewrites itself." },
-  { id: "approve", gapBefore: 0.6, text: "One tap, and it's ready." },
-  { id: "receipt", gapBefore: 0.9, text: "The board at the door. A message to your regulars. A local ad. Nothing sent without you. Nothing charged." },
-  { id: "board", gapBefore: 1.1, text: "Tonight, the crowd outside becomes customers inside." },
-  { id: "other", gapBefore: 1.1, text: "Paris, New York. Any street with a crowd." },
-  { id: "close1", gapBefore: 1.2, text: "Turnout. The right message, to the right people, at the right moment." },
-  { id: "close2", gapBefore: 0.5, text: "Your marketing agent. Your call." },
+  { id: "hook1", gapBefore: 1.4, text: "Every night, a crowd walks past your door." },
+  { id: "hook2", gapBefore: 0.35, text: process.env.HOOK2V ?? "Tonight: twenty thousand people, two blocks from your door, out at ten forty-five." },
+  { id: "hook3", gapBefore: 0.35, text: "Most places never see it coming." },
+  { id: "radar1", gapBefore: 0.8, text: "Turnout does. It's your marketing agent." },
+  { id: "radar2", gapBefore: 0.3, text: "It watches every event around your place and spots the moments that can fill your room, hour by hour." },
+  { id: "today", gapBefore: 0.8, text: process.env.TODAYV ?? "Tonight, ten forty-five: a twenty-thousand-seat show lets out, a short walk from your door." },
+  { id: "profile", gapBefore: 0.35, text: "The agent profiles that exact crowd. Their age, their tastes, the places they already love around you." },
+  { id: "pick", gapBefore: 0.35, text: "Then it opens your menu and picks the one offer that speaks to them, at that hour. Not your usual special. The right one, for them, tonight." },
+  { id: "touch", gapBefore: 0.8, text: "It writes the campaign. You add your words, and the board rewrites itself." },
+  { id: "approve", gapBefore: 0.4, text: "One tap. It's ready." },
+  { id: "receipt", gapBefore: 0.7, text: "The board at your door. A message to your regulars. A local ad within a few blocks. Nothing sent without you. Nothing charged." },
+  { id: "board", gapBefore: 0.8, text: "Right place. Right hour. Right people. Tonight, the crowd outside becomes customers inside." },
+  { id: "other", gapBefore: 0.8, text: "Paris, New York. Any street with a crowd." },
+  { id: "close1", gapBefore: 0.9, text: "Turnout. The right message, to the right people, at the right moment." },
+  { id: "close2", gapBefore: 0.4, text: "Your marketing agent. Your call." },
 ];
 const VOICE = process.env.VOICE ?? "en-US-AvaMultilingualNeural";
-const RATE = process.env.RATE ?? "+0%";
+const RATE = process.env.RATE ?? "+6%";
 mkdirSync(join(here, "out/voice"), { recursive: true });
 const out = [];
 for (const l of LINES) {

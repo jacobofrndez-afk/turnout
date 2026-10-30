@@ -5,9 +5,10 @@
   "main": "index.js",
   "scripts": {
     "voice": "node voice.mjs",
-    "record": "PLAYWRIGHT_BROWSERS_PATH=./.pw-browsers node record.mjs",
-    "mp4": "ffmpeg -y -i out/turnout-demo.webm -c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p -r 30 -movflags +faststart out/turnout-demo.mp4",
-    "mix": "node mix.mjs"
+    "music": ".venv/bin/python music.py",
+    "record": "node patch-recorder.mjs && PLAYWRIGHT_BROWSERS_PATH=./.pw-browsers node record.mjs",
+    "mix": "node mix.mjs",
+    "all": "npm run voice && npm run record && npm run music && npm run mix"
   },
   "keywords": [],
   "author": "",

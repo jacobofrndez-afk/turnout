@@ -19,7 +19,7 @@ const OTHER = process.env.OTHER ?? "m_quai_bercy";
 const BOARD_TEXT = process.env.BOARD_TEXT ?? "Before Harry? Two cocktails, one price.";
 const HOOK_COUNT = Number(process.env.HOOK_COUNT ?? 20000);
 const BLIPS = JSON.parse(process.env.BLIPS ?? "null") ?? [
-  { name: "Arena", sub: "20,000 seats · 2 blocks", x: 250, y: -160, big: true },
+  { name: "Arena", sub: "20,000 seats · 2 blocks · out 10:45 pm", x: 250, y: -160, big: true },
   { name: "Theatre", x: -260, y: -210 },
   { name: "Stadium", x: -340, y: 70 },
   { name: "Jazz club", x: 300, y: 190 },
@@ -30,7 +30,9 @@ const LINES = JSON.parse(readFileSync(join(OUT, "voice/lines.json"), "utf8"));
 const L = Object.fromEntries(LINES.map((l) => [l.id, l]));
 // The narration clock: planned start of each line, seconds from the start of the recording.
 const planned = {}; { let t = 0; for (const l of LINES) { t += l.gapBefore; planned[l.id] = t; t += l.duration; } }
-const ends = Object.fromEntries(LINES.map((l) => [l.id, planned[l.id] + l.duration]));
+// When a shot comes late (a slow page), the whole clock shifts by that delay: pauses stay as written.
+let shift = 0;
+const start = (id) => planned[id] + shift;
 const LOCKUP = readFileSync(join(ROOT, "public/brand/lockup-reverse.svg"), "utf8");
 
 const VW = 1920, VH = 1080, ZOOM = 1.25;
@@ -105,13 +107,16 @@ async function cap(text) { await page.evaluate((t) => { const c = document.getEl
 async function tag(text) { await page.evaluate((t) => { const e = document.getElementById("tv-tag"); if (!e) return; e.textContent = t; e.style.opacity = t ? "1" : "0"; }, text); }
 // Wait for the narration clock, then show the line and record when it really started.
 async function cue(id) {
-  const wait = planned[id] - now();
+  const target = start(id);
+  const wait = target - now();
   if (wait > 0) await sleep(wait * 1000);
+  const at = now();
+  if (at - target > 0.05) shift += at - target;
   await cap(L[id].text);
-  marks.push({ id, planned: planned[id], at: now() });
+  marks.push({ id, planned: planned[id], at });
 }
 // Time left until the line ends (never negative), to pace what happens while it plays.
-const left = (id, minMs = 0) => Math.max(minMs, (ends[id] - now()) * 1000);
+const left = (id, minMs = 0) => Math.max(minMs, (start(id) + L[id].duration - now()) * 1000);
 async function go(path) {
   await hide();
   await page.goto(BASE + path, { waitUntil: "load" });
@@ -148,7 +153,7 @@ async function undrift() { await page.evaluate(() => { const m = document.queryS
 
 async function radar({ logoCenter = false } = {}) {
   await hide();
-  const blips = BLIPS.map((b, i) => `<g class="blip" style="--d:${1.0 + i * 0.4}s" transform="translate(${960 + b.x} ${600 + b.y})">
+  const blips = BLIPS.map((b, i) => `<g class="blip" style="--d:${0.8 + i * 0.3}s" transform="translate(${960 + b.x} ${600 + b.y})">
       <circle r="${b.big ? 11 : 7}" fill="#E6A4C2"/><circle class="pulse" r="${b.big ? 11 : 7}" fill="none" stroke="#E6A4C2" stroke-width="2"/>
       <text x="${b.x < 0 ? -18 : 18}" y="${b.big ? -6 : 8}" text-anchor="${b.x < 0 ? "end" : "start"}" fill="#F6F1F8" font-size="${b.big ? 30 : 24}" font-weight="${b.big ? 600 : 500}">${b.name}</text>
       ${b.sub ? `<text x="${b.x < 0 ? -18 : 18}" y="26" text-anchor="${b.x < 0 ? "end" : "start"}" fill="#C4AECA" font-size="22">${b.sub}</text>` : ""}</g>`).join("");
@@ -157,7 +162,7 @@ async function radar({ logoCenter = false } = {}) {
     #logo{position:absolute;left:50%;top:${logoCenter ? 300 : 54}px;transform:translateX(-50%);width:${logoCenter ? 600 : 380}px;opacity:0;animation:in .9s ease .2s forwards}
     #logo svg{width:100%;height:auto;display:block}
     svg.radar{position:absolute;left:0;top:0}
-    .ring{fill:none;stroke:#C4AECA;stroke-opacity:.22;stroke-width:1.5;stroke-dasharray:4000;stroke-dashoffset:4000;animation:draw 1.6s ease .3s forwards}
+    .ring{fill:none;stroke:#C4AECA;stroke-opacity:.22;stroke-width:1.5;stroke-dasharray:4000;stroke-dashoffset:4000;animation:draw 1.2s ease .2s forwards}
     .axis{stroke:#C4AECA;stroke-opacity:.1;stroke-width:1}
     .sweep{transform-origin:960px 600px;opacity:0;animation:spin 4.5s linear infinite, in .8s ease .9s forwards}
     .blip{opacity:0;animation:in .6s ease var(--d) forwards}
@@ -189,11 +194,14 @@ async function radar({ logoCenter = false } = {}) {
   await page.evaluate(() => { document.body.style.opacity = "1"; });
 }
 async function radarCue(id, html, count) {
-  const wait = planned[id] - now();
+  const target = start(id);
+  const wait = target - now();
   if (wait > 0) await sleep(wait * 1000);
+  const at = now();
+  if (at - target > 0.05) shift += at - target;
   await page.evaluate((h) => window.line(h), html);
   if (count) { await sleep(300); await page.evaluate((c) => window.count(c, 1200), count); }
-  marks.push({ id, planned: planned[id], at: now() });
+  marks.push({ id, planned: planned[id], at });
 }
 
 try {
@@ -335,6 +343,5 @@ try {
   const target = join(OUT, "turnout-demo.webm");
   if (webm) { rmSync(target, { force: true }); renameSync(join(OUT, webm), target); console.log("recorded", target); }
   writeFileSync(join(OUT, "timeline.json"), JSON.stringify({ endAt, marks }, null, 2));
-  const late = marks.filter((m) => m.at - m.planned > 0.4).map((m) => `${m.id} +${(m.at - m.planned).toFixed(1)}s`);
-  console.log("end", endAt.toFixed(1) + "s", late.length ? "late: " + late.join(", ") : "on the narration clock");
+  console.log("end", endAt.toFixed(1) + "s, clock shifted by", shift.toFixed(1) + "s");
 }

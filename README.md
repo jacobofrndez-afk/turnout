@@ -19,7 +19,7 @@ Relevance is relative to the merchant: a 50-seat bar needs twelve extra guests, 
 Built for the Qloo Agentic Hackathon (Agents, but with taste), October 2026.
 
 - Live demo, the judge path: https://turnout-x7vm.onrender.com/today?merchant=m_penn_pour (read the occasion and the decision, change one word of the board, approve, print the board)
-- Demo video (90 s): _YouTube link_
+- Demo video (74 s): https://youtu.be/oL59GpVCs70
 - Repository: this one, MIT licensed
 - Demo merchants: Penn & Pour (two blocks from Madison Square Garden, New York) and Le Quai 12 (Accor Arena, Paris). Or set up your own place in two minutes at `/start`.
 

@@ -86,7 +86,7 @@ async function createCampaignOnce(merchant: Merchant, event: EventRow, pickedEnt
   const weather = await forecastWindows(id, profile.id, merchant, event);
   const channelAffinity = await crowdChannelAffinity(profile.signal, profile.headlinerName);
   db.prepare('UPDATE campaigns SET evidence_json=? WHERE id=?').run(JSON.stringify({engineVersion:3,profile,channelAffinity,offers:offers.map(o=>({id:o.id,price:o.price})),checkedAt:new Date().toISOString()}),id);
-  const user = buildUserPrompt(merchant, event, profile, offers, weather) + "\n\n" + dnaPrompt(dna)
+  const user = buildUserPrompt(merchant, event, profile, offers, weather, dna.profile.leadMinutes) + "\n\n" + dnaPrompt(dna)
     + "\n\n# Qloo platform comparison\n" + JSON.stringify(channelAffinity)
     + "\nThese platform-brand affinities are supporting evidence only. They do not measure attendance, platform usage, reach or purchases. Do not assume social accounts are connected. Explain the concrete offer choice against at least one other menu offer in the rationale. Respect the merchant's preparation time. Mention the event's date in invitations for a future day.";
   if (provider() === "anthropic") {

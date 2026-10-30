@@ -60,9 +60,10 @@ export function campaignWindows(event: EventRow): { label: string; start: number
   ];
 }
 
-export function timeWindows(event: EventRow, merchant: Merchant): { label: string; start_local: string; end_local: string; why: string }[] {
+// A window the model may still write for must hold 30 minutes after the preparation lead; the last one stays as a fallback.
+export function timeWindows(event: EventRow, merchant: Merchant, leadMinutes = 20): { label: string; start_local: string; end_local: string; why: string }[] {
   const fmt = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: merchant.timezone });
-  return campaignWindows(event).filter((w, i, all) => w.end > Date.now() || i === all.length - 1).map((w) => ({ label: w.label, start_local: fmt.format(new Date(w.start)), end_local: fmt.format(new Date(w.end)), why: w.why }));
+  return campaignWindows(event).filter((w, i, all) => w.end > Date.now() + (leadMinutes + 30) * 60000 || i === all.length - 1).map((w) => ({ label: w.label, start_local: fmt.format(new Date(w.start)), end_local: fmt.format(new Date(w.end)), why: w.why }));
 }
 
 // The first window a draft was written for, as instants. A rewrite after doors carries only "After the show".
@@ -88,7 +89,7 @@ export function windowsIso(event: EventRow): { label: string; startIso: string; 
 
 export type WindowWeather = { label: string; summary: string };
 
-export function buildUserPrompt(merchant: Merchant, event: EventRow, profile: CrowdProfile, offers: OfferRow[], weather: WindowWeather[] = []): string {
+export function buildUserPrompt(merchant: Merchant, event: EventRow, profile: CrowdProfile, offers: OfferRow[], weather: WindowWeather[] = [], leadMinutes = 20): string {
   const demo = describeDemographics(profile.demographics);
   const fmt = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: merchant.timezone });
   const lines: string[] = [];
@@ -125,7 +126,7 @@ export function buildUserPrompt(merchant: Merchant, event: EventRow, profile: Cr
     lines.push("These are Turnout offer ranks based on mean Qloo reference-place ranks, using only places with scores in BOTH queries. Qloo does not score menu items directly. The same candidates and geographic filter are used; the second query also includes signal.location. Use this comparison for the offer decision when available, ahead of the older per-offer fit heuristic. Respect menu availability, event timing and the owner's DNA; explain any departure from the leading offer. Do not claim a change when the leading offer stays the same or is tied. Excluded offers have insufficient shared references, not low affinity. State the actual reference radius; it is not an ad targeting radius. No measured attendance, visits, sales uplift or platform performance can be inferred.");
   }
   lines.push("", `# Suggested windows (local time)`);
-  for (const w of timeWindows(event, merchant)) lines.push(`- ${w.label}: ${w.start_local} to ${w.end_local} (say "${clockRange(w.start_local, w.end_local, merchant.timezone)}"). ${w.why}`);
+  for (const w of timeWindows(event, merchant, leadMinutes)) lines.push(`- ${w.label}: ${w.start_local} to ${w.end_local} (say "${clockRange(w.start_local, w.end_local, merchant.timezone)}"). ${w.why}`);
   lines.push("", `# Weather at the merchant (Open-Meteo forecast)`);
   if (weather.length) for (const w of weather) lines.push(`- ${w.label}: ${w.summary}.`);
   else lines.push("Not available. Do not mention the weather.");

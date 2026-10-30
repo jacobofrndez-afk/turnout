@@ -48,6 +48,9 @@
     #tv-line{position:absolute;left:50%;bottom:86px;transform:translate(-50%,10px);width:1500px;text-align:center;font:600 54px/1.15 ${FONT};letter-spacing:-.005em;opacity:0;transition:opacity .5s ease,transform .5s ease}
     #tv-line.on{opacity:1;transform:translate(-50%,0)}
     #tv-line b{color:${PINK};font-weight:700}
+    #tv-punch{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.96);width:1600px;text-align:center;font:700 84px/1.1 ${FONT};letter-spacing:-.015em;color:${INK};opacity:0;transition:opacity .28s ease,transform .28s cubic-bezier(.2,.8,.2,1)}
+    #tv-punch.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+    #tv-punch b{color:${PINK};font-weight:700}
     #tv-tag{position:absolute;left:50%;transform:translate(-50%,10px);width:1500px;text-align:center;font:500 42px/1.2 ${FONT};color:${RING};opacity:0;transition:opacity .7s ease,transform .7s ease}
     #tv-tag.on{opacity:1;transform:translate(-50%,0)}
     @keyframes in{to{opacity:1}}
@@ -59,7 +62,7 @@
     <div id="tv-journey"><ol>${C.steps.map((s) => `<li><i></i>${s}</li>`).join("")}</ol></div>
     <div id="tv-cap"></div>
     <div id="tv-cur"><svg viewBox="0 0 24 24" width="26" height="26"><path d="M4 2l16 9-7 1.5L17 21l-3 1-4-8.5L4 18z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
-    <div id="tv-stage"><div id="tv-logo"></div><div id="tv-line"></div><div id="tv-tag"></div></div>`;
+    <div id="tv-stage"><div id="tv-logo"></div><div id="tv-line"></div><div id="tv-punch"></div><div id="tv-tag"></div></div>`;
 
   const $ = (id) => document.getElementById(id);
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -244,6 +247,9 @@
     await sleep(900);
   }
 
+  // One statement at a time, big, centred: the radar steps back behind it.
+  function punch(html) { const p = $("tv-punch"); p.classList.remove("on"); if (!html) return; setTimeout(() => { p.innerHTML = html; p.classList.add("on"); }, 200); }
+  function dimRadar(o) { if (!R) return; R.g.style.transition = "opacity .6s ease"; R.g.style.opacity = o; }
   function line(html) { const l = $("tv-line"); l.classList.remove("on"); if (!html) return; setTimeout(() => { l.innerHTML = html; l.classList.add("on"); }, 260); }
   function count(to, ms) { const n = $("num"); if (!n) return; const t0 = performance.now(); const f = (now) => { const p = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - p, 3); n.textContent = Math.round(to * e).toLocaleString("en-US"); if (p < 1) requestAnimationFrame(f); }; requestAnimationFrame(f); }
   function tag(text) { const t = $("tv-tag"); t.textContent = text; t.style.top = logo && logo.top != null ? logo.top + logo.h0 * logo.K + 64 + "px" : "760px"; t.classList.toggle("on", !!text); }
@@ -284,5 +290,5 @@
   }
   function show(name = "app") { frames().forEach((f) => { const on = f.name === name; f.classList.toggle("on", on); f.style.zIndex = on ? 2 : 1; }); }
 
-  window.tv = { intro, small, setLogo, morph, fly, stageOn, finale, line, count, tag, cap, journey, step, spot, unspot, cursor, drift, undrift, dim, show, swap };
+  window.tv = { intro, small, setLogo, morph, fly, stageOn, finale, line, punch, dimRadar, count, tag, cap, journey, step, spot, unspot, cursor, drift, undrift, dim, show, swap };
 })();

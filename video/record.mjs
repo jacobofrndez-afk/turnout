@@ -296,13 +296,26 @@ try {
   // The radar again, and the logo to close.
   await tv("stageOn");
   await tv("intro", { ...RADAR, fast: true });
-  await cue("close1", "line", "Turnout. The right message,<br>to the right people, at the right moment.");
-  await sleep(1600);
-  await tv("morph", { ...LOGO, keepLine: true });   // the logo forms while the promise is still spoken
-  await tv("line", "");
-  await cue("close2", "tag");
+  // The promise, one statement at a time over the radar; then the logo alone; then one signature.
+  await cue("close1", "none");
+  const d1 = L.close1.duration * 1000;
+  await sleep(d1 * 0.14);
+  await tv("dimRadar", 0.2);
+  await tv("punch", "The right <b>message</b>.");
+  await sleep(d1 * 0.29);
+  await tv("punch", "To the right <b>people</b>.");
+  await sleep(d1 * 0.28);
+  await tv("punch", "At the right <b>moment</b>.");
+  await sleep(left("close1", 0) + 400);
+  await tv("punch", "");
+  await tv("dimRadar", 1);
+  await sleep(300);
+  const morphing = tv("morph", LOGO);
+  await cue("close2", "none");   // spoken while the logo forms
+  await morphing;
+  await tv("tag", L.close2.text);
   await tv("finale");
-  await sleep(left("close2", 0) + 2400);
+  await sleep(2800);
 } catch (e) {
   console.error("recording stopped early:", e.message.split("\n")[0]);
 } finally {

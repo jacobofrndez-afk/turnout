@@ -393,3 +393,18 @@ body:has(.workspace-nav a[aria-current=page]) main:not(.identity-page):not(.app-
 @media(max-width:640px){.agent-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.agent-stage-heading h2{font-size:21px}.agent-ready-board{grid-template-columns:1fr}.agent-actions>.agent-note{max-width:none}.account-plan{padding:16px}.account-plan h2{font-size:14px}}
 
 .calendar-potential-order{display:flex;align-items:center;gap:10px;font-size:11px;color:#7a6685;margin:10px 0 14px}.calendar-potential-order select{min-height:36px;border:1px solid #e2d6e9;border-radius:6px;background:#fff;color:#5f426e;padding:6px 24px 6px 10px;font-size:11px}
+
+/* Quiet movement: fixed progress, a brief exit, then a soft arrival. */
+.agent-step-shell{overflow-anchor:none}.agent-step-content{display:flow-root}
+.agent-steps li{position:relative;transition:color 220ms ease}
+.agent-steps li::after{content:"";position:absolute;left:0;right:0;bottom:-21px;height:2px;border-radius:2px;background:#8e6a9e;transform:scaleX(0);transform-origin:left;transition:transform 320ms cubic-bezier(.22,1,.36,1),opacity 220ms ease;opacity:0}
+.agent-steps li[aria-current]::after{transform:scaleX(1);opacity:1}
+.agent-steps button>span{transition:background-color 250ms ease,border-color 250ms ease,color 200ms ease,box-shadow 250ms ease}
+.agent-steps li[aria-current] button>span{box-shadow:0 0 0 4px #6f467a0a}
+.agent-campaign .action-button,.agent-campaign .quiet-button{transition:background-color 180ms ease,box-shadow 180ms ease,transform 180ms cubic-bezier(.22,1,.36,1)}
+.agent-campaign .action-button:active:not(:disabled),.agent-campaign .quiet-button:active:not(:disabled){transform:translateY(1px)}
+@keyframes workspace-arrive{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:no-preference){.app-page:not([aria-busy=true]){animation:workspace-arrive 280ms cubic-bezier(.22,1,.36,1)}.workspace-nav a{transition:background-color 220ms ease,color 220ms ease}}
+@media(max-width:640px){.agent-steps li::after{bottom:0}.agent-steps button{padding-bottom:8px}}
+@media(prefers-reduced-motion:reduce){.agent-steps li,.agent-steps li::after,.agent-steps button>span,.agent-campaign .action-button,.agent-campaign .quiet-button{transition:none}.agent-campaign .action-button:active:not(:disabled),.agent-campaign .quiet-button:active:not(:disabled){transform:none}}
+@media print{.app-page{animation:none!important;transform:none!important;opacity:1!important}.agent-step-shell{height:auto!important;overflow:visible!important}.agent-step-content{animation:none!important;transform:none!important;opacity:1!important}}

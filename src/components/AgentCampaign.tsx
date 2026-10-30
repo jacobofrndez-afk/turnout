@@ -1,7 +1,7 @@
 "use client";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect,useRef,useState } from 'react';
+import { useEffect,useState } from 'react';
 import { type AgentOpportunity,type AgentReview,type AgentWorkspace,receiptLabel } from '@/lib/agent-workspace';
 import { CHANNELS } from '@/lib/place-dna';
 import { campaignChannelOptions,planWindowLabel,localTimeToInstant } from '@/lib/campaign-plan';
@@ -16,7 +16,7 @@ import { CampaignBoard } from './CampaignBoard';
 import { fromDoor } from '@/lib/distance';
 import { firstSentences } from '@/lib/text';
 
-type CampaignView = 'proposal' | 'personalize' | 'review' | 'materials';
+import { useCampaignMotion, type CampaignView } from './useCampaignMotion';
 const campaignSteps: {view:CampaignView;label:string}[] = [
  {view:'proposal',label:'Proposal'}, {view:'personalize',label:'Personalize'},
  {view:'review',label:'Review'}, {view:'materials',label:'Materials'},
@@ -25,12 +25,9 @@ export function AgentCampaign({merchantId,event,initial,writerConnected,entry='s
  const router=useRouter();
  const [workspace,setWorkspace]=useState(initial),[review,setReview]=useState<AgentReview|undefined>(initial?.review);
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[helpLink,setHelpLink]=useState('');
- const [view,setView]=useState<CampaignView>(entry==='proposal'?'proposal':initial&&initial.status!=='drafted'?'materials':initial?.copiedFromId?'personalize':'proposal');
+ const {view,revision,moving,goTo,section,shell,content,heading:stepHeading}=useCampaignMotion(entry==='proposal'?'proposal':initial&&initial.status!=='drafted'?'materials':initial?.copiedFromId?'personalize':'proposal');
  const [dirty,setDirty]=useState(false);
- const stepHeading=useRef<HTMLHeadingElement>(null),focusStep=useRef(false);
  const checking=view==='review';
- const goTo=(next:CampaignView)=>{focusStep.current=true;setView(next);setError('');};
- useEffect(()=>{if(focusStep.current){stepHeading.current?.focus({preventScroll:true});stepHeading.current?.scrollIntoView({block:'start'});focusStep.current=false;}},[view]);
  const locked=!!workspace&&workspace.status!=='drafted';
  useEffect(()=>{if(!dirty)return;const guard=(e:BeforeUnloadEvent)=>{e.preventDefault();};window.addEventListener('beforeunload',guard);return()=>window.removeEventListener('beforeunload',guard);},[dirty]);
  const update=(next:Partial<AgentReview>)=>{setReview(r=>r?{...r,...next}:r);setDirty(true);setNotice('');};
@@ -41,16 +38,18 @@ export function AgentCampaign({merchantId,event,initial,writerConnected,entry='s
    const data=await response.json().catch(()=>({error:response.status===429?'Please wait a minute before trying again.':'The request could not finish. Your edits are still here.'}));
    if(!response.ok){if(data.href)setHelpLink(data.href);throw new Error(data.error??'Please try again.');}
    if(!data.workspace)throw new Error('No completed campaign was returned. Nothing was sent.');
-   setWorkspace(data.workspace);setReview(data.workspace.review);setDirty(false);
-   if(method!=='PATCH')goTo(data.workspace.status!=='drafted'?(nextView==='review'?'review':'materials'):nextView??(data.workspace.copiedFromId?'personalize':'proposal'));
-   if(data.href)router.push(data.href);
+   const apply=()=>{setWorkspace(data.workspace);setReview(data.workspace.review);setDirty(false);};
+   if(method==='PATCH')apply();
+   else await goTo(data.workspace.status!=='drafted'?(nextView==='review'?'review':'materials'):nextView??(data.workspace.copiedFromId?'personalize':'proposal'),apply);
+   if(data.href)router.push(data.href,{scroll:false});
    if(method==='PATCH')setNotice('Your changes are saved. Nothing has been sent.');
    return data.workspace as AgentWorkspace;
   }catch(e){setError(e instanceof Error?e.message:'Please try again.');}
   finally{setBusy(false);}
  }
  async function openStep(target:CampaignView){
-  if(busy)return;
+  if(busy||moving)return;
+  setError('');
   if(target==='proposal'||target==='materials'){goTo(target);return;}
   if(!workspace){
    if(!writerConnected){setError('The campaign writer is not connected yet.');return;}
@@ -77,11 +76,12 @@ export function AgentCampaign({merchantId,event,initial,writerConnected,entry='s
  const channelReason=distribution&&review&&workspace?<ChannelRecommendationReason recommendation={distribution} primary={lead} prepared={review.channels.length===distribution.channels.length&&review.channels.every(c=>distribution.channels.includes(c))} paid={paid} now={Date.now()} timezone={workspace.timezone}/>:null;
  const planFacts=review&&<div className="agent-plan-summary"><div><Icon name="clock" size={18}/><span><small>Campaign window</small><strong>{when}</strong></span></div><div><Icon name="wallet" size={18}/><span><small>{paid?'Planned media cap':'Media budget'}</small><strong>{paid?`US$${review.mediaBudgetUsd} max`:'No paid media planned'}</strong></span></div></div>;
  const selectedChannels=review&&<div className="agent-selected-channels" aria-label="Selected channels">{review.channels.map(channel=><span key={channel}><ChannelIcon channel={channel}/>{CHANNELS[channel]}</span>)}</div>;
- return <section className="agent-campaign" aria-label="Your prepared campaign" aria-busy={busy}>
-  <ol className="agent-steps" aria-label="Campaign progress">{campaignSteps.map(({view:target,label},i)=><li key={target} aria-current={view===target?'step':undefined} className={step>i+1?'is-complete':''}><button type="button" disabled={busy||(target==='materials'&&!locked)} onClick={()=>void openStep(target)} aria-current={view===target?'step':undefined}><span>{step>i+1?<Icon name="check" size={12}/>:i+1}</span>{label}</button></li>)}</ol>
+ return <section ref={section} className="agent-campaign" aria-label="Your prepared campaign" aria-busy={busy||moving}>
+  <ol className="agent-steps" aria-label="Campaign progress">{campaignSteps.map(({view:target,label},i)=><li key={target} aria-current={view===target?'step':undefined} className={step>i+1?'is-complete':''}><button type="button" disabled={busy||moving||(target==='materials'&&!locked)} onClick={()=>void openStep(target)} aria-current={view===target?'step':undefined}><span>{step>i+1?<Icon name="check" size={12}/>:i+1}</span>{label}</button></li>)}</ol>
   {busy&&<p className="agent-notice" role="status">{!workspace?'Reading Qloo and preparing your campaign…':locked?'Opening your editable copy…':'Saving your campaign…'}</p>}
   {error&&<p className="plan-inline-error" role="alert">{error}{helpLink&&<> <Link href={helpLink}>Review opportunity →</Link></>}</p>}
   {!workspace&&!busy&&<p className="agent-note">Personalize or Review will prepare your campaign first.</p>}
+  <div ref={shell} className="agent-step-shell"><div ref={content} className="agent-step-content" key={revision} inert={moving}>
   <header className="agent-stage-heading"><span className="overline">Step {step} of 4{view==='proposal'&&workspace?' · Prepared for your place':''}</span><h2 ref={stepHeading} tabIndex={-1}>{view==='proposal'?workspace?'Your campaign, prepared.':'Start with a local opportunity.':view==='personalize'?'Add your own touch.':view==='review'?locked?'Review your saved campaign.':'Everything ready for your approval.':allReady?'Your materials are ready.':'Check your campaign materials.'}</h2><p>{view==='proposal'?workspace?'See the offer, message, channels and budget. Then make it yours.':'Turnout uses Qloo and your place DNA to prepare a campaign you can adjust.':view==='personalize'?'Edit the message, add a visual or adjust the plan. Review it before approving.':view==='review'?locked?'These are your saved words and settings. Personalize opens an editable copy.':'Check the content and timing. Approval saves your materials; publishing stays in your hands.':'Print your board or copy your messages to the selected channels. Nothing was charged.'}</p></header>
   {view!=='proposal'&&workspace&&<div className="agent-campaign-context"><strong>{workspace.offer.title} · {workspace.offer.price}</strong><span>{event.name} · {workspace.merchantName}</span></div>}
   {view==='proposal'&&<div className="agent-opportunity"><span className="icon-tile"><Icon name="ticket" size={22}/></span><div><span className="overline">A verified occasion nearby</span><h2>{event.headline??event.name}</h2><p><strong>{event.name}</strong> · {event.venue} · {fromDoor(event.distanceKm)} from your place</p><small>Starts {event.when}{event.sourceUrl&&<> · <a href={event.sourceUrl} target="_blank" rel="noreferrer">Source listing ↗</a></>}{event.checkedLabel&&` · Checked ${event.checkedLabel}`}</small>{event.estimateNote&&<p className="agent-note">{event.estimateNote}</p>}</div></div>}
@@ -117,5 +117,6 @@ export function AgentCampaign({merchantId,event,initial,writerConnected,entry='s
   </>}
 
   {notice&&<p className="agent-notice" role="status">{notice}</p>}
+  </div></div>
  </section>;
 }

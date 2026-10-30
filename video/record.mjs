@@ -33,8 +33,9 @@ const BLIPS = JSON.parse(process.env.BLIPS ?? "null") ?? [
 const STEPS = ["The crowd", "Who they are", "The offer", "Your words", "Channels & budget", "Approve", "Out the door"];
 const LINES = JSON.parse(readFileSync(join(OUT, "voice/lines.json"), "utf8"));
 const L = Object.fromEntries(LINES.map((l) => [l.id, l]));
-// The narration clock: planned start of each line, seconds from the start of the recording.
-const planned = {}; { let t = 0; for (const l of LINES) { t += l.gapBefore; planned[l.id] = t; t += l.duration; } }
+// The narration clock: planned start of each line, seconds from the start of the recording. Lines spoken
+// in one continuous clip share the clip's start and keep their measured offsets inside it.
+const planned = {}; { let t = 0, gs = 0; for (const l of LINES) { if (l.first !== false) { t += l.gapBefore; gs = t; t += l.groupDuration ?? l.duration; } planned[l.id] = gs + (l.offset ?? 0); } }
 // When a shot comes late (a slow page), the whole clock shifts by that delay: pauses stay as written.
 let shift = 0;
 const start = (id) => planned[id] + shift;
@@ -94,7 +95,7 @@ async function cue(id, where = "cap", html) {
   const wait = target - now();
   if (wait > 0) await sleep(wait * 1000);
   const at = now();
-  if (at - target > 0.05) shift += at - target;
+  if (at - target > 0.05 && L[id].first !== false) shift += at - target;   // inside a clip the audio runs on; only a new clip can wait
   if (where === "cap") await tv("cap", L[id].text);
   else if (where === "line") await tv("line", html ?? L[id].text);
   else if (where === "tag") await tv("tag", L[id].text);
@@ -237,7 +238,7 @@ try {
   await sleep(200);
   await chalk.pressSequentially(BOARD_TEXT, { delay: 34 });
   await tv("cursor", -200, -200);
-  await sleep(left("touch", 500));
+  await sleep(left("touch", 0) - 1100);   // the scroll runs over the end of the sentence, so the next one lands on its block
 
   // Channels and budget: where this crowd really is, and a cap.
   const plan = app.locator(".agent-plan-summary").first();

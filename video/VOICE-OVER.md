@@ -3,7 +3,7 @@
 Generic on purpose: the agent and the crowd, no vendor names, the promise at the end. The source
 of truth is `voice.mjs` (`npm run voice`, edge-tts, voice `en-US-EmmaMultilingualNeural`, rate +14%; `VOICE=` and `RATE=` override);
 `HOOK2V` and `TODAYV` replace the two lines that quote the night's real event. On screen, a
-journey band stays visible from the first product screen to the last: The crowd, Who they are,
+lines spoken over one screen are generated as one continuous clip (natural flow), and the pauses measured in that clip place the picture on each sentence. A journey band stays visible from the first product screen to the last: The crowd, Who they are,
 The offer, Your words, Channels & budget, Approve, Out the door.
 
 | On screen | Line |

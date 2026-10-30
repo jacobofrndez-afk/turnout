@@ -51,7 +51,7 @@ export function potentialFromProfile(m: Merchant, event: EventRow, dna: DnaRecor
   const best = matches[0];
   if (!best) return { ...base, label: 'No clear recommendation', reason: analysis.profile.offerFits.some(f => f.matches > 0)
     ? 'Qloo found menu connections, but no matching offer has a usable event window. Check your menu and preparation time.'
-    : 'Qloo has not returned enough evidence to connect this audience with your current menu. No score is assigned.' };
+    : 'Not enough Qloo evidence for your menu yet. No score.' };
   const { fit, offer, window } = best;
   const potential = eventCampaignPotential({ matches: fit.matches, references: fit.topPlaces.length,
     signature: dna.profile.signatureOfferId === offer.id, ...window, now,

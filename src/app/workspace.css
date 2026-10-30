@@ -555,3 +555,9 @@ body:has(.campaign-workflow-page) .workspace-header{position:static}
 .workflow-visual.has-photo .campaign-visual-controls .visual-add{min-height:38px}
 .workflow-content .channel-studio .kit-visual{display:none}
 @media(max-width:800px){.workflow-visual:not(.has-photo) .campaign-visual-controls .visual-add{min-height:112px}}
+
+/* Fewer lines before the content on the campaign page: no step label, no sentence under the step title, tighter gaps. */
+.campaign-workflow-page>.workflow-page-heading{margin-bottom:16px}
+.agent-workflow .agent-steps{margin:0 0 18px!important}
+.agent-workflow .agent-stage-heading{margin:0 0 16px;padding:0 2px}
+.agent-workflow .agent-stage-heading h2{font-size:22px;margin:0}

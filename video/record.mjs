@@ -17,6 +17,7 @@ const BASE = (process.env.BASE_URL ?? "http://127.0.0.1:3103").replace(/\/$/, ""
 let CAMPAIGN = process.env.CAMPAIGN_ID;
 const HERO = process.env.HERO ?? "m_penn_pour";
 const BOARD_TEXT = process.env.BOARD_TEXT ?? "Before Harry? Two cocktails, one price.";
+const EVENTQ = process.env.EVENT ? `&event=${encodeURIComponent(process.env.EVENT)}` : "";   // pin Today on one occasion (e.g. tomorrow's show)
 const HOOK_COUNT = Number(process.env.HOOK_COUNT ?? 20000);
 // Blips in units of the mark (the hinge is the merchant); the big one sits where the mark's own blip is.
 // Scattered over the whole frame, beyond the rings too; unnamed ones are small dots.
@@ -55,11 +56,14 @@ const browser = await chromium.launch({ channel: "chrome", headless: true, args:
 {
   const warm = await browser.newContext({ viewport: { width: VW, height: VH } });
   const p = await warm.newPage();
-  for (const u of [`/today?merchant=${HERO}`]) await p.goto(BASE + u, { waitUntil: "networkidle" }).catch(() => {});
+  for (const u of [`/today?merchant=${HERO}${EVENTQ}`]) await p.goto(BASE + u, { waitUntil: "networkidle" }).catch(() => {});
   if (!CAMPAIGN) {
-    await p.goto(`${BASE}/today?merchant=${HERO}`, { waitUntil: "networkidle" });
+    await p.goto(`${BASE}/today?merchant=${HERO}${EVENTQ}`, { waitUntil: "networkidle" });
     await p.locator(".agent-opportunity").first().waitFor({ state: "visible", timeout: 120000 });   // the hosted Today streams in after its checks
-    const own = p.getByRole("button", { name: /Make your own version/ });
+    // No current campaign: let the agent prepare one first (Qloo, then Claude), then open the editable version.
+    const prepare = p.getByRole("button", { name: /Prepare my campaign/ });
+    if (await prepare.count()) { await prepare.first().click(); await p.locator(".agent-proposal-message").first().waitFor({ state: "visible", timeout: 240000 }); }
+    const own = p.getByRole("button", { name: /Personalize campaign/ });
     if (await own.count()) await own.first().click(); else await p.locator('a[href*="/campaigns/camp_"]').first().click();
     await p.waitForURL(/\/campaigns\/camp_/, { timeout: 90000 });
     CAMPAIGN = new URL(p.url()).pathname.split("/")[2];
@@ -140,7 +144,7 @@ const left = (id, minMs = 0) => Math.max(minMs, (start(id) + L[id].duration - no
 async function load(path) {
   await next.goto(BASE + path, { waitUntil: "load", timeout: 90000 });
   await next.waitForLoadState("networkidle", { timeout: 4000 }).catch(() => {});
-  await next.locator(".agent-opportunity, .agent-board-editor, .agent-receipt-success, .campaign-board").first().waitFor({ state: "visible", timeout: 120000 }).catch(() => {});
+  await next.locator(".agent-opportunity, .agent-board-editor, .agent-receipt-success, .campaign-board, .channel-studio, .workflow-content").first().waitFor({ state: "visible", timeout: 120000 }).catch(() => {});
   await next.evaluate(() => document.fonts.ready);
   await live(next, "main button, main textarea");
   await next.evaluate(() => scrollTo(0, 0));
@@ -199,7 +203,7 @@ const hookHtml = (t) => t.replace(/twenty[- ]thousand/i, '<b id="num">0</b>').re
 
 try {
   // Today loads in the dark, under the stage; the header lockup is cloned for the morph.
-  await load(`/today?merchant=${HERO}`);
+  await load(`/today?merchant=${HERO}${EVENTQ}`);
   [app, next] = [next, app];
   const lockup = app.locator(".turnout-wordmark svg.turnout-logo-wide").first();
   await tv("setLogo", readFileSync(join(here, "../public/brand/lockup-reverse.svg"), "utf8"), { hx: 32, hy: 137, r0: 110, ringW: 3, blipR: 6.825 });
@@ -260,7 +264,10 @@ try {
 
   // Your words: the campaign page is already loaded behind; place it, then crossfade.
   await preCampaign;
-  const editor = next.locator(".agent-board-editor").first();
+  // The board lives in the channel studio now: open its Chalkboard tab in the hidden frame before the crossfade.
+  const studioTab = next.getByRole("button", { name: /^Chalkboard$/ });
+  if (await studioTab.count()) await studioTab.first().dispatchEvent("click");
+  const editor = next.locator(".channel-studio, .agent-board-editor").first();
   await editor.waitFor({ state: "visible", timeout: 15000 });
   await bring(editor, 150, 0, next);
   await swap();
@@ -279,9 +286,9 @@ try {
   await sleep(left("touch", 0) - 1100);
 
   // Channels: the eight of them first, the local ad among them; then the budget and the reason, on the words.
-  const plan = app.locator(".agent-plan-summary").first();
+  const plan = app.locator(".kit-budget, .agent-plan-summary").first();
   const reason = app.locator(".channel-choice-reason").first();
-  const picks = app.locator(".agent-channel-picks").first();
+  const picks = app.locator(".workflow-channels, .agent-channel-picks").first();
   await bring(picks, 260, 700);
   await tv("step", 4);
   await spot(16, picks);

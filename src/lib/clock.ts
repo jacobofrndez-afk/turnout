@@ -1,6 +1,8 @@
+import { dateFormatter } from "./date-formatter";
+
 // A US bar says "5:30 pm" and "5 to 7 pm"; a Paris bar says "17:30". Strings are "HH:MM", as stored in draft.windows.
 const us = (tz: string) => tz.startsWith("America/") || tz.startsWith("US/") || tz === "Pacific/Honolulu";
-export const hhmm = (t: number | Date, tz: string) => new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: tz }).format(t);
+export const hhmm = (t: number | Date, tz: string) => dateFormatter("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: tz }).format(t);
 const say = (s: string, suffix: boolean) => { const [h, m] = s.split(":").map(Number); return `${h % 12 || 12}${m ? `:${String(m).padStart(2, "0")}` : ""}${suffix ? ` ${h >= 12 ? "pm" : "am"}` : ""}`; };
 const str = (t: number | Date | string, tz: string) => (typeof t === "string" ? t : hhmm(t, tz));
 /** One clock, the way the merchant's city says it: "5:30 pm" in New York, "17:30" in Paris. */

@@ -2,6 +2,7 @@ import { LocalPromotionSchema, type SavedLocalPromotion } from "./local-promotio
 import { z } from "zod";
 import { CampaignVisualSchema, RevenueScenarioSchema, type CampaignVisual, type RevenueScenario } from "./campaign-creative";
 import { localDateKey } from "./calendar";
+import { dateFormatter } from "./date-formatter";
 import { clockRange, hhmm } from "./clock";
 import { CHANNEL_IDS, type PlaceDna } from "./place-dna";
 export type PlanChannel = PlaceDna["channels"][number];
@@ -64,7 +65,7 @@ export function planCost(channels: PlanChannel[], budgetUsd: number) {
 }
 export function planWindowLabel(startAt: string | number, endAt: string | number, timezone: string) {
   const start = new Date(startAt), end = new Date(endAt);
-  const day = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: timezone });
+  const day = dateFormatter("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: timezone });
   return localDateKey(start, timezone) === localDateKey(end, timezone)
     ? `${day.format(start)} · ${clockRange(start, end, timezone)}`
     : `${day.format(start)} ${hhmm(start, timezone)} – ${day.format(end)} ${hhmm(end, timezone)}`;

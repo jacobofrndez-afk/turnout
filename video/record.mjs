@@ -58,6 +58,7 @@ const browser = await chromium.launch({ channel: "chrome", headless: true, args:
   for (const u of [`/today?merchant=${HERO}`]) await p.goto(BASE + u, { waitUntil: "networkidle" }).catch(() => {});
   if (!CAMPAIGN) {
     await p.goto(`${BASE}/today?merchant=${HERO}`, { waitUntil: "networkidle" });
+    await p.locator(".agent-opportunity").first().waitFor({ state: "visible", timeout: 120000 });   // the hosted Today streams in after its checks
     const own = p.getByRole("button", { name: /Make your own version/ });
     if (await own.count()) await own.first().click(); else await p.locator('a[href*="/campaigns/camp_"]').first().click();
     await p.waitForURL(/\/campaigns\/camp_/, { timeout: 90000 });
@@ -139,6 +140,7 @@ const left = (id, minMs = 0) => Math.max(minMs, (start(id) + L[id].duration - no
 async function load(path) {
   await next.goto(BASE + path, { waitUntil: "load" });
   await next.waitForLoadState("networkidle", { timeout: 4000 }).catch(() => {});
+  await next.locator(".agent-opportunity, .agent-board-editor, .agent-receipt-success, .campaign-board").first().waitFor({ state: "visible", timeout: 120000 }).catch(() => {});
   await next.evaluate(() => document.fonts.ready);
   await live(next, "main button, main textarea");
   await next.evaluate(() => scrollTo(0, 0));

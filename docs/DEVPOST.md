@@ -1,7 +1,7 @@
 # DevPost submission (copy into the form)
 
 Fill the two URL fields before submitting. Every claim below matches what the hosted app does
-on 2026-10-30: it prepares, it never sends or charges.
+on 2026-10-30: it prepares, it never sends or charges. Hosted on Render: https://turnout-x7vm.onrender.com
 
 ## Project name
 
@@ -13,7 +13,7 @@ Turn the crowd outside into customers inside.
 
 ## Links
 
-- Try it out: _Render URL_/today?merchant=m_penn_pour
+- Try it out: https://turnout-x7vm.onrender.com/today?merchant=m_penn_pour
 - Repository: https://github.com/jacobofrndez-afk/turnout (public, MIT)
 - Video demo: _YouTube link_
 

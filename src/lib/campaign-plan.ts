@@ -70,3 +70,8 @@ export function planWindowLabel(startAt: string | number, endAt: string | number
     ? `${day.format(start)} · ${clockRange(start, end, timezone)}`
     : `${day.format(start)} ${hhmm(start, timezone)} – ${day.format(end)} ${hhmm(end, timezone)}`;
 }
+
+/** A planned window is still worth opening while at least 30 minutes remain after the preparation lead. */
+export function windowStillOpen(review: { endLocal: string }, timezone: string, leadMinutes: number, now = Date.now()) {
+  return localTimeToInstant(review.endLocal, timezone) - (now + leadMinutes * 60000) >= 30 * 60000;
+}

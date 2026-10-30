@@ -16,7 +16,7 @@ import { proposeAheadCampaign, proposeImmediateCampaign } from "@/server/workspa
 import { opportunitySources } from "@/server/workspace/opportunity-sources";
 import { evergreenProposals } from "@/server/workspace/evergreen-proposals";
 import { rhythmProposals, weatherProposal, menuEvidenceProposals } from "@/server/workspace/context-proposals";
-import { localTimeToInstant } from "@/lib/campaign-plan";
+import { localTimeToInstant, windowStillOpen } from "@/lib/campaign-plan";
 import { signalProposals } from "@/server/workspace/signal-proposals";
 import { TodayOpportunity } from "@/components/TodayOpportunity";
 import { campaignChannelAffinities } from "@/server/workspace/channel-affinity";
@@ -70,7 +70,9 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const leadEvent=chosenEvent?getEvent(chosenEvent):undefined;
   const resumed=leadEvent&&sp.campaign?resumeAgentWorkspace(sp.campaign,m.id,leadEvent.id,dna.version):undefined;
   if(resumed)redirect(campaignWorkflowHref(resumed.id,m.id,resumed.status==='drafted'?'personalize':'materials'));
-  const prepared=leadEvent?latestAgentWorkspace(m.id,leadEvent.id,dna.version):undefined;
+  const latest=leadEvent?latestAgentWorkspace(m.id,leadEvent.id,dna.version):undefined;
+  // Once its window is over or too close to use, the saved campaign gives way to a fresh proposal for the next window; it stays in the list below.
+  const prepared=latest&&windowStillOpen(latest.review,m.timezone,dna.profile.leadMinutes,agenda.now)?latest:undefined;
   return <main className="app-page today-page"><WorkspaceContext merchant={m} merchants={merchants} destination="/today" />
     <header className="page-heading"><div><h1>Your next campaign</h1><p className="today-assistant-note">Ready-made content. Your channels. Your call. <Link href="/about" className="assistant-how-link">How it works <Icon name="arrow" size={12}/></Link></p></div><span className="date-stamp"><Icon name="calendar" />{new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: m.timezone }).format(agenda.now)}</span></header>
     {leadEvent&&<div className="home-grid agent-home"><div className="home-main"><AgentCampaign key={`${m.id}-${leadEvent.id}`} entry="proposal" context="today" merchantId={m.id} event={eventOpportunity(m.id,leadEvent,agenda.now)} initial={prepared} writerConnected={provider()==="anthropic"}/></div><aside className="home-aside">{aside}</aside></div>}

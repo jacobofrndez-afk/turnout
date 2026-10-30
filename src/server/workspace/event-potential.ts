@@ -43,24 +43,36 @@ export function potentialOfferWindow(offer: OfferRow, event: EventRow, timezone:
 
 export function potentialFromProfile(m: Merchant, event: EventRow, dna: DnaRecord, offers: OfferRow[], analysis: Analysis, now = Date.now()): EventPotential {
   const base = { score: null, references: [], factors: [], checkedAt: analysis.checkedAt, radiusM: Math.max(m.radius_m, 2500) };
-  const matches = analysis.profile.offerFits.flatMap(fit => {
-    const offer = offers.find(o => o.id === fit.offerId && o.price.trim());
-    const window = offer && potentialOfferWindow(offer, event, m.timezone, dna.profile.leadMinutes, now);
-    return offer && window && fit.matches > 0 ? [{ fit, offer, window }] : [];
-  }).sort((a,b) => b.fit.affinity - a.fit.affinity || b.fit.matches - a.fit.matches);
-  const best = matches[0];
-  if (!best) return { ...base, label: 'No clear recommendation', reason: analysis.profile.offerFits.some(f => f.matches > 0)
-    ? 'Qloo found menu connections, but no matching offer has a usable event window. Check your menu and preparation time.'
-    : 'Not enough Qloo evidence for your menu yet. No score.' };
+  const { profile } = analysis;
+  if (!profile.offerFits.length) return { ...base, label: 'No clear recommendation', reason: 'Not enough Qloo evidence for your menu yet. No score.' };
+  // Every priced offer with a usable window is a candidate. Nearby place references rank first, shared taste tags next, then the signature offer.
+  const candidates = offers.flatMap(offer => {
+    if (!offer.price.trim()) return [];
+    const window = potentialOfferWindow(offer, event, m.timezone, dna.profile.leadMinutes, now);
+    if (!window) return [];
+    const fit = profile.offerFits.find(f => f.offerId === offer.id);
+    return [{ offer, window, fit, matches: fit?.matches ?? 0, affinity: fit?.affinity ?? 0, signature: dna.profile.signatureOfferId === offer.id }];
+  }).sort((a, b) => Number(b.matches > 0) - Number(a.matches > 0) || b.affinity - a.affinity || b.matches - a.matches || Number(b.signature) - Number(a.signature));
+  const best = candidates[0];
+  if (!best) return { ...base, label: 'No clear recommendation', reason: 'No offer has a usable window for this event. Check your menu hours and preparation time.' };
   const { fit, offer, window } = best;
-  const potential = eventCampaignPotential({ matches: fit.matches, references: fit.topPlaces.length,
-    signature: dna.profile.signatureOfferId === offer.id, ...window, now,
+  const places = fit?.topPlaces ?? [];
+  const tastes = profile.tags.slice(0, 3).map(t => t.name).filter(Boolean).join(', ');
+  const potential = eventCampaignPotential({ matches: best.matches, references: places.length, affinity: best.affinity,
+    signature: best.signature, ...window, now,
     insideArea: haversineKm(m.lat, m.lon, event.lat, event.lon) <= m.radius_m / 1000 });
-  return { ...base, ...potential, label: potential.score === null ? 'Check the timing' : potential.score >= 75 ? 'Worth preparing' : 'Worth exploring',
-    reason: fit.topPlaces.length
-      ? `Qloo connects this audience with ${fit.topPlaces.slice(0, 2).join(' and ')}. Their place tags match this offer.`
-      : `Qloo returned ${fit.matches} nearby place references matching this offer’s menu tags for this audience.`,
-    offer: { id: offer.id, title: offer.title, price: offer.price }, references: fit.topPlaces,
+  const reason = best.matches > 0
+    ? places.length
+      ? `Qloo connects this audience with ${places.slice(0, 2).join(' and ')}. Their place tags match this offer.`
+      : `Qloo returned ${best.matches} nearby place references matching this offer’s menu tags for this audience.`
+    : best.affinity > 0
+      ? `Qloo links this audience’s tastes${tastes ? ` (${tastes})` : ''} with this offer’s menu tags. No nearby place reference matched yet.`
+      : tastes
+        ? `Qloo describes this crowd as ${tastes}. None of these tastes match your menu tags, so the index rests on timing and your place DNA.`
+        : 'Qloo returned no taste tags for this crowd. The index rests on timing and your place DNA.';
+  return { ...base, ...potential,
+    label: potential.score === null ? 'Check the timing' : best.matches === 0 && best.affinity === 0 ? best.signature ? 'Your signature, by default' : 'Low Qloo fit' : potential.score >= 75 ? 'Worth preparing' : 'Worth exploring',
+    reason, offer: { id: offer.id, title: offer.title, price: offer.price }, references: places,
     window: { startLocal: localStampAt(window.start, m.timezone), endLocal: localStampAt(window.end, m.timezone) } };
 }
 

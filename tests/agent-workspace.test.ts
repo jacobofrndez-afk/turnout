@@ -14,7 +14,7 @@ import {POST as approve} from '../src/app/api/campaigns/[id]/approve/route';
 import {copyCampaign} from '../src/server/agent/versions';
 import {POST as makeVersion} from '../src/app/api/campaigns/[id]/versions/route';
 import {POST as prepare} from '../src/app/api/campaigns/prepare/route';
-import {localStampAt} from '../src/lib/campaign-plan';
+import {localStampAt,localTimeToInstant} from '../src/lib/campaign-plan';
 import {deliverySummary} from '../src/lib/delivery';
 import {preparedBoard} from '../src/server/agent/board';
 import {boardWindow} from '../src/lib/campaign-board';
@@ -259,7 +259,7 @@ test('version creation rejects stale economics, changed DNA and expired time wit
  db.prepare("UPDATE merchant_dna SET version=2 WHERE merchant_id='test_agent'").run();
  try{assert.throws(()=>copyCampaign('replay-source',now),/DNA changed/);assert.equal(count(),before);}
  finally{db.prepare("UPDATE merchant_dna SET version=1 WHERE merchant_id='test_agent'").run();}
- assert.throws(()=>copyCampaign('replay-source',starts+24*3600000),/window is too close or has passed/);assert.equal(count(),before);
+ assert.throws(()=>copyCampaign('replay-source',starts+24*3600000),/window has passed/);assert.equal(count(),before);
  db.prepare("UPDATE events SET meta_json='{}' WHERE id='test_event'").run();
  try{assert.throws(()=>copyCampaign('replay-source',now),/verify this event/);assert.equal(count(),before);}
  finally{db.prepare("UPDATE events SET meta_json=? WHERE id='test_event'").run(meta);}
@@ -326,4 +326,18 @@ test('historical receipts display the exact previously prepared social copy',()=
  db.prepare("UPDATE campaigns SET status='prepared',review_json=?,copy_json=? WHERE id='old-social'").run(JSON.stringify(saved),JSON.stringify(oldDraft));
  db.prepare("INSERT INTO sends(id,campaign_id,channel,status,simulated,payload_json) VALUES('old-social-send','old-social','facebook','ready',1,?)").run(JSON.stringify({message:'The exact historical Facebook post.'}));
  assert.equal(agentWorkspace('old-social',now)?.review.channelCreatives?.facebook?.caption,'The exact historical Facebook post.');
+});
+
+test('a copy made while the approved window is already running starts as soon as it can be prepared and keeps the end',()=>{
+ const source=JSON.parse(getCampaign('replay-source')!.review_json!) as {startLocal:string;endLocal:string};
+ const during=localTimeToInstant(source.startLocal,'UTC')+5*60000;
+ const fresh=JSON.parse(meta) as {sourceCheck:{checkedAt:string}};
+ db.prepare("UPDATE events SET meta_json=? WHERE id='test_event'").run(JSON.stringify({...fresh,sourceCheck:{...fresh.sourceCheck,checkedAt:new Date(during).toISOString()}}));
+ try{
+  const id=copyCampaign('replay-source',during);
+  const copy=JSON.parse(getCampaign(id)!.review_json!) as {startLocal:string;endLocal:string};
+  assert.equal(copy.startLocal,localStampAt(Math.ceil((during+16*60000)/60000)*60000,'UTC'));
+  assert.equal(copy.endLocal,source.endLocal);
+  assert.throws(()=>copyCampaign('replay-source',localTimeToInstant(source.endLocal,'UTC')-20*60000),/window has passed/);
+ }finally{db.prepare("UPDATE events SET meta_json=? WHERE id='test_event'").run(meta);}
 });

@@ -28,7 +28,8 @@ after(()=>{db.close();rmSync(temp,{recursive:true,force:true});});
 test('potential requires Qloo evidence and a usable nearby campaign window, not model confidence',()=>{
   const input={matches:2,references:2,signature:true,start:now+3600000,end:now+7200000,now,insideArea:true};
   assert.equal(eventCampaignPotential(input).score,90);
-  assert.equal(eventCampaignPotential({...input,matches:0}).score,null);
+  assert.equal(eventCampaignPotential({...input,matches:0,references:0}).score,50);
+  assert.equal(eventCampaignPotential({...input,matches:0,references:0,affinity:.6}).score,70);
   assert.equal(eventCampaignPotential({...input,insideArea:false}).score,null);
   assert.equal(eventCampaignPotential({...input,end:input.start+20*60000}).score,null);
   assert.equal(eventCampaignPotential({...input,now:input.end+1}).score,null);
@@ -75,4 +76,14 @@ test('checking an assessed event returns evidence without creating a campaign; f
   const response=await POST(new Request('http://localhost/api/events/potential',{method:'POST',headers:{Origin:'http://localhost','Content-Type':'application/json'},body:JSON.stringify({merchant:merchant.id,event:event.id})}));
   assert.equal(response.status,200);assert.equal((await response.json()).potential.score,90);
   assert.equal((db.prepare('SELECT COUNT(*) AS n FROM campaigns').get() as {n:number}).n,0);
+});
+test('without a nearby place match the index still scores from tastes, timing and DNA, and says so',()=>{
+  const tagged={...analysis,profile:{...profile,tags:[{id:'urn:tag:musicals',name:'Musicals'},{id:'urn:tag:family',name:'Family outings'}] as CrowdProfile['tags'],offerFits:[{...fit,matches:0,topPlaces:[],affinity:0}]}};
+  const result=potentialFromProfile(merchant,event,dna,offers,tagged,now);
+  assert.equal(result.score,50);assert.equal(result.offer?.id,offers[0].id);
+  assert.equal(result.label,'Your signature, by default');
+  assert.match(result.reason,/Musicals, Family outings/);assert.match(result.reason,/None of these tastes match/);
+  assert.equal(result.factors[0].points,0);
+  const shared=potentialFromProfile(merchant,event,dna,offers,{...tagged,profile:{...tagged.profile,offerFits:[{...fit,matches:0,topPlaces:[],affinity:.6}]}},now);
+  assert.equal(shared.score,70);assert.match(shared.reason,/No nearby place reference matched yet/);
 });

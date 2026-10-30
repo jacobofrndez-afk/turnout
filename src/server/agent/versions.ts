@@ -1,5 +1,5 @@
 import { AgentReviewSchema, type SavedAgentReview } from '@/lib/agent-workspace';
-import { localTimeToInstant } from '@/lib/campaign-plan';
+import { localStampAt, localTimeToInstant, windowStillOpen } from '@/lib/campaign-plan';
 import { getDb, newId } from '@/server/db/client';
 import { getMerchant } from '@/server/events/radar';
 import { DnaError, readyDna } from '@/server/merchants/dna';
@@ -15,7 +15,12 @@ export function copyCampaign(id:string,now=Date.now()):string{
   const saved=JSON.parse(original.review_json) as SavedAgentReview;
   const review=AgentReviewSchema.parse({...saved,revision:0});
   const merchant=getMerchant(original.merchant_id)!,dna=readyDna(original.merchant_id);
-  if(localTimeToInstant(review.startLocal,merchant.timezone)<now+dna.profile.leadMinutes*60000)throw new DnaError('This campaign window is too close or has passed. Choose a current opportunity on Today to prepare new content.',409);
+  const lead=dna.profile.leadMinutes*60000;
+  if(localTimeToInstant(review.startLocal,merchant.timezone)<now+lead){
+   // The window has started: the copy begins as soon as it can be prepared, and keeps the original end.
+   if(!windowStillOpen(review,merchant.timezone,dna.profile.leadMinutes,now))throw new DnaError('This campaign window has passed. Choose a current opportunity on Today to prepare new content.',409);
+   review.startLocal=localStampAt(Math.ceil((now+lead+60000)/60000)*60000,merchant.timezone);
+  }
   const newCampaignId=newId('camp');
   const oldUsage=JSON.parse(original.llm_usage_json??'{}');
   const usage=JSON.stringify({source:oldUsage.source,inherited_from:id});

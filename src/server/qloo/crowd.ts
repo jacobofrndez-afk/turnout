@@ -106,7 +106,16 @@ export async function buildCrowdProfile(merchant: Merchant, event: EventRow, pic
         profile.status = "needs_input";
       }
     }
-    provenance.push({ seq: ++seq, kind: "decision", workflow: "resolve_headliner", input: { headliner: head.name, type: head.qlooType ?? "any" }, status: profile.status, resultCount: results.length, cacheHit: false, durationMs: 0, note: entity ? `picked ${entity.name} (${entity.subtype})` : "no confident match" });
+    // A show, a family production or a mixed bill is not a Qloo entity: the venue's own audience stands in for the crowd.
+    let viaVenue = false;
+    if (!entity && !pickedEntityId && !head.qlooType && event.venue_name) {
+      const venues = await searchEntities(event.venue_name, ["place"], { onCall: onCall("describe", `venue "${event.venue_name}" as place`) });
+      const sameName = venues.filter((v) => norm(v.name) === norm(event.venue_name));
+      const local = sameName.filter((v) => String(v.properties?.address ?? "").toLowerCase().includes(merchant.city.toLowerCase()));
+      const venue = local[0] ?? (sameName.length === 1 ? sameName[0] : undefined);
+      if (venue) { entity = venue; profile.status = "auto"; viaVenue = true; }
+    }
+    provenance.push({ seq: ++seq, kind: "decision", workflow: "resolve_headliner", input: { headliner: head.name, type: head.qlooType ?? "any" }, status: profile.status, resultCount: results.length, cacheHit: false, durationMs: 0, note: entity ? viaVenue ? `venue audience: ${entity.name} (no Qloo entity for the show)` : `picked ${entity.name} (${entity.subtype})` : "no confident match" });
     if (!entity) return profile;
     profile.entity = entity;
     profile.signal.entities = [{ id: entity.entity_id, name: entity.name, type: entity.subtype?.replace("urn:entity:", "") ?? "" }];
@@ -126,7 +135,8 @@ export async function buildCrowdProfile(merchant: Merchant, event: EventRow, pic
   profile.demographics = await demographics(id, { onCall: onCall("audience_demographics") }).catch(() => undefined);
   profile.places = await recommend("place", { ...signalOf(id), location: { lat: merchant.lat, lon: merchant.lon, radiusM: merchant.radius_m }, filterTags: [BAR_OR_RESTAURANT[0]], take: 12, explain: true }, { onCall: onCall("recommend", `bars within ${merchant.radius_m} m`) });
   // Causes and charities are not brands a bar can speak to: filtered the same way as on the pulse.
-  profile.brands = (await recommend("brand", { ...signalOf(id), take: 12 }, { onCall: onCall("recommend", "brands this crowd over-indexes on") })).filter(isCommercialBrand);
+  // A place standing in for the crowd is not a valid brand signal for Qloo; brands are context, never a blocker.
+  profile.brands = (await recommend("brand", { ...signalOf(id), take: 12 }, { onCall: onCall("recommend", "brands this crowd over-indexes on") }).catch(() => [] as QlooEntity[])).filter(isCommercialBrand);
 
   // 3. Offer fit: for each offer, how strongly does this crowd like places with the offer's tags around the merchant?
   for (const offer of getOffers(merchant.id)) {

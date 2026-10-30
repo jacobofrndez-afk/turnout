@@ -104,7 +104,7 @@ export function buildUserPrompt(merchant: Merchant, event: EventRow, profile: Cr
     if (meta.members?.length) lines.push(`Made of: ${meta.members.slice(0, 8).map((m) => `${m.name} (${m.venue})`).join("; ")}.`);
     lines.push(`Qloo signal for this crowd: ${[...profile.signal.entities.map((e) => `${e.name} (${e.type})`), ...profile.signal.tags.map((t) => `tag ${t.name}`)].join(", ")}. This is not one fan base: speak to the whole moment, not to one show.`, "");
   }
-  const who = profile.signal.entities.length > 1 || profile.signal.tags.length ? "this crowd" : (profile.entity?.name ?? profile.headlinerName);
+  const who = profile.signal.entities.length > 1 || profile.signal.tags.length ? "this crowd" : (profile.entity && profile.entity.subtype !== "urn:entity:place" ? profile.entity.name : profile.headlinerName);
   lines.push(`# Qloo: who likes ${who}`);
   if (profile.demographics) {
     const a = profile.demographics.age;
